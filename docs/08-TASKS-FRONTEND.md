@@ -40,7 +40,7 @@ Kamu mengerjakan folder `frontend/`. Baca dulu: `docs/05-API-CONTRACT.md` (bentu
 **Bukti:** screenshot normal / hover / pin / tanpa-ekor + test yang mengukur `opacity` dan urutan `Tab`.
 
 ## F5 — Tabel & filter
-**Deliverable:** `SectorTable` (11 kolom dokumen 06 §5, sortable, header sticky, highlight baris sektor terpilih), `FilterBar` (semua filter dokumen 06 §7 + preset cepat + chip aktif + reset), sinkron dengan URL.
+**Deliverable:** `SectorTable` (11 kolom dokumen 06 §5, sortable, header sticky, highlight baris sektor terpilih), `FilterBar` (semua filter dokumen 06 §7 + preset cepat + chip aktif + reset), `AsOfPicker` (pakai `GET /api/v1/meta/dates` — hari tanpa data dinonaktifkan; daftar kosong → `<input type="date">` biasa), sinkron dengan URL.
 **AC:** setiap kombinasi filter menghasilkan query param yang sesuai `docs/05`; reload halaman mempertahankan filter; `0 hasil` menampilkan `EmptyState` dengan tombol reset; sorting dari header mengubah `sort`/`dir` di URL.
 **Bukti:** 3 URL contoh + screenshot hasilnya.
 

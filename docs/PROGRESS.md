@@ -58,13 +58,15 @@ Legenda status: `todo` · `wip` · `blocked` · `done`
 | 12 | ~~Bentuk `run.result_json` per kind~~ → **selesai**: tabel bentuk per kind ditulis di `docs/05` §4.6 (import/prices/compute/signals/midday) | backend | **selesai** |
 | 13 | ~~`ret_positive_only` di `/stocks` acuannya apa~~ → **selesai**: acuan tetap **`ret_1w`** (endpoint ini tidak punya `window`), ditulis di `docs/05` §2 | user + backend | **selesai** |
 | 14 | ~~Item `/rrg` belum memuat `streak_weeks` dan `rs_*_change_1p`~~ → **selesai**: ditambahkan + `api_version` naik ke **1.1**; `docs/05` §2 sekarang memuat tabel field wajib per item (aditif, frontend lama tetap jalan) | backend | **selesai** |
-| 15 | `AsOfPicker` (docs/06 §5) harus menandai hari tanpa data dan membuatnya tidak bisa dipilih, tapi `docs/05` tidak punya endpoint daftar tanggal tersedia (hanya `as_of` sebagai parameter). Sementara dipakai `<input type="date">` biasa — user bisa memilih hari libur dan mendapat tabel kosong tanpa penjelasan | user + backend | terbuka |
+| 15 | ~~`AsOfPicker` butuh daftar tanggal tersedia, `docs/05` belum punya endpoint-nya~~ → **selesai**: `GET /api/v1/meta/dates` ditambahkan (`docs/05` §1) — urut menurun, `limit` maks 400, daftar kosong bukan error | backend | **selesai** |
+| 16 | Kartu hover `PointCard`: keputusan tanda & satuan sudah final di `docs/06` §5 (`102,31` tanpa `+`, turnover kolom = `turnover_idr` "hr ini" vs filter = median 20 hari) — pastikan wireframe/komponen mengikuti, bukan sebaliknya | frontend | **selesai** |
 
 ## Log perubahan dokumen planning
 
 | Tanggal | Perubahan |
 |---|---|
 | 2026-10-13 | Mode fokus RRG + tutup blocker kontrak 10–14. `docs/06` §6.1 (hover/pin/keyboard, ambang label di screen px), `docs/05` §2 `/rrg` dapat `streak_weeks` + `rs_*_change_1p` (`api_version` 1.1) + tabel field wajib per item, `docs/05` §4.6 baru (nama `run.kind` baku, amplop `runs`, bentuk `result_json` per kind), `docs/04` komentar `kind` diselaraskan, `ret_positive_only` `/stocks` = `ret_1w`. |
+| 2026-10-13 | Keputusan tampilan tabel: level RS-Ratio/RS-Mom ditampilkan tanpa tanda (`102,31`; wireframe §8 dikoreksi), kolom turnover = `turnover_idr` berlabel "Turnover hr ini" sedangkan filter likuiditas = median 20 hari (beda ditulis di tooltip header). Endpoint baru `GET /api/v1/meta/dates` untuk `AsOfPicker` (blocker 15); aturan tanda & satuan ditetapkan di `docs/06` §5 (blocker 16). |
 | 2026-10-12 | Planning pack awal dibuat (README + docs 01–08 + config + DECISIONS/PROGRESS). Data source yfinance diverifikasi langsung. |
 | 2026-10-13 | B0 selesai: `backend/` (pyproject, `app/config.py`, `app/db.py` + `db/schema.sql`, `app/main.py`, `cli.py`, `tests/`). Temuan: ADR-006 (jumlah tabel & `IF NOT EXISTS`), ADR-007 (packaging `pip install -e backend`). |
 | 2026-10-13 | B1 selesai: `backend/app/ingest/excel.py`, `app/api/admin.py`, `POST /api/v1/admin/import/excel`, CLI `import-excel`, master sektor di-seed saat `db-init` (ADR-011), guard import (ADR-012). 962 emiten aktif. |
