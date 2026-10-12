@@ -79,14 +79,15 @@ Semua ambang batas yang **dipakai** server, supaya UI bisa menampilkan ("filter 
 Titik + ekor untuk diagram RRG. `scope=sector` (default) atau `scope=stock&sector=IDXFINANCE`.
 Query: `timeframe, as_of, scope, sector, window, weighting, tail_points` (default `tail_points` = jumlah periode dalam `window`, maks 60).
 ```json
-{ "api_version": "1.0",
+{ "api_version": "1.1",
   "timeframe": "w1_fri", "as_of": "2026-10-09", "window": "3m", "weighting": "equal",
   "quadrants": { "leading": 3, "weakening": 2, "lagging": 3, "improving": 3 },
   "items": [
     { "ref_id": "IDXFINANCE", "name": "Keuangan", "color_hex": "#3B82F6",
       "rs_ratio": 102.31, "rs_momentum": 100.84,
+      "rs_ratio_change_1p": 0.42, "rs_momentum_change_1p": 0.31,
       "quadrant": "leading", "quadrant_prev": "improving", "transition": "improving→leading",
-      "quadrant_age_periods": 2, "score": 87.4, "rank_score": 1,
+      "quadrant_age_periods": 2, "score": 87.4, "rank_score": 1, "streak_weeks": 2,
       "ret_1w": 0.0181, "median_turnover_20d_idr": 1180000000000,
       "tail": [ { "as_of": "2026-09-25", "rs_ratio": 99.4, "rs_momentum": 99.1 }, { "as_of": "2026-10-02", "rs_ratio": 100.2, "rs_momentum": 100.6 },
                 { "as_of": "2026-10-09", "rs_ratio": 102.31, "rs_momentum": 100.84 } ] }
@@ -94,6 +95,19 @@ Query: `timeframe, as_of, scope, sector, window, weighting, tail_points` (defaul
   "data_status": { "...": "lihat konvensi" } }
 ```
 Aturan: `tail` urut lama→baru, panjang ≤ `tail_points`, sudah dibatasi `min_points` (titik warmup dibuang). Titik terakhir **selalu** sama dengan `rs_ratio`/`rs_momentum` di atas.
+
+**Field wajib di setiap item** (dipakai `PointCard`, `docs/06 §5` — angkanya harus identik dengan baris `sectors/summary` untuk `ref_id` yang sama):
+
+| Field | Sumber DB | Kalau tidak ada |
+|---|---|---|
+| `rs_ratio`, `rs_momentum`, `quadrant`, `quadrant_prev`, `transition`, `quadrant_age_periods` | `rrg_daily` | — |
+| `rs_ratio_change_1p`, `rs_momentum_change_1p` | `rrg_daily` | `null` (jangan 0) |
+| `score`, `rank_score` | `rrg_daily` / `sector_metrics` (hanya `scope=sector`) | `null` untuk `scope=stock` |
+| `streak_weeks` | `signal_weekly` terakhir untuk `ref_id` (0 bila tidak pernah muncul) | `0` |
+| `ret_1w`, `median_turnover_20d_idr` | `sector_metrics` / `stock_metrics` | `null` |
+| `color_hex` | `sector.color_hex` (untuk `scope=stock`: warna sektornya) | token netral |
+
+Field baru ini **aditif** (naik ke `api_version` 1.1); frontend lama yang tidak membacanya tetap jalan. Backend **wajib** mengirim `streak_weeks` (boleh `0`) dan `rs_*_change_1p` bila `rrg_daily` memilikinya — `PointCard` menampilkannya sebagai "Δ1p" dan badge streak.
 
 ### `GET /api/v1/sectors/summary`
 Baris tabel di bawah diagram — inilah tabel yang difilter user. Query filter (semua opsional, semua dikerjakan di SQL):
@@ -134,7 +148,7 @@ Query: `timeframe, window, weighting, as_of, constituents_limit` (default 50), `
 ```
 
 ### `GET /api/v1/stocks`
-Tabel semua saham (halaman "Saham"). Query: `timeframe, as_of, sector` (multi), `quadrant` (multi), `ret_positive_only` (bool, default `false`), `q` (cari ticker/nama, min 1 char), `min_turnover_idr`, `min_price_idr`, `sort` = `stock_score|rs_ratio|ret_1d|ret_1w|turnover|ticker` (default `stock_score`), `dir`, `limit` (default 50, maks 500), `offset`.
+Tabel semua saham (halaman "Saham"). Query: `timeframe, as_of, sector` (multi), `quadrant` (multi), `ret_positive_only` (bool, default `false`) — **acuan tetap `ret_1w`** karena endpoint ini tidak punya parameter `window`: artinya "hanya saham dengan `ret_1w > 0`" —, `q` (cari ticker/nama, min 1 char), `min_turnover_idr`, `min_price_idr`, `sort` = `stock_score|rs_ratio|ret_1d|ret_1w|turnover|ticker` (default `stock_score`), `dir`, `limit` (default 50, maks 500), `offset`.
 ```json
 { "api_version": "1.0", "total": 612, "limit": 50, "offset": 0,
   "items": [ { "ticker": "BBRI", "name": "Bank Rakyat Indonesia", "sector_code": "IDXFINANCE",
@@ -292,6 +306,31 @@ Sebelum menjalankan **tombol 2** (ingest harga) pertama kali, UI menampilkan dia
 Opsional (kalau `config.api.api_key` diisi): header `X-API-Key` wajib untuk semua `/admin/*`. Karena sekarang UI ikut memanggil `/admin/*`, kalau `api_key` diisi maka frontend membacanya dari `localStorage` (diisi manual oleh user sekali) — **jangan** taruh kunci di kode frontend atau di `VITE_*` env.
 
 ---
+
+### 4.6 Bentuk yang baku (jangan ditawar lagi)
+
+**Nama `run.kind`** — hanya enam nilai ini, persis (dipakai UI untuk chip status & prasyarat tombol; beda satu huruf = tombol selalu "belum pernah"):
+
+```
+import_excel | prices_daily | prices_intraday | compute_all | compute_signals | midday
+```
+`compute_index` dan `compute_rrg` **bukan** kind yang berdiri sendiri: keduanya bagian dari `compute_all` (stage `index|rrg|all` tetap diterima sebagai parameter, tapi `kind` yang tersimpan = `compute_all`). Kolom `kind` di `ingest_run` (`docs/04` §4) memakai daftar yang sama.
+
+**Amplop daftar run** — `GET /api/v1/admin/runs`:
+```json
+{ "api_version": "1.1", "runs": [ { "run_id": 9, "kind": "prices_daily", "status": "ok", "started_at": "...", "finished_at": "...", "rows": 455026, "rows_total": 455026, "percent": 100.0, "phase": null, "message": "selesai", "failed_tickers": ["MAP"] } ] }
+```
+Kuncinya **`runs`**, bukan `items`. `GET /admin/runs/{run_id}` tetap memakai `{ "run": {...} }` (§4.3).
+
+**Bentuk `result_json` per kind** (dipakai panel riwayat di halaman Data):
+
+| kind | `result_json` |
+|---|---|
+| `import_excel` | `{ "import_id": 3, "inserted": 962, "updated": 0, "deactivated": 0, "errors": [ {"sheet":"IDXFINANCE","row_no":18,"raw_value":"BCA","reason":"invalid_ticker"} ] }` |
+| `prices_daily` / `prices_intraday` | `{ "rows": 148210, "batches": 20, "failed_tickers": ["MAP"] }` |
+| `compute_all` | `{ "timeframe": "d1", "sectors": 11, "tickers": 962, "duration_s": 42.1 }` |
+| `compute_signals` | `{ "week_end": "2026-10-09", "sectors": 3, "stocks": 7 }` |
+| `midday` | `{ "gate": "ok", "last_bar_at": "2026-10-13T11:35:00+07:00", "computed": true }` |
 
 ## 5. Kontrak untuk frontend
 

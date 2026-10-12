@@ -202,7 +202,8 @@ CREATE INDEX idx_signal_week ON signal_weekly(week_end DESC, scope);
 
 CREATE TABLE ingest_run (
   id          INTEGER PRIMARY KEY,
-  kind        TEXT NOT NULL,               -- excel | prices_daily | prices_intraday | compute_index | compute_rrg | compute_signals | midday
+  kind        TEXT NOT NULL,               -- import_excel | prices_daily | prices_intraday | compute_all | compute_signals | midday
+                                           -- (enam nilai ini saja; compute_index/compute_rrg bukan kind terpisah — lihat docs/05 §4.6)
   status      TEXT NOT NULL,               -- queued | running | ok | partial | failed | skipped
   phase       TEXT,                        -- tahap yang sedang jalan (mis. "ingest", "compute_rrg")
   started_at  TEXT NOT NULL,

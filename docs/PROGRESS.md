@@ -53,16 +53,17 @@ Legenda status: `todo` · `wip` · `blocked` · `done`
 | 7 | ~~Filter `ret_positive_only` tidak ada param-nya di `docs/05`~~ → **selesai**: ditambahkan ke `sectors/summary` dan `stocks` (`docs/05` §2); ADR-014 tertutup | user + backend | **selesai** |
 | 8 | ~~`meta/config` `rrg.min_points` angka vs per-timeframe~~ → **selesai**: bentuk resmi = objek per-timeframe `{"d1":60,"w1":30,"w1_fri":30,"midday":60}`; contoh `docs/05` §1 sudah dikoreksi | backend | **selesai** |
 | 9 | ~~`sector`/`quadrant` koma-separated (ADR-015)~~ → **selesai**: `docs/05` §0 menetapkan **kedua bentuk wajib jalan** (`?sector=A&sector=B` dan `?sector=A,B`) | backend | **selesai** |
-| 10 | Nama `run.kind` harus sama persis dengan yang dipakai UI (ADR-016): `import_excel, prices_daily, prices_intraday, compute_all, compute_signals, midday` — kalau beda, chip status & prasyarat tombol di halaman Data selalu "belum pernah" | backend | terbuka |
-| 11 | Amplop `GET /api/v1/admin/runs` dipakai `{ api_version, runs: [...] }` (ADR-016; `docs/05` §4 tidak menulis bentuknya) — kalau backend memilih `items`, tabel riwayat kosong tanpa error | backend | terbuka |
-| 12 | Bentuk `run.result_json` per kind belum ditetapkan `docs/05`: UI mengharapkan hasil import (`inserted/updated/deactivated/errors[]`) pada run `import_excel` dan `{gate,last_bar_at,computed}` pada run `midday` | backend | terbuka |
-| 13 | `ret_positive_only` di `/stocks`: acuan "jendela aktif" tidak jelas karena `/stocks` tidak punya param `window` (mock sementara pakai `ret_1w`) — perlu ditetapkan di `docs/05` sebelum F8 | user + backend | terbuka |
-| 14 | Item `/rrg` belum memuat `streak_weeks` dan `rs_ratio_change_1p`/`rs_momentum_change_1p`, padahal `PointCard` (docs/06 §5) memintanya dan AC F4 #1 bilang angka hover harus sama dengan baris tabel → tambahkan di `docs/05` §2 (`api_version` 1.1) atau PointCard tetap tanpa streak/perubahan | backend | terbuka |
+| 10 | ~~Nama `run.kind` harus sama persis dengan UI (ADR-016)~~ → **selesai**: `docs/05` §4.6 menetapkan enam nilai baku (`import_excel, prices_daily, prices_intraday, compute_all, compute_signals, midday`) — ADR-016 diadopsi jadi kontrak | backend | **selesai** |
+| 11 | ~~Amplop `GET /api/v1/admin/runs`~~ → **selesai**: kunci resmi **`runs`** (bukan `items`), ditulis di `docs/05` §4.6 | backend | **selesai** |
+| 12 | ~~Bentuk `run.result_json` per kind~~ → **selesai**: tabel bentuk per kind ditulis di `docs/05` §4.6 (import/prices/compute/signals/midday) | backend | **selesai** |
+| 13 | ~~`ret_positive_only` di `/stocks` acuannya apa~~ → **selesai**: acuan tetap **`ret_1w`** (endpoint ini tidak punya `window`), ditulis di `docs/05` §2 | user + backend | **selesai** |
+| 14 | ~~Item `/rrg` belum memuat `streak_weeks` dan `rs_*_change_1p`~~ → **selesai**: ditambahkan + `api_version` naik ke **1.1**; `docs/05` §2 sekarang memuat tabel field wajib per item (aditif, frontend lama tetap jalan) | backend | **selesai** |
 
 ## Log perubahan dokumen planning
 
 | Tanggal | Perubahan |
 |---|---|
+| 2026-10-13 | Mode fokus RRG + tutup blocker kontrak 10–14. `docs/06` §6.1 (hover/pin/keyboard, ambang label di screen px), `docs/05` §2 `/rrg` dapat `streak_weeks` + `rs_*_change_1p` (`api_version` 1.1) + tabel field wajib per item, `docs/05` §4.6 baru (nama `run.kind` baku, amplop `runs`, bentuk `result_json` per kind), `docs/04` komentar `kind` diselaraskan, `ret_positive_only` `/stocks` = `ret_1w`. |
 | 2026-10-12 | Planning pack awal dibuat (README + docs 01–08 + config + DECISIONS/PROGRESS). Data source yfinance diverifikasi langsung. |
 | 2026-10-13 | B0 selesai: `backend/` (pyproject, `app/config.py`, `app/db.py` + `db/schema.sql`, `app/main.py`, `cli.py`, `tests/`). Temuan: ADR-006 (jumlah tabel & `IF NOT EXISTS`), ADR-007 (packaging `pip install -e backend`). |
 | 2026-10-13 | B1 selesai: `backend/app/ingest/excel.py`, `app/api/admin.py`, `POST /api/v1/admin/import/excel`, CLI `import-excel`, master sektor di-seed saat `db-init` (ADR-011), guard import (ADR-012). 962 emiten aktif. |

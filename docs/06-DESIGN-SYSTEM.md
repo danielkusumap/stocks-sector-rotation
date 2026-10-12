@@ -148,8 +148,8 @@ Hue berbeda, lightness seragam per tema supaya tidak ada sektor yang "terlihat l
 - Zona kuadran: `Leading` kanan-atas, `Weakening` kanan-bawah, `Lagging` kiri-bawah, `Improving` kiri-atas. Label zona 10px uppercase di tepi (opacity .55), **bukan** di tengah (jangan menutupi titik).
 - Grid: 1px `--border`, garis 100/100 `--border-strong` lebih tebal.
 - Ekor: polyline 1.5px dengan opasitas bertingkat 0.25 → 1.0 ke arah titik terakhir; titik akhir r=7 dengan ring `--surface` 2px; titik `leading` diberi dot kecil di ujung ekor sebagai penanda arah. Tanpa gradien. Animasi masuk: titik bergerak dari posisi sebelumnya 180ms.
-- Label: tampilkan nama sektor di sebelah titik; bila titik berdekatan (< 24px), hanya yang terpilih/hover yang berlabel (label lain jadi dot polos) — hindari label bertumpuk (penyakit utama UI RRG buatan AI).
-- Interaksi dasar: hover → `PointCard`; klik → **pin** pilihan (tabel ikut terfilter); tombol kecil "Semua"/"Hanya kuadran" di pojok chart.
+- Label: tampilkan nama sektor di sebelah titik; bila titik berdekatan, hanya yang terpilih/hover yang berlabel — hindari label bertumpuk (penyakit utama UI RRG buatan AI). **Ambang kedekatan diukur dalam pixel di layar, bukan satuan viewBox:** `threshold_viewBox = 24 / (renderedWidth_px / viewBoxWidth)`. Chart ini responsif, jadi ambang dalam satuan viewBox akan salah di layar kecil (label tetap bertumpuk) dan terlalu agresif di layar besar.
+- Interaksi dasar: hover → `PointCard`; klik → **pin** pilihan (tabel ikut terfilter). Tombol "Semua"/"Hanya kuadran" **bukan** bagian chart — pindah ke `FilterBar` (F5, docs/06 §7), karena itu kontrol filter dan tidak boleh punya dua tempat.
 - Plot pakai `d3-scale` + `d3-shape` saja. **Tidak ada** chart library (Recharts/Chart.js/nivo) — hindari bloat & gaya default yang sulit dikalahkan.
 
 ### 6.1 Mode fokus — hover/klik satu titik, sisanya meredup (WAJIB)
