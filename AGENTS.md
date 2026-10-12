@@ -22,8 +22,10 @@ Ada **dua agen yang bekerja terpisah**: satu di `backend/`, satu di `frontend/`.
 7. Bahasa UI: **Indonesia**. Angka format Indonesia (koma desimal, titik ribuan). Kode/komentar: Inggris singkat.
 8. Zona waktu tunggal **Asia/Jakarta (UTC+7)**.
 9. Jangan menambah fitur di luar `docs/01` §3. Usul fitur → tulis di `DECISIONS.md` bagian "usul", jangan dibangun.
-10. Rahasia/kunci tidak masuk repo (`.env` di-gitignore). `data/rotation.db`, `node_modules`, `dist`, `.venv` di-gitignore.
-11. **Satu task = satu commit.** Setelah satu task selesai (kode jalan + `docs/PROGRESS.md` diperbarui + bukti nyata ada), langsung commit:
+10. **Semua langkah pipeline wajib bisa dipicu dari HTTP/UI, bukan hanya CLI.** User menjalankan end-to-end dari halaman Data di frontend (`docs/08` F12) — dia tidak akan menyentuh terminal. Tombol di UI harus punya backend yang benar-benar jalan dengan fungsi yang sama seperti CLI.
+11. **Jangan menjalankan backfill/ingest skala penuh saat development.** Uji dengan subset kecil (10–20 emiten) dan MSW/fixture. Backfill 962 emiten dijalankan user dari UI saat semua sudah jadi.
+12. Rahasia/kunci tidak masuk repo (`.env` di-gitignore). `data/rotation.db`, `node_modules`, `dist`, `.venv` di-gitignore.
+13. **Satu task = satu commit.** Setelah satu task selesai (kode jalan + `docs/PROGRESS.md` diperbarui + bukti nyata ada), langsung commit:
 
     ```
     git add -A
@@ -32,7 +34,7 @@ Ada **dua agen yang bekerja terpisah**: satu di `backend/`, satu di `frontend/`.
 
     Format pesan: `<TASK-ID>: <ringkasan imperatif, huruf kecil, tanpa titik di akhir>`. Contoh lain: `B4: indeks sektor equal/turnover/captier`, `F4: QuadrantChart RRG + ekor`, `docs: koreksi rumus RS-Momentum`. Untuk perubahan non-task: awali `docs:`, `fix:`, `chore:`, `refactor:`.
     Larangan: jangan mencampur dua task dalam satu commit; jangan commit saat test merah; jangan commit `data/rotation.db` atau file `.xlsx` lain (hanya `saham_sektoral.xlsx` yang ikut).
-12. Jangan `git push` ke remote apa pun kecuali user secara eksplisit meminta. Repo ini lokal dulu.
+14. Jangan `git push` ke remote apa pun kecuali user secara eksplisit meminta. Repo ini lokal dulu.
 
 ## Kondisi awal repo (sudah diverifikasi user)
 

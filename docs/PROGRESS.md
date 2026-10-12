@@ -50,9 +50,9 @@ Legenda status: `todo` · `wip` · `blocked` · `done`
 | 4 | Bobot indeks default: `equal` (sekarang) vs `captier` — putuskan setelah lihat selisih arah keduanya | user | terbuka |
 | 5 | Apakah papan `Pemantauan Khusus` (69 emiten) tetap ditampilkan di tabel (badge PK) atau disembunyikan total | user | terbuka |
 | 6 | ~~Halaman Status perlu `/admin/*` padahal `docs/05` §5.1 melarang~~ → **selesai**: docs/05 §4 & §5.1 direvisi, UI boleh memicu pipeline (ADR-013 digantikan). Tipe/hook admin dikerjakan di F12 | user + backend | **selesai** |
-| 7 | Filter `ret_positive_only` ada di `docs/06` §7 tapi tidak ada query param-nya di `docs/05` mana pun → lihat ADR-014 | user + backend | terbuka |
-| 8 | `GET /api/v1/meta/config` `rrg.min_points`: contoh `docs/05` = angka (60), `config/default.yaml` = per-timeframe → mana yang dipakai backend? | backend | terbuka |
-| 9 | `sector`/`quadrant` diterima sebagai **satu nilai koma-separated** (ADR-015) — backend perlu split koma sebelum B8, kalau tidak filter multi selalu 0 baris | backend | terbuka |
+| 7 | ~~Filter `ret_positive_only` tidak ada param-nya di `docs/05`~~ → **selesai**: ditambahkan ke `sectors/summary` dan `stocks` (`docs/05` §2); ADR-014 tertutup | user + backend | **selesai** |
+| 8 | ~~`meta/config` `rrg.min_points` angka vs per-timeframe~~ → **selesai**: bentuk resmi = objek per-timeframe `{"d1":60,"w1":30,"w1_fri":30,"midday":60}`; contoh `docs/05` §1 sudah dikoreksi | backend | **selesai** |
+| 9 | ~~`sector`/`quadrant` koma-separated (ADR-015)~~ → **selesai**: `docs/05` §0 menetapkan **kedua bentuk wajib jalan** (`?sector=A&sector=B` dan `?sector=A,B`) | backend | **selesai** |
 
 ## Log perubahan dokumen planning
 
@@ -64,6 +64,7 @@ Legenda status: `todo` · `wip` · `blocked` · `done`
 | 2026-10-12 | Disesuaikan dengan `saham_sektoral.xlsx` nyata: kolom Excel (Kode/Nama/Tanggal Pencatatan/Saham/Papan), 962 emiten, `shares_outstanding` + `listing_date` masuk skema, weighting `captier` ditambahkan (ADR-004), AC task B1 memakai angka nyata dari file. |
 | 2026-10-13 | Frontend `F0` selesai: token dua tema disesuaikan agar lolos AA (ADR-008), peta rute halaman dibuat (ADR-009), sumber warna sektor ditetapkan (ADR-010). |
 | 2026-10-13 | Frontend `F1` selesai: `src/lib/api.ts` (43 tipe, satu per endpoint), 13 hook TanStack Query, `src/lib/urlFilters.ts` + `useFilterState`, MSW + fixture 11 sektor/30 saham. Tiga celah kontrak dicatat: ADR-013 (endpoint admin untuk halaman Status), ADR-014 (`ret_positive_only`), ADR-015 (parameter multi-nilai koma-separated). |
+| 2026-10-13 | **Keputusan user: seluruh pipeline dijalankan dari UI, bukan terminal.** Perubahan dokumen: `docs/01` §3 no.12 (halaman Data = pintu masuk utama), `docs/05` §4 ditulis ulang (frontend **boleh & wajib** memanggil `/admin/*`; tabel 7 tombol pipeline §4.1; 409 + `error.code` prasyarat; `GET /admin/runs/{run_id}` + kolom progres §4.3; SSE opsional §4.4), `docs/04` tabel `ingest_run` dapat kolom progres (`phase`, `rows_total`, `percent`, `params_json`, `result_json`, `triggered_by`), task baru **B12** (pipeline API async) & **F12** (halaman Data), `AGENTS.md` rule 10–11 (pipeline wajib bisa dipicu dari HTTP/UI; dilarang backfill skala penuh saat development), `docs/08` F10 diubah jadi baca-saja. Blocker 6–9 **selesai** (resolusi kontrak). |
 
 ## Cara kerja per task
 

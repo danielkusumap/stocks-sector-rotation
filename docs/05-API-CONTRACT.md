@@ -24,7 +24,11 @@ Status: `400` input salah, `404` tidak ada, `409` konflik (import duplikat), `42
 ```
 
 Parameter umum (dipakai banyak endpoint):
-`timeframe` = `d1|w1|w1_fri|midday` (default `d1`) · `as_of` = tanggal acuan (default: tanggal terakhir yang ada) · `window` = `1w|1m|3m|6m|1y|ytd` (default `3m`, hanya panjang ekor & kolom return) · `weighting` = `equal|turnover|captier` (default dari config) · `sector` = kode sektor, boleh diulang · `format` = `json` (default).
+`timeframe` = `d1|w1|w1_fri|midday` (default `d1`) · `as_of` = tanggal acuan (default: tanggal terakhir yang ada) · `window` = `1w|1m|3m|6m|1y|ytd` (default `3m`, hanya panjang ekor & kolom return) · `weighting` = `equal|turnover|captier` (default dari config) · `format` = `json` (default).
+
+**Parameter bernilai banyak** (`sector`, `quadrant`): diterima dalam dua bentuk dan keduanya wajib jalan —
+`?sector=IDXFINANCE&sector=IDXBASIC` (diulang) **dan** `?sector=IDXFINANCE,IDXBASIC` (satu nilai dipisah koma).
+Backend memisah koma lebih dulu, trim spasi, uppercase, lalu dedupe. Nilai kosong (`?sector=`) diabaikan (dianggap tidak memfilter).
 
 ---
 
@@ -50,7 +54,8 @@ Semua ambang batas yang **dipakai** server, supaya UI bisa menampilkan ("filter 
 ```json
 { "api_version": "1.0",
   "universe": { "min_turnover_idr": 1000000000, "min_price_idr": 100, "max_rsi": 75 },
-  "rrg": { "ema_span": 14, "roc_lag": 10, "weekly": { "ema_span": 14, "roc_lag": 4 }, "min_points": 60 },
+  "rrg": { "ema_span": 14, "roc_lag": 10, "weekly": { "ema_span": 14, "roc_lag": 4 },
+           "min_points": { "d1": 60, "w1": 30, "w1_fri": 30, "midday": 60 } },
   "timeframes": ["d1", "w1", "w1_fri", "midday"],
   "windows": ["1w", "1m", "3m", "6m", "1y", "ytd"],
   "midday_gate_min_bar_time": "11:30",
@@ -92,7 +97,7 @@ Aturan: `tail` urut lama→baru, panjang ≤ `tail_points`, sudah dibatasi `min_
 
 ### `GET /api/v1/sectors/summary`
 Baris tabel di bawah diagram — inilah tabel yang difilter user. Query filter (semua opsional, semua dikerjakan di SQL):
-`sector` (multi), `quadrant` (multi: `leading,weakening,lagging,improving`), `transition` (mis. `improving→leading`), `min_streak` (int), `min_turnover_idr`, `only_partial` (bool), `sort` = `score|rs_ratio|rs_momentum|ret_1w|ret_1m|turnover|rank_score` (default `score`), `dir` = `desc|asc`, `limit`, `offset`, plus `timeframe/as_of/window/weighting`.
+`sector` (multi), `quadrant` (multi: `leading,weakening,lagging,improving`), `transition` (mis. `improving→leading`), `min_streak` (int), `min_turnover_idr`, `ret_positive_only` (bool, default `false` — hanya sektor dengan nilai kolom return jendela aktif > 0), `only_partial` (bool), `sort` = `score|rs_ratio|rs_momentum|ret_1w|ret_1m|turnover|rank_score` (default `score`), `dir` = `desc|asc`, `limit`, `offset`, plus `timeframe/as_of/window/weighting`.
 ```json
 { "api_version": "1.0", "total": 11, "limit": 50, "offset": 0,
   "items": [
@@ -129,7 +134,7 @@ Query: `timeframe, window, weighting, as_of, constituents_limit` (default 50), `
 ```
 
 ### `GET /api/v1/stocks`
-Tabel semua saham (halaman "Saham"). Query: `timeframe, as_of, sector` (multi), `quadrant` (multi), `q` (cari ticker/nama, min 1 char), `min_turnover_idr`, `min_price_idr`, `sort` = `stock_score|rs_ratio|ret_1d|ret_1w|turnover|ticker` (default `stock_score`), `dir`, `limit` (default 50, maks 500), `offset`.
+Tabel semua saham (halaman "Saham"). Query: `timeframe, as_of, sector` (multi), `quadrant` (multi), `ret_positive_only` (bool, default `false`), `q` (cari ticker/nama, min 1 char), `min_turnover_idr`, `min_price_idr`, `sort` = `stock_score|rs_ratio|ret_1d|ret_1w|turnover|ticker` (default `stock_score`), `dir`, `limit` (default 50, maks 500), `offset`.
 ```json
 { "api_version": "1.0", "total": 612, "limit": 50, "offset": 0,
   "items": [ { "ticker": "BBRI", "name": "Bank Rakyat Indonesia", "sector_code": "IDXFINANCE",
@@ -219,9 +224,16 @@ Aturan: `briefing/morning` **wajib tetap mengembalikan 200** walau data stale/pa
 
 ---
 
-## 4. Admin / jobs (dipakai user & Hermes, bukan frontend)
+## 4. Admin / jobs — dipicu dari UI (dan dari Hermes/CLI)
 
-Semua endpoint POST di bawah menerima `?async=true` → mengembalikan `202` + `{"run_id": 12, "status": "running"}` (progres dilihat di `GET /api/v1/admin/runs`). Tanpa `async`, request menunggu selesai (timeout 300 s).
+Endpoint ini **dipakai halaman Data di frontend** (lihat `docs/08` F12), juga oleh Hermes dan CLI. CLI (`backend/cli.py`) dan API **wajib memanggil fungsi Python yang sama** — jangan ada logika ingest/compute yang cuma hidup di CLI atau cuma di API.
+
+**Semua endpoint tulis di bawah WAJIB mendukung pola async** (ingest 962 emiten makan ~95 detik; UI tidak boleh nge-block):
+```
+POST ...?async=true  →  202 { "run_id": 12, "status": "queued" }     # default untuk semua tombol di UI
+POST ...             →  200 menunggu selesai (timeout 300s)          # dipakai CLI/curl/Hermes
+```
+Progres dibaca dari `GET /api/v1/admin/runs/{run_id}` (§4.3) — dipoll UI tiap 1 s, atau SSE opsional (§4.4).
 
 | Endpoint | Body / query | Response ringkas |
 |---|---|---|
@@ -230,15 +242,62 @@ Semua endpoint POST di bawah menerima `?async=true` → mengembalikan `202` + `{
 | `POST /api/v1/admin/compute` | `{ "stage": "index" \| "rrg" \| "signals" \| "all", "timeframe": "d1", "as_of": null }` | `{ "run_id": 10, "sectors": 11, "tickers": 612, "duration_s": 42.1 }` |
 | `POST /api/v1/admin/midday` | `{}` | `{ "gate": "ok", "last_bar_at": "...", "computed": true }` atau `{ "gate": "stale", "last_bar_at": "...", "computed": false }` |
 | `GET /api/v1/admin/runs?limit=20` | — | daftar `ingest_run` (untuk halaman status) |
+### 4.1 Pipeline yang bisa dipicu user dari UI (urut, tombol per tombol)
+
+| Tombol UI | Endpoint | Isi | Estimasi durasi |
+|---|---|---|---|
+| **1. Import sektor (Excel)** | `POST /api/v1/admin/import/excel?async=true` (multipart `file`) | pilih file `saham_sektoral.xlsx` dari komputer | 1–3 s |
+| **2. Ambil harga harian** | `POST /api/v1/admin/ingest/prices?async=true` `{"mode":"daily","from":"2024-10-14"}` | backfill/update semua emiten aktif | ~1,5 menit (sekali), ~10 s harian |
+| **3. Ambil harga intraday** | `POST /api/v1/admin/ingest/prices?async=true` `{"mode":"intraday"}` | bar 5m/60m hari ini | ~30 s |
+| **4. Hitung semua** | `POST /api/v1/admin/compute?async=true` `{"stage":"all","timeframe":"d1"}` | indeks → RRG → metrik → sinyal | ~30–60 s |
+| **5. Hitung mingguan** | `POST /api/v1/admin/compute?async=true` `{"stage":"signals","timeframe":"w1_fri"}` | sinyal + streak | ~10 s |
+| **6. Tengah hari** | `POST /api/v1/admin/midday?async=true` | gate kesegaran + hitung ulang intraday | ~40 s |
+| **7. Refresh data tampilan** | (tidak ada endpoint baru) | frontend invalidate cache TanStack Query | — |
+
+Aturan: tombol 2–6 **terkunci (disabled) sampai prasyaratnya terpenuhi**, dan backend **juga** menolak dengan `409` kalau dipaksa (jangan cuma mengandalkan UI):
+- tombol 2 butuh tabel `stock` terisi (`SELECT COUNT(*) FROM stock WHERE is_active=1 > 0`);
+- tombol 4/5 butuh `price_daily` terisi untuk sebagian besar emiten aktif;
+- tombol 5 (`w1_fri`) hanya jalan setelah penutupan Jumat (kalau dipaksa di hari lain → `409 gate_weekly_not_final`);
+- tombol 6 mengikuti gate kesegaran `docs/02 §5` (kalau gagal → `200` dengan `{"gate":"stale", "computed":false}`, bukan error).
+Respons `409` memuat `error.code` yang spesifik: `prereq_no_universe`, `prereq_no_prices`, `gate_weekly_not_final`, `gate_midday_stale`.
+
+### 4.2 Konfirmasi wajib di UI
+
+Sebelum menjalankan **tombol 2** (ingest harga) pertama kali, UI menampilkan dialog konfirmasi yang menyebut jumlah emiten aktif + perkiraan durasi. Alasannya: itu satu-satunya operasi berat (≈1,5 menit, ratusan request ke Yahoo). Tombol lain tidak perlu konfirmasi.
+
+### 4.3 Status & progres run
+
+`GET /api/v1/admin/runs/{run_id}`
+```json
+{ "api_version": "1.0",
+  "run": { "run_id": 9, "kind": "prices_daily", "status": "running",
+           "started_at": "2026-10-13T07:02:11+07:00", "finished_at": null,
+           "phase": "ingest", "rows": 184320, "rows_total": 455026, "percent": 40.5,
+           "message": "batch 9/20 (emiten 401–450)", "failed_tickers": ["MAP"] } }
+```
+`status`: `queued | running | ok | partial | failed | skipped`. Kalau `running`, `percent` wajib > 0 dalam 5 detik pertama (UI menampilkan progress bar; kalau `rows_total` belum diketahui → kirim `percent: null` dan UI pakai spinner + `message`).
+
+`GET /api/v1/admin/runs?limit=20` → 20 run terakhir (kolom sama), untuk halaman Status.
+
+### 4.4 (opsional, kalau cepat) Server-Sent Events
+
+`GET /api/v1/admin/runs/{run_id}/events` → stream `text/event-stream` berisi baris progres. Boleh dilewati di v1; **polling 1 s sudah cukup**. Jangan bangun SSE sebelum polling-nya jalan.
+
+### 4.5 Backup & keamanan
+
+| Endpoint | Body / query | Response ringkas |
+|---|---|---|
 | `GET /api/v1/admin/export/backup` | — | unduhan `rotation.db` (streaming) |
 
-Opsional (kalau `config.api.api_key` diisi): header `X-API-Key` wajib untuk semua `/admin/*`. Frontend **tidak** memanggil `/admin/*` di v1 (import & ingest dijalankan user/Hermes via curl atau CLI).
+Opsional (kalau `config.api.api_key` diisi): header `X-API-Key` wajib untuk semua `/admin/*`. Karena sekarang UI ikut memanggil `/admin/*`, kalau `api_key` diisi maka frontend membacanya dari `localStorage` (diisi manual oleh user sekali) — **jangan** taruh kunci di kode frontend atau di `VITE_*` env.
 
 ---
 
 ## 5. Kontrak untuk frontend
 
-1. Frontend **hanya** memanggil endpoint di §1–§3. Tidak ada `/admin/*`.
+1. Frontend memanggil §1–§3 untuk **membaca**, dan **§4 untuk memicu pipeline** (halaman Data). Halaman lain tidak memanggil `/admin/*`.
+   - Mutasi admin selalu dikirim sebagai `POST ...?async=true` → dapat `run_id` → poll `GET /admin/runs/{run_id}` tiap 1 s → saat `status` jadi `ok|partial|failed|skipped`, `invalidateQueries` untuk data terkait (`rrg`, `sectorSummary`, `stocks`, `freshness`, `runs`).
+   - Tombol pipeline harus punya state jelas: `idle → mengirim → jalan (progress %) → selesai/gagal`, plus toast hasil dan tombol "Coba lagi" saat gagal. Jangan biarkan tombol tampak selesai padahal run-nya gagal.
 2. Semua filter disimpan di **URL query** (shareable): `?timeframe=w1_fri&window=3m&quadrant=leading,improving&min_streak=2&sort=score`.
 3. Frontend tidak menghitung rumus apa pun (termasuk kuadran). Semua angka dari API.
 4. Frontend tidak memformat ulang angka menjadi string lain dari yang diberikan; hanya menambahkan pemisah ribuan & satuan ringkas (docs/03 §8).

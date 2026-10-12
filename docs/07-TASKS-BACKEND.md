@@ -106,6 +106,26 @@ python -m backend.cli serve                  # uvicorn app.main:app --port 8000
 **AC:** `pytest -q` hijau dari checkout bersih; README cukup untuk menjalankan seluruh alur (import → ingest → compute → serve) tanpa bertanya.
 **Bukti:** output pytest.
 
+## B12 — Pipeline API: async, progres, prasyarat (dibutuhkan F12)
+
+**Kenapa ada:** user menjalankan seluruh pipeline dari UI (halaman Data, `docs/08` F12), bukan dari CLI. CLI tetap ada untuk Hermes/otomasi, tapi keduanya wajib memakai **fungsi Python yang sama** (`ingest/prices.py`, `compute/*.py`) — API bukan pembungkus CLI via subprocess.
+
+**Deliverable:**
+1. Semua endpoint tulis `docs/05 §4.1` menerima `?async=true` → `202 {run_id, status:"queued"}`, dan tanpa flag → sinkron (dipakai CLI/curl).
+2. Tabel `ingest_run` dengan kolom progres (`phase`, `rows`, `rows_total`, `percent`, `message`, `params_json`, `result_json`, `triggered_by`) — DDL di `docs/04 §4`.
+3. `GET /api/v1/admin/runs/{run_id}` dan `GET /api/v1/admin/runs?limit=20` sesuai `docs/05 §4.3`.
+4. Prasyarat ditegakkan **di backend** dengan `409` + `error.code` dari `docs/05 §4.1` (`prereq_no_universe`, `prereq_no_prices`, `gate_weekly_not_final`, `gate_midday_stale`).
+5. Selama run panjang, tulis progres tiap batch (bukan tiap baris) — 1 UPDATE per batch sudah cukup, jangan bikin SQLite sibuk.
+
+**AC:**
+1. `curl -X POST '.../admin/ingest/prices?async=true' -d '{"mode":"daily","tickers":["BBCA","BBRI"]}'` → `202` + `run_id`; `GET /admin/runs/{id}` menunjukkan `status` berubah `queued → running → ok` dan `rows` bertambah. Bukti: 3 respons poling berturut-turut.
+2. Menjalankan `compute` untuk `w1_fri` di hari non-Jumat → `409 gate_weekly_not_final` (bukan 200 dengan data kosong).
+3. `POST /admin/compute?async=true` saat `price_daily` kosong → `409 prereq_no_prices`.
+4. Tanpa `?async=true`, endpoint yang sama mengembalikan hasil sinkron dengan bentuk respons yang sama seperti CLI (bukti: bandingkan output `python -m backend.cli compute --stage rrg` dengan respons HTTP — angka identik).
+5. Tidak ada endpoint yang menggantung setelah selesai: `SELECT COUNT(*) FROM ingest_run WHERE status='running'` = 0 setelah semua run selesai.
+
+**Bukti:** tempel 3 respons poling + 2 respons `409` di `PROGRESS.md`.
+
 ---
 
 ## Aturan tambahan untuk agen backend
@@ -115,4 +135,6 @@ python -m backend.cli serve                  # uvicorn app.main:app --port 8000
 3. Waktu: simpan apa adanya dari yfinance (sudah `+07:00`), konversi tanggal bisnis dengan `.tz_convert("Asia/Jakarta")` sebelum `.date()`.
 4. Kalau Yahoo gagal: **jangan** hapus/timpa data lama; catat `ingest_run` dan lanjut.
 5. Kalau rumus di `docs/03` terasa salah saat implementasi, **jangan** diam-diam mengubahnya: implementasi sesuai dokumen, tulis temuan + usul di `DECISIONS.md`, dan sebutkan di laporan.
-6. Setelah setiap task: update `PROGRESS.md` (status + bukti). Task tanpa bukti = belum selesai.
+6. **Jangan menjalankan backfill skala penuh saat development.** Uji dengan subset kecil (`--tickers BBCA,BBRI,ANTM` atau 10–20 emiten). Backfill 962 emiten (±1,5 menit, ratusan request ke Yahoo) adalah wewenang **user**, dijalankan dari halaman Data saat semuanya sudah jadi. Rankaian uji kecil tetap wajib membuktikan idempotensi (ingest 2× → jumlah baris tidak berubah).
+7. **Semua kemampuan pipeline harus bisa dipicu lewat HTTP** (bukan hanya CLI) — itu syarat agar user bisa menjalankannya end-to-end dari UI. Kalau kamu menambah langkah baru (mis. refresh market cap), tambahkan endpoint-nya juga, jangan cuma perintah CLI.
+8. Setelah setiap task: update `PROGRESS.md` (status + bukti). Task tanpa bukti = belum selesai.

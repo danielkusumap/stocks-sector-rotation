@@ -58,8 +58,9 @@ Kamu mengerjakan folder `frontend/`. Baca dulu: `docs/05-API-CONTRACT.md` (bentu
 **AC:** badge `2w`+ hanya muncul saat `streak_weeks ≥ 2`; expander menampilkan semua rule_hits (true maupun false) dengan label Indonesia; memilih minggu berjalan → tampil catatan "belum final, tersedia setelah penutupan Jumat" dan daftar kosong (bukan error).
 **Bukti:** screenshot + test pemilih minggu.
 
-## F10 — Halaman Status (kesegaran data)
-**Deliverable:** `/status` — pill besar gate midday (`ok/stale`), waktu bar terakhir per probe ticker, daftar `ingest_run`, tombol "Jalankan midday sekarang" (memanggil `/admin/midday` bila `api_key` tidak diisi; kalau diisi, tombol disembunyikan + catatan), info config aktif (`meta/config`).
+## F10 — Halaman Status (kesegaran data) — baca-saja
+**Pembagian tugas dengan F12:** F12 = **aksi** (tombol menjalankan pipeline). F10 = **pembacaan** (kondisi data + riwayat run). Tombol `Jalankan` tidak diduplikasi di sini — cukup tautan "Buka halaman Data" ke `/data`.
+**Deliverable:** `/status` — pill besar gate midday (`ok/stale`), waktu bar terakhir per probe ticker, daftar `ingest_run` (`GET /api/v1/admin/runs?limit=20`, komponen boleh dipakai ulang dari F12), info config aktif (`meta/config`).
 **AC:** halaman tidak pernah error walau semua endpoint mengembalikan `null`; status `stale` punya penjelasan tindakan ("data Yahoo belum 11:30, coba lagi nanti").
 **Bukti:** screenshot 2 skenario gate.
 
@@ -67,6 +68,41 @@ Kamu mengerjakan folder `frontend/`. Baca dulu: `docs/05-API-CONTRACT.md` (bentu
 **Deliverable:** axe bersih (0 violation WCAG2AA) di kedua tema, `prefers-reduced-motion` dihormati, tidak ada CLS (skeleton dengan tinggi akhir), bundle JS awal < 250 KB gzip (route-level `lazy`), README frontend (cara run, cara pakai MSW, cara ganti ke backend nyata).
 **AC:** `npx playwright test` hijau; lighthouse performa ≥ 90 pada build produksi lokal; `npm run build` tanpa warning TS.
 **Bukti:** output axe, playwright, ukuran bundle.
+
+## F12 — Halaman Data / Pipeline (WAJIB: user menjalankan end-to-end dari sini)
+
+Konteks: user **tidak** akan menjalankan CLI. Dia menjalankan seluruh pipeline (import sektor → ambil harga → hitung → tengah hari) dari UI ini saat semua sudah jadi. Jadi halaman ini bukan pelengkap — ini pintu masuk satu-satunya.
+
+**Deliverable:** `/data` — halaman stepper vertikal dengan 6 tombol pipeline dari `docs/05 §4.1`, ditambah panel riwayat run.
+
+Isi tiap baris stepper:
+- Nomor + judul + satu baris penjelasan singkat (Bahasa Indonesia, tanpa jargon).
+- Tombol aksi (`Jalankan`), `status chip` (`belum pernah | terakhir ok 12 Okt 07:02 | gagal 2x`).
+- Prasyarat yang belum terpenuhi → tombol `disabled` + alasannya ditulis, mis. "Jalankan 'Import sektor' dulu".
+- Saat jalan: progress bar (`percent`) + `message` dari run (mis. "batch 9/20") + tombol `Batalkan` **tidak perlu** di v1 (jangan bangun cancel kalau backend belum janji).
+
+Alur teknis (ikuti `docs/05 §5.1`):
+```ts
+// lib/api.ts
+startRun(kind, body) → POST ...?async=true → { run_id }
+// useRun(runId) → poll GET /admin/runs/{run_id} tiap 1s selama status queued|running
+// saat status final → toast + queryClient.invalidateQueries() untuk data terkait + refresh daftar run
+```
+- Import Excel (tombol 1) = `<input type="file" accept=".xlsx">` + `FormData`; tampilkan hasil `inserted/updated/deactivated/errors[]` (tabel baris gagal, bisa di-expand).
+- Tombol 2 (Ambil harga harian) → dialog konfirmasi dulu (jumlah emiten aktif + "±1,5 menit"), karena ini operasi berat dan memanggil Yahoo ratusan kali.
+- Tombol 4 (`Hitung semua`) dan 5 (`Hitung mingguan`) → tombol 5 `disabled` dengan catatan "tersedia setelah penutupan Jumat" bila backend menolak (`409 gate_weekly_not_final`).
+- Tombol 6 (`Tengah hari`) → kalau respons `gate: "stale"`, tampilkan pesan jelas: "Data Yahoo belum sampai sesi 1 (bar terakhir 11:05 WIB < 11:30 WIB). Coba lagi nanti." Bukan toast merah error.
+- Panel riwayat: `GET /admin/runs?limit=20` → tabel `kind, status, mulai, durasi, rows, pesan`; klik baris → detail (`params_json`, `result_json`, `failed_tickers`). Ini yang dipakai user untuk tahu apa yang gagal tanpa buka terminal.
+
+**AC:**
+1. Dari kondisi DB kosong, tombol 1→6 bisa dijalankan berurutan sampai selesai hanya dengan klik, tanpa membuka terminal. Bukti: rekaman urutan klik + screenshot tiap state.
+2. Tombol 2–6 `disabled` dengan alasan tepat saat prasyarat belum ada (uji: DB kosong → semua terkunci kecuali tombol 1).
+3. Progres berjalan: progress bar bergerak (poling 1 s) dan berhenti di status final; tidak ada request poll yang tetap jalan setelah status final (uji: hitung request, harus berhenti).
+4. `409` dari backend (semua 4 kode di `docs/05 §4.1`) ditampilkan sebagai pesan yang bisa dimengerti, bukan stack trace.
+5. Import Excel menampilkan baris gagal per sheet (`reason` diterjemahkan ke kalimat Indonesia).
+6. Riwayat run menampilkan minimal 20 run terakhir dan menandai yang `failed`/`partial` mencolok.
+
+**Bukti:** screenshot tiap state + daftar request yang dikirim (tab Network) + hasil akhir `GET /admin/runs`.
 
 ---
 
@@ -77,4 +113,5 @@ Kamu mengerjakan folder `frontend/`. Baca dulu: `docs/05-API-CONTRACT.md` (bentu
 3. Semua string UI **Bahasa Indonesia**, angka format Indonesia (koma desimal).
 4. Filter hanya di URL (`lib/urlFilters.ts`). Tidak ada state filter ganda di context/zustand.
 5. Kalau bentuk response `docs/05` ternyata berbeda saat backend selesai: **backend yang salah** → lapor, jangan buat adapter diam-diam.
-6. Setelah setiap task: update `docs/PROGRESS.md` (status + bukti screenshot/output). Task tanpa bukti = belum selesai.
+6. **Jangan menjalankan pipeline skala penuh saat development.** Pakai MSW untuk UI, dan untuk uji nyata cukup DB kecil (mis. 10–20 emiten). Backfill 962 emiten adalah wewenang user, dijalankan sekali dari halaman Data saat semuanya sudah jadi.
+7. Setelah setiap task: update `docs/PROGRESS.md` (status + bukti screenshot/output). Task tanpa bukti = belum selesai.

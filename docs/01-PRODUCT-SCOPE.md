@@ -26,7 +26,8 @@ Konsekuensi desain: agregasi berat **dihitung sekali** saat ingest/compute dan d
 9. **Weekly picks rule-based** (rule transparan, bukan ML) untuk sektor & saham, plus **streak**: berapa minggu berturut-turut kandidat itu muncul.
 10. **Mode tengah hari (`midday`)**: perhitungan ulang setelah sesi 1 (data s/d ~12:00 WIB), dengan **gate kesegaran data** (lihat `docs/02-DATA-SOURCES.md` §5).
 11. **Endpoint briefing** untuk Hermes.
-12. **Dark + light mode**, responsif, aksesibel.
+12. **Halaman Data (pipeline dari UI)** — user menjalankan seluruh alur (import Excel → ambil harga → hitung → tengah hari) lewat tombol di web, **bukan** lewat terminal. Tiap langkah punya tombol, progresnya, prasyaratnya, dan riwayat run-nya. Ini pintu masuk utama, bukan pelengkap (`docs/08` F12, `docs/05` §4).
+13. **Dark + light mode**, responsif, aksesibel.
 
 ## 4. Bukan ruang lingkup v1 (jangan dibangun)
 
