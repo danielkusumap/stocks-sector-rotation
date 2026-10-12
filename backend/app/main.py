@@ -5,11 +5,12 @@ from __future__ import annotations
 import time
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from . import db
-from .api import admin, meta, weekly
+from .api import admin, meta, rrg, sectors, stocks, weekly
 from .config import get_settings
 
 _settings = get_settings()
@@ -25,6 +26,9 @@ app.add_middleware(
 app.include_router(admin.router)
 app.include_router(meta.router)
 app.include_router(weekly.router)
+app.include_router(rrg.router)
+app.include_router(sectors.router)
+app.include_router(stocks.router)
 
 
 @app.exception_handler(HTTPException)
@@ -34,6 +38,24 @@ async def http_error(request: Request, exc: HTTPException) -> JSONResponse:
     return JSONResponse(
         status_code=exc.status_code,
         content={"api_version": _settings.app.api_version, "error": detail},
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
+    """422 validasi query/body juga memakai envelope kontrak (docs/05 konvensi error)."""
+    first = exc.errors()[0] if exc.errors() else {}
+    where = ".".join(str(p) for p in first.get("loc", []) if p != "query")
+    return JSONResponse(
+        status_code=422,
+        content={
+            "api_version": _settings.app.api_version,
+            "error": {
+                "code": "validation_error",
+                "message": first.get("msg", "parameter tidak valid"),
+                "detail": {"field": where, "errors": exc.errors()[:3]},
+            },
+        },
     )
 
 

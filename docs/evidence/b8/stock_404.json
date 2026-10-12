@@ -1,0 +1,10 @@
+{
+  "api_version": "1.0",
+  "error": {
+    "code": "not_found",
+    "message": "saham ZZZZ tidak ada",
+    "detail": {
+      "ticker": "ZZZZ"
+    }
+  }
+}

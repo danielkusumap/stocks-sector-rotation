@@ -1,0 +1,40 @@
+{
+  "api_version": "1.0",
+  "timeframe": "d1",
+  "from": "2026-10-08",
+  "to": "2026-10-09",
+  "cells": [
+    {
+      "from": "weakening",
+      "to": "leading",
+      "count": 1,
+      "refs": [
+        "IDXENERGY"
+      ]
+    },
+    {
+      "from": "leading",
+      "to": "weakening",
+      "count": 1,
+      "refs": [
+        "IDXBASIC"
+      ]
+    }
+  ],
+  "changes": [
+    {
+      "ref_id": "IDXBASIC",
+      "name": "Barang Baku",
+      "from": "leading",
+      "to": "weakening",
+      "as_of": "2026-10-09"
+    },
+    {
+      "ref_id": "IDXENERGY",
+      "name": "Energi",
+      "from": "weakening",
+      "to": "leading",
+      "as_of": "2026-10-09"
+    }
+  ]
+}

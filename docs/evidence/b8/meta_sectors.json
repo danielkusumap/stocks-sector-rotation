@@ -1,0 +1,104 @@
+{
+  "api_version": "1.0",
+  "items": [
+    {
+      "code": "IDXENERGY",
+      "name_id": "Energi",
+      "name_en": "Energy",
+      "color_token": "sector-energy",
+      "color_hex": "#B45309",
+      "sort_order": 1,
+      "constituents_active": 90
+    },
+    {
+      "code": "IDXBASIC",
+      "name_id": "Barang Baku",
+      "name_en": "Basic Materials",
+      "color_token": "sector-basic",
+      "color_hex": "#7C6F2A",
+      "sort_order": 2,
+      "constituents_active": 114
+    },
+    {
+      "code": "IDXINDUST",
+      "name_id": "Perindustrian",
+      "name_en": "Industrials",
+      "color_token": "sector-indust",
+      "color_hex": "#4B5563",
+      "sort_order": 3,
+      "constituents_active": 66
+    },
+    {
+      "code": "IDXNONCYC",
+      "name_id": "Barang Konsumen Primer",
+      "name_en": "Consumer Non-Cyclicals",
+      "color_token": "sector-noncyc",
+      "color_hex": "#0F766E",
+      "sort_order": 4,
+      "constituents_active": 133
+    },
+    {
+      "code": "IDXCYCLIC",
+      "name_id": "Barang Konsumen Non-Primer",
+      "name_en": "Consumer Cyclicals",
+      "color_token": "sector-cyclic",
+      "color_hex": "#BE185D",
+      "sort_order": 5,
+      "constituents_active": 162
+    },
+    {
+      "code": "IDXHEALTH",
+      "name_id": "Kesehatan",
+      "name_en": "Healthcare",
+      "color_token": "sector-health",
+      "color_hex": "#0284C7",
+      "sort_order": 6,
+      "constituents_active": 41
+    },
+    {
+      "code": "IDXFINANCE",
+      "name_id": "Keuangan",
+      "name_en": "Financials",
+      "color_token": "sector-finance",
+      "color_hex": "#1D4ED8",
+      "sort_order": 7,
+      "constituents_active": 106
+    },
+    {
+      "code": "IDXPROPERT",
+      "name_id": "Properti & Real Estat",
+      "name_en": "Properties & Real Estate",
+      "color_token": "sector-propert",
+      "color_hex": "#7C3AED",
+      "sort_order": 8,
+      "constituents_active": 93
+    },
+    {
+      "code": "IDXTECHNO",
+      "name_id": "Teknologi",
+      "name_en": "Technology",
+      "color_token": "sector-techno",
+      "color_hex": "#0891B2",
+      "sort_order": 9,
+      "constituents_active": 47
+    },
+    {
+      "code": "IDXINFRA",
+      "name_id": "Infrastruktur",
+      "name_en": "Infrastructures",
+      "color_token": "sector-infra",
+      "color_hex": "#65A30D",
+      "sort_order": 10,
+      "constituents_active": 70
+    },
+    {
+      "code": "IDXTRANS",
+      "name_id": "Transportasi & Logistik",
+      "name_en": "Transportation & Logistic",
+      "color_token": "sector-trans",
+      "color_hex": "#C2410C",
+      "sort_order": 11,
+      "constituents_active": 40
+    }
+  ]
+}

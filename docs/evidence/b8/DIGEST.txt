@@ -1,0 +1,35 @@
+health                 /health {} → 200
+meta_sectors           /api/v1/meta/sectors {} → 200
+meta_config            /api/v1/meta/config {} → 200
+freshness              /api/v1/freshness {} → 200
+rrg_w1                 /api/v1/rrg {'timeframe': 'w1'} → 200
+rrg_stock              /api/v1/rrg {'scope': 'stock', 'sector': 'IDXTRANS', 'limit': 3} → 200
+sectors_summary_w1     /api/v1/sectors/summary {'timeframe': 'w1'} → 200
+sectors_summary_filter /api/v1/sectors/summary {'quadrant': 'leading,improving', 'min_streak': 1, 'ret_positive_only': 'true'} → 200
+sector_detail          /api/v1/sectors/IDXTRANS {'constituents_limit': 3} → 200
+stocks_list            /api/v1/stocks {'sector': 'IDXTRANS', 'limit': 3} → 200
+stock_detail           /api/v1/stocks/MPXL {} → 200
+stock_404              /api/v1/stocks/ZZZZ {} → 404
+matrix_w1              /api/v1/rotation/matrix {'timeframe': 'w1'} → 200
+matrix_d1              /api/v1/rotation/matrix {'timeframe': 'd1', 'window': '1m'} → 200
+heatmap                /api/v1/heatmap {} → 200
+series_sector          /api/v1/series/sector/IDXTRANS {} → 200
+weekly_picks           /api/v1/weekly/picks {'limit': 3} → 200
+
+/sectors/summary (w1, as_of 2026-10-09, total 11, status partial):
+  IDXBASIC    leading   rs 118.38/102.07 skor 90.9 rank 1 streak 2 top ALKA (81.2) adv/dec 9/4 kons 15 partial=False
+  IDXTRANS    leading   rs 111.20/101.97 skor 75.0 rank 2 streak 1 top MITI (89.5) adv/dec 22/9 kons 36 partial=False
+  IDXNONCYC   leading   rs 111.83/101.29 skor 74.1 rank 3 streak 0 top AGAR (91.5) adv/dec 6/5 kons 13 partial=False
+  IDXCYCLIC   weakening rs 105.95/99.52 skor 65.5 rank 4 streak 0 top BIKE (81.2) adv/dec 9/4 kons 15 partial=False
+  IDXENERGY   weakening rs 104.76/99.82 skor 52.7 rank 5 streak 0 top AADI (81.2) adv/dec 9/1 kons 12 partial=False
+  IDXINDUST   weakening rs 101.76/98.90 skor 45.5 rank 6 streak 0 top ASGR (86.5) adv/dec 7/3 kons 10 partial=False
+  IDXPROPERT  weakening rs 104.97/99.20 skor 43.6 rank 7 streak 0 top BKDP (77.5) adv/dec 6/5 kons 13 partial=False
+  IDXTECHNO   leading   rs 103.34/100.74 skor 40.0 rank 8 streak 1 top AREA (78.1) adv/dec 3/2 kons 5 partial=False
+  IDXINFRA    leading   rs 104.00/100.98 skor 39.8 rank 9 streak 0 top BDKR (85.1) adv/dec 2/4 kons 6 partial=False
+  IDXHEALTH   weakening rs 104.63/99.63 skor 32.2 rank 10 streak 0 top BMHS (40.0) adv/dec 1/1 kons 2 partial=True
+  IDXFINANCE  weakening rs 100.69/98.77 skor 25.5 rank 11 streak 0 top BDMN (85.7) adv/dec 21/7 kons 39 partial=False
+
+/rrg (w1) api_version=1.1 kuadran={'leading': 5, 'improving': 0, 'weakening': 6, 'lagging': 0} ekor=13 titik; item[0]=IDXBASIC streak 2
+/stocks/MPXL metrik: close 290.0 rs 120.01 skor 88.3 margin_turnover 3.0 pick ('2026-10-09', 1)
+/stocks/ZZZZ → 404 not_found
+/rotation/matrix (w1) 2026-10-02→2026-10-09 sel=[]

@@ -1,0 +1,53 @@
+{
+  "api_version": "1.0",
+  "total": 1,
+  "limit": 50,
+  "offset": 0,
+  "items": [
+    {
+      "code": "IDXTECHNO",
+      "name_id": "Teknologi",
+      "color_hex": "#0891B2",
+      "quadrant": "leading",
+      "quadrant_label": "Memimpin",
+      "quadrant_desc": "Tren relatif naik dan masih dipercepat.",
+      "quadrant_prev": "leading",
+      "transition": null,
+      "quadrant_age_periods": 2,
+      "rs_ratio": 102.3977623580174,
+      "rs_momentum": 100.37328685953908,
+      "rs_ratio_change_1p": 0.5478632860200037,
+      "rs_momentum_change_1p": 0.30497384852832,
+      "ret_1w": 0.08410676750121837,
+      "ret_1m": -0.0022999967032084623,
+      "ret_3m": 0.17620587582979153,
+      "ret_6m": 0.0057477183635765705,
+      "ret_ytd": -0.22609594409428413,
+      "turnover_idr": 3987859900,
+      "median_turnover_20d_idr": 1246666500,
+      "turnover_growth": -0.16735410054895195,
+      "advancers": 3,
+      "decliners": 2,
+      "unchanged": 0,
+      "constituents_count": 5,
+      "partial": false,
+      "score": 55.0,
+      "rank_score": 6,
+      "streak_weeks": 1,
+      "top_stock": {
+        "ticker": "AREA",
+        "stock_score": 75.1
+      }
+    }
+  ],
+  "data_status": {
+    "as_of": "2026-10-09",
+    "timeframe": "d1",
+    "status": "partial",
+    "last_data_at": null,
+    "computed_at": "2026-10-13T01:15:14+07:00",
+    "partial_sectors": [
+      "IDXHEALTH"
+    ]
+  }
+}

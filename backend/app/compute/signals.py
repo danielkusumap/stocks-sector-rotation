@@ -16,6 +16,7 @@ import pandas as pd
 
 from ..config import get_settings
 from ..db import connect, now_iso
+from ..labels import QUADRANT_LABEL, format_id_number
 from . import rrg as rrg_module
 
 SECTOR_ROWS_SQL = """
@@ -50,8 +51,6 @@ STOCK_ROWS_SQL = """
 """
 LAST_BAR_SQL = "SELECT MAX(date) FROM price_daily WHERE ticker = ? AND date <= ?"
 CLOSE_SQL = "SELECT close FROM price_daily WHERE ticker = ? AND date <= ? ORDER BY date DESC LIMIT 1"
-
-QUADRANT_LABEL = {"leading": "Memimpin", "improving": "Membaik", "weakening": "Melemah", "lagging": "Tertinggal"}
 
 
 def gate_final_week(cfg=None, now=None) -> dict:
@@ -134,17 +133,16 @@ def levels(entry_ref: float, atr14: float | None, cfg) -> tuple[float | None, fl
 def rationale_sector(name: str, quadrant: str, age: int, momentum: float) -> str:
     return (
         f"{name} bertahan {age} periode di kuadran {QUADRANT_LABEL.get(quadrant, quadrant)} dengan "
-        f"momentum relatif {momentum:.1f} (>100) yang masih naik."
+        f"momentum relatif {format_id_number(momentum, 1)} (>100) yang masih naik."
     )
 
 
 def rationale_stock(streak: int, close: float, sma20: float, rsi: float, turnover_idr: int) -> str:
     prefix = "Baru masuk daftar" if streak <= 1 else f"{streak} minggu berturut-turut masuk daftar"
-    text = (
-        f"{prefix}; harga {close:,.0f} di atas SMA20 {sma20:,.0f} dan SMA50, RSI {rsi:.0f}, "
-        f"nilai transaksi harian rata-rata Rp {turnover_idr / 1e9:.1f} M."
+    return (
+        f"{prefix}; harga {format_id_number(close)} di atas SMA20 {format_id_number(sma20)} dan SMA50, "
+        f"RSI {format_id_number(rsi)}. Nilai transaksi harian rata-rata Rp {format_id_number(turnover_idr / 1e9, 1)} M."
     )
-    return text.replace(",", ".")
 
 
 def compute_streaks(weeks: list[str], rows: list[tuple]) -> dict[tuple[str, str], int]:

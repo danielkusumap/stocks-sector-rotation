@@ -1,0 +1,42 @@
+{
+  "api_version": "1.0",
+  "universe": {
+    "min_turnover_idr": 1000000000,
+    "min_price_idr": 100,
+    "max_rsi": 75
+  },
+  "rrg": {
+    "ema_span": 14,
+    "roc_lag": 10,
+    "weekly": {
+      "ema_span": 14,
+      "roc_lag": 4
+    },
+    "min_points": {
+      "d1": 60,
+      "w1": 30,
+      "w1_fri": 30,
+      "midday": 60
+    }
+  },
+  "timeframes": [
+    "d1",
+    "w1",
+    "w1_fri",
+    "midday"
+  ],
+  "windows": [
+    "1w",
+    "1m",
+    "3m",
+    "6m",
+    "1y",
+    "ytd"
+  ],
+  "midday_gate_min_bar_time": "11:30",
+  "last_ingest": {
+    "prices_daily": "2026-10-13T00:22:51+07:00",
+    "intraday": "2026-10-13T00:33:41+07:00",
+    "signals_weekly": null
+  }
+}

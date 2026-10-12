@@ -256,6 +256,8 @@ def test_compute_signals_only_final_weeks_and_friday_labels(signal_inputs):
     assert top["entry_ref"] > 0 and top["stop"] < top["entry_ref"] < top["target"]
     assert top["lots_hint"] and top["lots_hint"] > 0
     assert "SMA20" in top["rationale"] and "RSI" in top["rationale"]
+    # angka format Indonesia (AGENTS.md aturan 7): koma desimal, titik ribuan
+    assert "Rp 5,0 M" in top["rationale"] and "Rp 5.0 M" not in top["rationale"]
 
 
 def test_compute_w1_fri_ditolak_sebelum_penutupan_jumat(monkeypatch, tmp_config):

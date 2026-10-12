@@ -1,0 +1,38 @@
+{
+  "api_version": "1.0",
+  "midday_gate": {
+    "status": "stale",
+    "as_of_date": "2026-10-13",
+    "last_bar_at": null,
+    "required_bar_time": "11:30",
+    "probes": [
+      {
+        "ticker": "BBCA",
+        "last_bar_at": null
+      },
+      {
+        "ticker": "BBRI",
+        "last_bar_at": null
+      },
+      {
+        "ticker": "BMRI",
+        "last_bar_at": null
+      },
+      {
+        "ticker": "TLKM",
+        "last_bar_at": null
+      },
+      {
+        "ticker": "ASII",
+        "last_bar_at": null
+      }
+    ],
+    "checked_at": "2026-10-13T00:35:41+07:00"
+  },
+  "daily_ingest": {
+    "status": "stale",
+    "last_data_at": "2026-10-13T00:22:51+07:00",
+    "last_bar_date": "2026-10-09",
+    "expected_bar_date": "2026-10-13"
+  }
+}

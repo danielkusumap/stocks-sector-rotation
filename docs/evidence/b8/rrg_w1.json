@@ -1,0 +1,960 @@
+{
+  "api_version": "1.1",
+  "timeframe": "w1",
+  "as_of": "2026-10-09",
+  "window": "3m",
+  "weighting": "equal",
+  "quadrants": {
+    "leading": 5,
+    "improving": 0,
+    "weakening": 6,
+    "lagging": 0
+  },
+  "items": [
+    {
+      "ref_id": "IDXBASIC",
+      "name": "Barang Baku",
+      "color_hex": "#7C6F2A",
+      "rs_ratio": 118.38098105477368,
+      "rs_momentum": 102.06853262952887,
+      "rs_ratio_change_1p": 0.5646755598345266,
+      "rs_momentum_change_1p": 0.04049221795136759,
+      "quadrant": "leading",
+      "quadrant_prev": "leading",
+      "transition": null,
+      "quadrant_age_periods": 9,
+      "score": 90.9,
+      "rank_score": 1,
+      "streak_weeks": 2,
+      "ret_1w": 0.06338136417790108,
+      "median_turnover_20d_idr": 658142955100,
+      "tail": [
+        {
+          "as_of": "2026-07-17",
+          "rs_ratio": 108.06762950732676,
+          "rs_momentum": 99.09020894918814
+        },
+        {
+          "as_of": "2026-07-24",
+          "rs_ratio": 108.56779532501021,
+          "rs_momentum": 99.18690198972105
+        },
+        {
+          "as_of": "2026-07-31",
+          "rs_ratio": 109.85609201537099,
+          "rs_momentum": 99.46719635355969
+        },
+        {
+          "as_of": "2026-08-07",
+          "rs_ratio": 111.4758231747968,
+          "rs_momentum": 99.9441145060436
+        },
+        {
+          "as_of": "2026-08-14",
+          "rs_ratio": 113.00904559592068,
+          "rs_momentum": 100.56123549962315
+        },
+        {
+          "as_of": "2026-08-21",
+          "rs_ratio": 114.51324700807315,
+          "rs_momentum": 101.21657172323242
+        },
+        {
+          "as_of": "2026-08-28",
+          "rs_ratio": 115.24554233957292,
+          "rs_momentum": 101.70848462469478
+        },
+        {
+          "as_of": "2026-09-04",
+          "rs_ratio": 115.3879007157829,
+          "rs_momentum": 101.9486000966263
+        },
+        {
+          "as_of": "2026-09-11",
+          "rs_ratio": 115.68355063247941,
+          "rs_momentum": 102.00433730626162
+        },
+        {
+          "as_of": "2026-09-18",
+          "rs_ratio": 116.8751325711485,
+          "rs_momentum": 102.01209813561806
+        },
+        {
+          "as_of": "2026-09-25",
+          "rs_ratio": 117.60044231936645,
+          "rs_momentum": 102.01626854374715
+        },
+        {
+          "as_of": "2026-10-02",
+          "rs_ratio": 117.81630549493916,
+          "rs_momentum": 102.0280404115775
+        },
+        {
+          "as_of": "2026-10-09",
+          "rs_ratio": 118.38098105477368,
+          "rs_momentum": 102.06853262952887
+        }
+      ]
+    },
+    {
+      "ref_id": "IDXTRANS",
+      "name": "Transportasi & Logistik",
+      "color_hex": "#C2410C",
+      "rs_ratio": 111.20175274814973,
+      "rs_momentum": 101.96728293532675,
+      "rs_ratio_change_1p": 1.5790224762629919,
+      "rs_momentum_change_1p": 0.3373048833190211,
+      "quadrant": "leading",
+      "quadrant_prev": "leading",
+      "transition": null,
+      "quadrant_age_periods": 5,
+      "score": 75.0,
+      "rank_score": 2,
+      "streak_weeks": 1,
+      "ret_1w": 0.07801915505590218,
+      "median_turnover_20d_idr": 62804314250,
+      "tail": [
+        {
+          "as_of": "2026-07-17",
+          "rs_ratio": 103.76769738229899,
+          "rs_momentum": 99.30532743792656
+        },
+        {
+          "as_of": "2026-07-24",
+          "rs_ratio": 103.22902527706627,
+          "rs_momentum": 99.16724010401009
+        },
+        {
+          "as_of": "2026-07-31",
+          "rs_ratio": 103.0019267724437,
+          "rs_momentum": 99.06831138429465
+        },
+        {
+          "as_of": "2026-08-07",
+          "rs_ratio": 103.17296287578567,
+          "rs_momentum": 99.04615476642648
+        },
+        {
+          "as_of": "2026-08-14",
+          "rs_ratio": 103.48681845819947,
+          "rs_momentum": 99.13724339731435
+        },
+        {
+          "as_of": "2026-08-21",
+          "rs_ratio": 103.76308055737466,
+          "rs_momentum": 99.32125760041927
+        },
+        {
+          "as_of": "2026-08-28",
+          "rs_ratio": 104.31421671090622,
+          "rs_momentum": 99.58162912949379
+        },
+        {
+          "as_of": "2026-09-04",
+          "rs_ratio": 105.4484051746559,
+          "rs_momentum": 99.9314737459288
+        },
+        {
+          "as_of": "2026-09-11",
+          "rs_ratio": 106.76075651005286,
+          "rs_momentum": 100.3624276576551
+        },
+        {
+          "as_of": "2026-09-18",
+          "rs_ratio": 107.76732284994176,
+          "rs_momentum": 100.8286405175282
+        },
+        {
+          "as_of": "2026-09-25",
+          "rs_ratio": 108.6450841034996,
+          "rs_momentum": 101.2717220247519
+        },
+        {
+          "as_of": "2026-10-02",
+          "rs_ratio": 109.62273027188674,
+          "rs_momentum": 101.62997805200773
+        },
+        {
+          "as_of": "2026-10-09",
+          "rs_ratio": 111.20175274814973,
+          "rs_momentum": 101.96728293532675
+        }
+      ]
+    },
+    {
+      "ref_id": "IDXNONCYC",
+      "name": "Barang Konsumen Primer",
+      "color_hex": "#0F766E",
+      "rs_ratio": 111.82858380329355,
+      "rs_momentum": 101.29157660655721,
+      "rs_ratio_change_1p": -0.05454089902471537,
+      "rs_momentum_change_1p": -0.23415884163588885,
+      "quadrant": "leading",
+      "quadrant_prev": "leading",
+      "transition": null,
+      "quadrant_age_periods": 13,
+      "score": 74.1,
+      "rank_score": 3,
+      "streak_weeks": 0,
+      "ret_1w": 0.04766547864209647,
+      "median_turnover_20d_idr": 86510092750,
+      "tail": [
+        {
+          "as_of": "2026-07-17",
+          "rs_ratio": 106.05022623843145,
+          "rs_momentum": 100.14632083867906
+        },
+        {
+          "as_of": "2026-07-24",
+          "rs_ratio": 107.29075270893904,
+          "rs_momentum": 100.54209679466898
+        },
+        {
+          "as_of": "2026-07-31",
+          "rs_ratio": 108.20622926125166,
+          "rs_momentum": 100.96707281982417
+        },
+        {
+          "as_of": "2026-08-07",
+          "rs_ratio": 109.17158993931284,
+          "rs_momentum": 101.36328874141975
+        },
+        {
+          "as_of": "2026-08-14",
+          "rs_ratio": 110.17021741015445,
+          "rs_momentum": 101.69950935084456
+        },
+        {
+          "as_of": "2026-08-21",
+          "rs_ratio": 111.06203232521268,
+          "rs_momentum": 101.94157597102856
+        },
+        {
+          "as_of": "2026-08-28",
+          "rs_ratio": 111.80911818802234,
+          "rs_momentum": 102.12665253461552
+        },
+        {
+          "as_of": "2026-09-04",
+          "rs_ratio": 111.7477453544506,
+          "rs_momentum": 102.15772961010188
+        },
+        {
+          "as_of": "2026-09-11",
+          "rs_ratio": 112.08689462481726,
+          "rs_momentum": 102.10199788892412
+        },
+        {
+          "as_of": "2026-09-18",
+          "rs_ratio": 112.11142791061935,
+          "rs_momentum": 101.94771462186937
+        },
+        {
+          "as_of": "2026-09-25",
+          "rs_ratio": 112.26032330439722,
+          "rs_momentum": 101.74182593644593
+        },
+        {
+          "as_of": "2026-10-02",
+          "rs_ratio": 111.88312470231827,
+          "rs_momentum": 101.5257354481931
+        },
+        {
+          "as_of": "2026-10-09",
+          "rs_ratio": 111.82858380329355,
+          "rs_momentum": 101.29157660655721
+        }
+      ]
+    },
+    {
+      "ref_id": "IDXCYCLIC",
+      "name": "Barang Konsumen Non-Primer",
+      "color_hex": "#BE185D",
+      "rs_ratio": 105.94790728638736,
+      "rs_momentum": 99.52191900439243,
+      "rs_ratio_change_1p": 1.723305969766244,
+      "rs_momentum_change_1p": 0.4880093080376753,
+      "quadrant": "weakening",
+      "quadrant_prev": "weakening",
+      "transition": null,
+      "quadrant_age_periods": 12,
+      "score": 65.5,
+      "rank_score": 4,
+      "streak_weeks": 0,
+      "ret_1w": 0.09107566154291291,
+      "median_turnover_20d_idr": 32316580000,
+      "tail": [
+        {
+          "as_of": "2026-07-17",
+          "rs_ratio": 107.4780940950897,
+          "rs_momentum": 100.04046542262468
+        },
+        {
+          "as_of": "2026-07-24",
+          "rs_ratio": 107.05940885034447,
+          "rs_momentum": 99.9240420761451
+        },
+        {
+          "as_of": "2026-07-31",
+          "rs_ratio": 106.84076940074868,
+          "rs_momentum": 99.81174403695434
+        },
+        {
+          "as_of": "2026-08-07",
+          "rs_ratio": 106.38164077929575,
+          "rs_momentum": 99.65233192187438
+        },
+        {
+          "as_of": "2026-08-14",
+          "rs_ratio": 105.44725501550744,
+          "rs_momentum": 99.44674930904667
+        },
+        {
+          "as_of": "2026-08-21",
+          "rs_ratio": 104.0729087563991,
+          "rs_momentum": 99.14857303471322
+        },
+        {
+          "as_of": "2026-08-28",
+          "rs_ratio": 104.00422667539297,
+          "rs_momentum": 98.90810657662918
+        },
+        {
+          "as_of": "2026-09-04",
+          "rs_ratio": 103.34339583014538,
+          "rs_momentum": 98.67289421027726
+        },
+        {
+          "as_of": "2026-09-11",
+          "rs_ratio": 103.16856722797431,
+          "rs_momentum": 98.56171177934036
+        },
+        {
+          "as_of": "2026-09-18",
+          "rs_ratio": 103.28493540984708,
+          "rs_momentum": 98.65253208976311
+        },
+        {
+          "as_of": "2026-09-25",
+          "rs_ratio": 103.39503649665592,
+          "rs_momentum": 98.7540963468231
+        },
+        {
+          "as_of": "2026-10-02",
+          "rs_ratio": 104.22460131662112,
+          "rs_momentum": 99.03390969635475
+        },
+        {
+          "as_of": "2026-10-09",
+          "rs_ratio": 105.94790728638736,
+          "rs_momentum": 99.52191900439243
+        }
+      ]
+    },
+    {
+      "ref_id": "IDXENERGY",
+      "name": "Energi",
+      "color_hex": "#B45309",
+      "rs_ratio": 104.75918381894671,
+      "rs_momentum": 99.82255746170425,
+      "rs_ratio_change_1p": 1.0955213451243395,
+      "rs_momentum_change_1p": 0.26835461843758424,
+      "quadrant": "weakening",
+      "quadrant_prev": "weakening",
+      "transition": null,
+      "quadrant_age_periods": 23,
+      "score": 52.7,
+      "rank_score": 5,
+      "streak_weeks": 0,
+      "ret_1w": 0.07864114596613203,
+      "median_turnover_20d_idr": 322421648050,
+      "tail": [
+        {
+          "as_of": "2026-07-17",
+          "rs_ratio": 103.71975315718636,
+          "rs_momentum": 97.62819726794197
+        },
+        {
+          "as_of": "2026-07-24",
+          "rs_ratio": 103.15169660845159,
+          "rs_momentum": 97.63819408444698
+        },
+        {
+          "as_of": "2026-07-31",
+          "rs_ratio": 102.75524838982864,
+          "rs_momentum": 97.67927672189755
+        },
+        {
+          "as_of": "2026-08-07",
+          "rs_ratio": 102.72881114380587,
+          "rs_momentum": 97.76603784591454
+        },
+        {
+          "as_of": "2026-08-14",
+          "rs_ratio": 102.52292665966021,
+          "rs_momentum": 97.91004558474498
+        },
+        {
+          "as_of": "2026-08-21",
+          "rs_ratio": 102.40466661780371,
+          "rs_momentum": 98.09214547495212
+        },
+        {
+          "as_of": "2026-08-28",
+          "rs_ratio": 102.26898638675634,
+          "rs_momentum": 98.28342960900298
+        },
+        {
+          "as_of": "2026-09-04",
+          "rs_ratio": 102.63044282799997,
+          "rs_momentum": 98.49953828332364
+        },
+        {
+          "as_of": "2026-09-11",
+          "rs_ratio": 103.14307369490523,
+          "rs_momentum": 98.78025133888629
+        },
+        {
+          "as_of": "2026-09-18",
+          "rs_ratio": 103.33957611895879,
+          "rs_momentum": 99.06461195424703
+        },
+        {
+          "as_of": "2026-09-25",
+          "rs_ratio": 103.35359147234121,
+          "rs_momentum": 99.33073589932913
+        },
+        {
+          "as_of": "2026-10-02",
+          "rs_ratio": 103.66366247382237,
+          "rs_momentum": 99.55420284326667
+        },
+        {
+          "as_of": "2026-10-09",
+          "rs_ratio": 104.75918381894671,
+          "rs_momentum": 99.82255746170425
+        }
+      ]
+    },
+    {
+      "ref_id": "IDXINDUST",
+      "name": "Perindustrian",
+      "color_hex": "#4B5563",
+      "rs_ratio": 101.76446227121662,
+      "rs_momentum": 98.90354497597664,
+      "rs_ratio_change_1p": 0.8460910907236041,
+      "rs_momentum_change_1p": 0.3364649557391033,
+      "quadrant": "weakening",
+      "quadrant_prev": "weakening",
+      "transition": null,
+      "quadrant_age_periods": 29,
+      "score": 45.5,
+      "rank_score": 6,
+      "streak_weeks": 0,
+      "ret_1w": 0.03841517905995562,
+      "median_turnover_20d_idr": 285684598900,
+      "tail": [
+        {
+          "as_of": "2026-07-17",
+          "rs_ratio": 105.33635723958888,
+          "rs_momentum": 99.33645217900319
+        },
+        {
+          "as_of": "2026-07-24",
+          "rs_ratio": 104.82746945611113,
+          "rs_momentum": 99.23601288041272
+        },
+        {
+          "as_of": "2026-07-31",
+          "rs_ratio": 104.77404731324336,
+          "rs_momentum": 99.18373905935101
+        },
+        {
+          "as_of": "2026-08-07",
+          "rs_ratio": 103.99783254082973,
+          "rs_momentum": 99.06952887855122
+        },
+        {
+          "as_of": "2026-08-14",
+          "rs_ratio": 102.8426813039718,
+          "rs_momentum": 98.87794557458031
+        },
+        {
+          "as_of": "2026-08-21",
+          "rs_ratio": 101.8810027742368,
+          "rs_momentum": 98.65278252893062
+        },
+        {
+          "as_of": "2026-08-28",
+          "rs_ratio": 101.25209939261869,
+          "rs_momentum": 98.38421555658175
+        },
+        {
+          "as_of": "2026-09-04",
+          "rs_ratio": 100.92400449407455,
+          "rs_momentum": 98.20556475037111
+        },
+        {
+          "as_of": "2026-09-11",
+          "rs_ratio": 100.66662508845234,
+          "rs_momentum": 98.16270175660944
+        },
+        {
+          "as_of": "2026-09-18",
+          "rs_ratio": 100.54966189907462,
+          "rs_momentum": 98.23344009963567
+        },
+        {
+          "as_of": "2026-09-25",
+          "rs_ratio": 100.32950116146223,
+          "rs_momentum": 98.34748952151577
+        },
+        {
+          "as_of": "2026-10-02",
+          "rs_ratio": 100.91837118049301,
+          "rs_momentum": 98.56708002023754
+        },
+        {
+          "as_of": "2026-10-09",
+          "rs_ratio": 101.76446227121662,
+          "rs_momentum": 98.90354497597664
+        }
+      ]
+    },
+    {
+      "ref_id": "IDXPROPERT",
+      "name": "Properti & Real Estat",
+      "color_hex": "#7C3AED",
+      "rs_ratio": 104.97032418806268,
+      "rs_momentum": 99.2041456346049,
+      "rs_ratio_change_1p": 0.2865266053075146,
+      "rs_momentum_change_1p": 0.20986818799477192,
+      "quadrant": "weakening",
+      "quadrant_prev": "weakening",
+      "transition": null,
+      "quadrant_age_periods": 16,
+      "score": 43.6,
+      "rank_score": 7,
+      "streak_weeks": 0,
+      "ret_1w": 0.02825900544648019,
+      "median_turnover_20d_idr": 25254460350,
+      "tail": [
+        {
+          "as_of": "2026-07-17",
+          "rs_ratio": 107.68405216583515,
+          "rs_momentum": 99.09493880901896
+        },
+        {
+          "as_of": "2026-07-24",
+          "rs_ratio": 107.14299885508461,
+          "rs_momentum": 99.09461417458473
+        },
+        {
+          "as_of": "2026-07-31",
+          "rs_ratio": 106.8074918994237,
+          "rs_momentum": 99.11996872563613
+        },
+        {
+          "as_of": "2026-08-07",
+          "rs_ratio": 106.50393839098983,
+          "rs_momentum": 99.10039620094568
+        },
+        {
+          "as_of": "2026-08-14",
+          "rs_ratio": 105.91089894252282,
+          "rs_momentum": 99.00079328756175
+        },
+        {
+          "as_of": "2026-08-21",
+          "rs_ratio": 105.60177536817929,
+          "rs_momentum": 98.9422244023066
+        },
+        {
+          "as_of": "2026-08-28",
+          "rs_ratio": 105.09738035277786,
+          "rs_momentum": 98.86977905220303
+        },
+        {
+          "as_of": "2026-09-04",
+          "rs_ratio": 104.65191861842399,
+          "rs_momentum": 98.78861899240478
+        },
+        {
+          "as_of": "2026-09-11",
+          "rs_ratio": 104.3771604166099,
+          "rs_momentum": 98.75705107211789
+        },
+        {
+          "as_of": "2026-09-18",
+          "rs_ratio": 104.17312294855216,
+          "rs_momentum": 98.74239522194124
+        },
+        {
+          "as_of": "2026-09-25",
+          "rs_ratio": 104.50454122628857,
+          "rs_momentum": 98.83486445355547
+        },
+        {
+          "as_of": "2026-10-02",
+          "rs_ratio": 104.68379758275516,
+          "rs_momentum": 98.99427744661013
+        },
+        {
+          "as_of": "2026-10-09",
+          "rs_ratio": 104.97032418806268,
+          "rs_momentum": 99.2041456346049
+        }
+      ]
+    },
+    {
+      "ref_id": "IDXTECHNO",
+      "name": "Teknologi",
+      "color_hex": "#0891B2",
+      "rs_ratio": 103.34454042240505,
+      "rs_momentum": 100.74020843182464,
+      "rs_ratio_change_1p": 1.108097346917063,
+      "rs_momentum_change_1p": 0.1461997620826594,
+      "quadrant": "leading",
+      "quadrant_prev": "leading",
+      "transition": null,
+      "quadrant_age_periods": 5,
+      "score": 40.0,
+      "rank_score": 8,
+      "streak_weeks": 1,
+      "ret_1w": 0.08410676750121837,
+      "median_turnover_20d_idr": 849905600,
+      "tail": [
+        {
+          "as_of": "2026-07-17",
+          "rs_ratio": 100.92006739275881,
+          "rs_momentum": 100.32422663831535
+        },
+        {
+          "as_of": "2026-07-24",
+          "rs_ratio": 100.86662249878594,
+          "rs_momentum": 100.28251242862261
+        },
+        {
+          "as_of": "2026-07-31",
+          "rs_ratio": 100.99852476115636,
+          "rs_momentum": 100.2379663344356
+        },
+        {
+          "as_of": "2026-08-07",
+          "rs_ratio": 100.55707641312456,
+          "rs_momentum": 100.1579774417898
+        },
+        {
+          "as_of": "2026-08-14",
+          "rs_ratio": 100.34871709229118,
+          "rs_momentum": 100.06142826049985
+        },
+        {
+          "as_of": "2026-08-21",
+          "rs_ratio": 100.15696737335507,
+          "rs_momentum": 99.95943010122225
+        },
+        {
+          "as_of": "2026-08-28",
+          "rs_ratio": 100.38659371025476,
+          "rs_momentum": 99.8840552640829
+        },
+        {
+          "as_of": "2026-09-04",
+          "rs_ratio": 101.2378427660576,
+          "rs_momentum": 99.98978055868746
+        },
+        {
+          "as_of": "2026-09-11",
+          "rs_ratio": 101.62653682010621,
+          "rs_momentum": 100.16092704909802
+        },
+        {
+          "as_of": "2026-09-18",
+          "rs_ratio": 101.85886147187732,
+          "rs_momentum": 100.36603369145058
+        },
+        {
+          "as_of": "2026-09-25",
+          "rs_ratio": 102.01596644329125,
+          "rs_momentum": 100.53364225772316
+        },
+        {
+          "as_of": "2026-10-02",
+          "rs_ratio": 102.23644307548798,
+          "rs_momentum": 100.59400866974198
+        },
+        {
+          "as_of": "2026-10-09",
+          "rs_ratio": 103.34454042240505,
+          "rs_momentum": 100.74020843182464
+        }
+      ]
+    },
+    {
+      "ref_id": "IDXINFRA",
+      "name": "Infrastruktur",
+      "color_hex": "#65A30D",
+      "rs_ratio": 104.00137747524339,
+      "rs_momentum": 100.97626034076306,
+      "rs_ratio_change_1p": 0.3794662932517241,
+      "rs_momentum_change_1p": 0.22478423515974555,
+      "quadrant": "leading",
+      "quadrant_prev": "leading",
+      "transition": null,
+      "quadrant_age_periods": 3,
+      "score": 39.8,
+      "rank_score": 9,
+      "streak_weeks": 0,
+      "ret_1w": 0.02529433245066759,
+      "median_turnover_20d_idr": 320353572800,
+      "tail": [
+        {
+          "as_of": "2026-07-17",
+          "rs_ratio": 100.67527736319884,
+          "rs_momentum": 98.20428390658785
+        },
+        {
+          "as_of": "2026-07-24",
+          "rs_ratio": 100.63135583284293,
+          "rs_momentum": 98.24224658925208
+        },
+        {
+          "as_of": "2026-07-31",
+          "rs_ratio": 100.2534701218395,
+          "rs_momentum": 98.26588354660932
+        },
+        {
+          "as_of": "2026-08-07",
+          "rs_ratio": 99.55492152657305,
+          "rs_momentum": 98.26701932114248
+        },
+        {
+          "as_of": "2026-08-14",
+          "rs_ratio": 99.37802779810673,
+          "rs_momentum": 98.32627697296687
+        },
+        {
+          "as_of": "2026-08-21",
+          "rs_ratio": 99.18790226974133,
+          "rs_momentum": 98.35818705505412
+        },
+        {
+          "as_of": "2026-08-28",
+          "rs_ratio": 99.03253706416847,
+          "rs_momentum": 98.41471595685077
+        },
+        {
+          "as_of": "2026-09-04",
+          "rs_ratio": 99.83060830028374,
+          "rs_momentum": 98.6630097335137
+        },
+        {
+          "as_of": "2026-09-11",
+          "rs_ratio": 101.52680588261319,
+          "rs_momentum": 99.12957197337595
+        },
+        {
+          "as_of": "2026-09-18",
+          "rs_ratio": 102.24408217710898,
+          "rs_momentum": 99.6564560144135
+        },
+        {
+          "as_of": "2026-09-25",
+          "rs_ratio": 103.3446033901169,
+          "rs_momentum": 100.28282074782653
+        },
+        {
+          "as_of": "2026-10-02",
+          "rs_ratio": 103.62191118199166,
+          "rs_momentum": 100.75147610560332
+        },
+        {
+          "as_of": "2026-10-09",
+          "rs_ratio": 104.00137747524339,
+          "rs_momentum": 100.97626034076306
+        }
+      ]
+    },
+    {
+      "ref_id": "IDXHEALTH",
+      "name": "Kesehatan",
+      "color_hex": "#0284C7",
+      "rs_ratio": 104.62941171513259,
+      "rs_momentum": 99.62742374183753,
+      "rs_ratio_change_1p": 0.40489800447544155,
+      "rs_momentum_change_1p": 0.36149969356583256,
+      "quadrant": "weakening",
+      "quadrant_prev": "weakening",
+      "transition": null,
+      "quadrant_age_periods": 11,
+      "score": 32.2,
+      "rank_score": 10,
+      "streak_weeks": 0,
+      "ret_1w": -0.002407902243098281,
+      "median_turnover_20d_idr": 191715650,
+      "tail": [
+        {
+          "as_of": "2026-07-17",
+          "rs_ratio": 106.82966570890578,
+          "rs_momentum": 100.51522037190821
+        },
+        {
+          "as_of": "2026-07-24",
+          "rs_ratio": 106.04913185998471,
+          "rs_momentum": 100.08878751635733
+        },
+        {
+          "as_of": "2026-07-31",
+          "rs_ratio": 105.82936841696961,
+          "rs_momentum": 99.77953002974621
+        },
+        {
+          "as_of": "2026-08-07",
+          "rs_ratio": 105.26584606415486,
+          "rs_momentum": 99.50041888478445
+        },
+        {
+          "as_of": "2026-08-14",
+          "rs_ratio": 104.51324575416878,
+          "rs_momentum": 99.27791900049637
+        },
+        {
+          "as_of": "2026-08-21",
+          "rs_ratio": 103.5600969102161,
+          "rs_momentum": 99.06125536063502
+        },
+        {
+          "as_of": "2026-08-28",
+          "rs_ratio": 103.08896764239552,
+          "rs_momentum": 98.84116103611782
+        },
+        {
+          "as_of": "2026-09-04",
+          "rs_ratio": 102.53026218844413,
+          "rs_momentum": 98.64917445578733
+        },
+        {
+          "as_of": "2026-09-11",
+          "rs_ratio": 102.60081733941279,
+          "rs_momentum": 98.58530544851011
+        },
+        {
+          "as_of": "2026-09-18",
+          "rs_ratio": 102.83892258012189,
+          "rs_momentum": 98.68108039666183
+        },
+        {
+          "as_of": "2026-09-25",
+          "rs_ratio": 103.41239383219482,
+          "rs_momentum": 98.8987676793272
+        },
+        {
+          "as_of": "2026-10-02",
+          "rs_ratio": 104.22451371065715,
+          "rs_momentum": 99.2659240482717
+        },
+        {
+          "as_of": "2026-10-09",
+          "rs_ratio": 104.62941171513259,
+          "rs_momentum": 99.62742374183753
+        }
+      ]
+    },
+    {
+      "ref_id": "IDXFINANCE",
+      "name": "Keuangan",
+      "color_hex": "#1D4ED8",
+      "rs_ratio": 100.68981379269493,
+      "rs_momentum": 98.77203853134921,
+      "rs_ratio_change_1p": 0.2274357211368141,
+      "rs_momentum_change_1p": 0.09604379934009444,
+      "quadrant": "weakening",
+      "quadrant_prev": "weakening",
+      "transition": null,
+      "quadrant_age_periods": 10,
+      "score": 25.5,
+      "rank_score": 11,
+      "streak_weeks": 0,
+      "ret_1w": 0.041832963672639334,
+      "median_turnover_20d_idr": 2574480765000,
+      "tail": [
+        {
+          "as_of": "2026-07-17",
+          "rs_ratio": 105.82190196393836,
+          "rs_momentum": 100.3656635735258
+        },
+        {
+          "as_of": "2026-07-24",
+          "rs_ratio": 105.30515220768466,
+          "rs_momentum": 100.25081725309853
+        },
+        {
+          "as_of": "2026-07-31",
+          "rs_ratio": 104.87731149869192,
+          "rs_momentum": 100.1053715532875
+        },
+        {
+          "as_of": "2026-08-07",
+          "rs_ratio": 104.22045787860729,
+          "rs_momentum": 99.89775036313866
+        },
+        {
+          "as_of": "2026-08-14",
+          "rs_ratio": 103.54159443749808,
+          "rs_momentum": 99.62406977646104
+        },
+        {
+          "as_of": "2026-08-21",
+          "rs_ratio": 102.79272629780866,
+          "rs_momentum": 99.35608010119687
+        },
+        {
+          "as_of": "2026-08-28",
+          "rs_ratio": 102.1486803137071,
+          "rs_momentum": 99.09503790149725
+        },
+        {
+          "as_of": "2026-09-04",
+          "rs_ratio": 101.69557772984794,
+          "rs_momentum": 98.89268166059948
+        },
+        {
+          "as_of": "2026-09-11",
+          "rs_ratio": 101.3013464921436,
+          "rs_momentum": 98.75184127180925
+        },
+        {
+          "as_of": "2026-09-18",
+          "rs_ratio": 100.9037384052042,
+          "rs_momentum": 98.67324018407372
+        },
+        {
+          "as_of": "2026-09-25",
+          "rs_ratio": 100.68325442371436,
+          "rs_momentum": 98.65886137248873
+        },
+        {
+          "as_of": "2026-10-02",
+          "rs_ratio": 100.46237807155812,
+          "rs_momentum": 98.67599473200912
+        },
+        {
+          "as_of": "2026-10-09",
+          "rs_ratio": 100.68981379269493,
+          "rs_momentum": 98.77203853134921
+        }
+      ]
+    }
+  ],
+  "data_status": {
+    "as_of": "2026-10-09",
+    "timeframe": "w1",
+    "status": "partial",
+    "last_data_at": null,
+    "computed_at": "2026-10-13T01:16:41+07:00",
+    "partial_sectors": [
+      "IDXHEALTH"
+    ]
+  }
+}
