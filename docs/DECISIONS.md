@@ -160,6 +160,30 @@ Format:
 - alternatif: (a) mempertahankan kind lama → ditolak: `docs/05` §4.6 eksplisit "jangan ditawar lagi", dan halaman Data memakai nama itu untuk chip status & prasyarat tombol ("beda satu huruf = tombol selalu belum pernah"); (b) menyalin berkas DB dengan `shutil.copy` → ditolak: berisiko snapshot tidak konsisten saat WAL aktif; (c) mencatat retention sebagai run dengan kind baru → ditolak: menambah nilai ke daftar yang dikunci kontrak.
 - dampak: F12 memakai kind baku + kunci `runs`; user dapat mengunduh backup dari UI. Tombol 7-langkah di `docs/05` §4.1 tidak berubah; retention tersedia lewat HTTP/CLI (bukan salah satu tombol).
 
+## ADR-027 — `weekly.final_after_time` (16:15) sebagai batas minggu final
+- tanggal: 2026-10-13
+- status: diterima
+- konteks: `docs/05` §4.1 & `docs/07` B12 AC2 meminta `409 gate_weekly_not_final` bila sinyal mingguan dipaksa di luar penutupan Jumat, tetapi tidak menyebut jam penutupannya, dan config belum punya key-nya — nilai 16:15 sempat muncul di kode tanpa catatan.
+- keputusan: ambang masuk config (`weekly.final_after_time: "16:15"`) dan dibaca `signals.gate_final_week`. Gate lolos bila: **Sabtu/Minggu** (Jumat sudah tutup), atau **Jumat ≥ 16:15 WIB**, atau setelahnya di hari Jumat itu; selain itu `409 gate_weekly_not_final` (Senin–Kamis, dan Jumat sebelum 16:15). Angka 16:15 diambil dari batas akhir sesi post-trading `docs/02` §5 (16:00–16:15): lewat jam itu bar Jumat tidak bertambah lagi, jadi hasil minggu boleh dianggap final.
+- alternatif: (a) gate "hari == Jumat" tanpa jam → ditolak: siang Jumat data belum final, klik akan mengunci minggu yang belum tutup; (b) ambang di kode → ditolak: melanggar aturan repo 4 (semua angka ambang di `config/default.yaml`); (c) memperlakukan Sabtu/Minggu sebagai `not_final` → ditolak: user justru paling sering membuka aplikasi di akhir pekan.
+- dampak: tombol 5 (`compute --stage signals --timeframe w1_fri`) hidup Jumat malam & akhir pekan, terkunci Senin–Jumat sebelum 16:15; pesan 409 memuat `weekday` + `checked_at` supaya UI bisa menjelaskan.
+
+## ADR-028 — Return acuan aturan sektor = acuan skor, dibaca dari seri indeks
+- tanggal: 2026-10-13
+- status: diterima
+- konteks: audit menemukan `signals.evaluate_sector` membaca `ret_4w` dari `sector_metrics.ret_1m` (kolom bulanan), sedangkan skor memakai return acuan `scoring.return_window_weeks` (4 bar mingguan) yang dihitung dari seri indeks (`metrics._sector_reference`). Dua sumber berbeda untuk konsep yang sama: `ret_1m` = 21 bar mingguan, bukan 4.
+- keputusan: satu sumber angka — `metrics.window_return(series, date, bars)` dengan `bars = scoring.return_window_weeks` dari seri `sector_index_daily` (weekly, `final_only=True`). `metrics._sector_reference` (skor) dan `signals.reference_returns` (aturan §6.1) memanggil helper yang sama, jadi `rule_hits.ret_4w` kini identik dengan komponen `weight_return_window` skor dan otomatis ikut berubah bila user mengubah `scoring.return_window_weeks` (dibuktikan test: ubah ke 2 → angka `ret_4w` berubah).
+- alternatif: (a) tetap memakai `ret_1m` sebagai proksi → ditolak: angka yang berbeda dari skor untuk konsep yang sama, dan `docs/03` §5/§6 tidak pernah menyebut dua definisi; (b) menambah kolom `ret_4w` ke `sector_metrics` → ditolak: kolom turunan dari data yang sudah ada, dan DDL `docs/04` tidak boleh diubah untuk satu nilai turunan (ADR-023).
+- dampak: `rule_hits.ret_4w` kini konsisten dengan skor; kalau `scoring.return_window_weeks` diubah, kandidat sektor bisa berubah tanpa mengubah kode.
+
+## ADR-029 — `require_sektor_kandidat` dihormati & baris `data_freshness` ingest (B3 selesai)
+- tanggal: 2026-10-13
+- status: diterima
+- konteks: audit menemukan `weekly.require_sektor_kandidat` tidak pernah dibaca kode (config mati), dan B3 tertinggal satu item: baris `data_freshness` untuk ingest (`intraday_ingest`, `daily_ingest`) belum pernah ditulis sehingga tabel itu hanya berisi `midday_gate`.
+- keputusan: (a) `signals.week_picks` membaca `weekly.require_sektor_kandidat`: bila `true` (default, sesuai `docs/03` §6.2) saham hanya diambil dari sektor kandidat; bila `false`, seluruh sektor aktif ikut disaring aturan §6.2 — perilaku lama tetap default, dan key-nya tidak lagi mati. (b) `prices.ingest_intraday`/`ingest_daily` menulis baris `data_freshness` (`intraday_ingest`/`daily_ingest`) berisi `last_bar_at`, status `ok|partial|failed`, dan `detail` (rows/batches/failed_tickers). Respons `GET /api/v1/freshness` tetap menurunkan `daily_ingest` dari `price_daily` (`freshness.read`, ADR-024) — baris tabel adalah catatan run terakhir, bukan sumber status respons. (c) Sisa B3 yang lain (`computed:false`) sudah tertutup di B12/ADR-025.
+- alternatif: (a) menghapus key `require_sektor_kandidat` dari config → ditolak: user yang ingin melihat pick di luar sektor kandidat kehilangan tombolnya, dan menghapus konfigurasi yang sudah diumumkan lebih mahal dari 3 baris kode; (b) menulis baris `intraday_ingest` lewat SQL mentah di `prices` → ditolak: satu penulis (`freshness.write_freshness`) lebih mudah dijaga.
+- dampak: B3 `done`. Baris `intraday_ingest`/`daily_ingest` muncul pada run ingest berikutnya (dev DB sekarang baru berisi `midday_gate` karena ingest terakhir terjadi sebelum perubahan ini) — tidak ada migrasi data yang diperlukan.
+
 ## ADR-005 — Git: satu task = satu commit, repo lokal dulu
 - tanggal: 2026-10-12
 - status: diterima

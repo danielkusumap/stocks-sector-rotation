@@ -7,6 +7,7 @@ from fastapi import APIRouter, Query
 from .. import db
 from ..compute import signals
 from ..config import get_settings
+from .schemas import WeeklyPicksResponse
 
 router = APIRouter(prefix="/api/v1", tags=["weekly"])
 _API_VERSION = get_settings().app.api_version
@@ -29,7 +30,7 @@ STOCKS_SQL = """
 """
 
 
-@router.get("/weekly/picks")
+@router.get("/weekly/picks", response_model=WeeklyPicksResponse)
 def weekly_picks(
     week_end: str | None = None,
     scope: str = "sector,stock",
@@ -46,13 +47,17 @@ def weekly_picks(
             return {"api_version": _API_VERSION, "week_end": None, "is_final": False, "sectors": [], "stocks": []}
         final_weeks = set(signals.weekly_calendar(conn, get_settings().ingest["benchmark_alias"]))
         wants = {s.strip() for s in scope.split(",") if s.strip()}
-        sectors = [dict(r) for r in conn.execute(SECTORS_SQL, (min_streak, week))] if "sector" in wants else []
-        stocks = [dict(r) for r in conn.execute(STOCKS_SQL, (min_streak, week))] if "stock" in wants else []
+        sectors = [
+            {**dict(r), "rule_hits": json.loads(r["rule_hits"]) if r["rule_hits"] else {}}
+            for r in conn.execute(SECTORS_SQL, (min_streak, week))
+        ] if "sector" in wants else []
+        stocks = [
+            {**dict(r), "rule_hits": json.loads(r["rule_hits"]) if r["rule_hits"] else {}}
+            for r in conn.execute(STOCKS_SQL, (min_streak, week))
+        ] if "stock" in wants else []
     finally:
         conn.close()
 
-    for item in [*sectors, *stocks]:
-        item["rule_hits"] = json.loads(item["rule_hits"]) if item["rule_hits"] else {}
     return {
         "api_version": _API_VERSION,
         "week_end": week,

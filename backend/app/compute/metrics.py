@@ -261,6 +261,11 @@ STOCK_SNAPSHOT_SQL = """
 """
 
 
+def window_return(series: pd.Series, date: str, bars: int) -> float | None:
+    """Return `bars` periode terakhir sampai `date` — acuan yang sama untuk skor & aturan sinyal."""
+    return _returns(series, date, {"ref": bars})["ref"]
+
+
 def _sector_reference(conn, timeframe: str, weighting: str, cfg) -> tuple[dict, dict]:
     """(return periode acuan, share saham turun) per `sector_id` — dari bar terakhir seri indeks."""
     weekly_tf = timeframe in ("w1", "w1_fri")
@@ -274,7 +279,7 @@ def _sector_reference(conn, timeframe: str, weighting: str, cfg) -> tuple[dict, 
             series = rrg.weekly(series, final_only=timeframe == "w1_fri")
         if series.empty:
             continue
-        ref[sector_id] = _returns(series, series.index[-1], {"ref": bars})["ref"]
+        ref[sector_id] = window_return(series, series.index[-1], bars)
         last = group.iloc[-1]
         # share saham turun diambil dari bar harian terakhir (bar mingguan tidak menyimpan hitungan ini)
         share[sector_id] = float(last["decliners"] / last["constituents_count"]) if last["constituents_count"] else 0.0

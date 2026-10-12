@@ -1,0 +1,72 @@
+openapi.json — endpoint audit & model responsnya:
+  /api/v1/freshness                  -> FreshnessResponse
+      properti: api_version, daily_ingest, midday_gate
+  /api/v1/admin/runs                 -> RunsResponse
+      properti: api_version, runs, total
+  /api/v1/admin/runs/{run_id}        -> RunDetailResponse
+      properti: api_version, run
+  /api/v1/weekly/picks               -> WeeklyPicksResponse
+      properti: api_version, is_final, sectors, stocks, week_end
+
+semua path terdaftar: {"/api/v1/admin/import/excel": ["post"], "/api/v1/admin/ingest/prices": ["post"], "/api/v1/admin/compute": ["post"], "/api/v1/admin/midday": ["post"], "/api/v1/admin/runs": ["get"], "/api/v1/admin/export/backup": ["get"], "/api/v1/admin/retention": ["post"], "/api/v1/admin/runs/{run_id}": ["get"], "/api/v1/meta/sectors": ["get"], "/api/v1/meta/dates": ["get"], "/api/v1/meta/config": ["get"], "/api/v1/freshness": ["get"], "/api/v1/weekly/picks": ["get"], "/api/v1/rrg": ["get"], "/api/v1/rotation/matrix": ["get"], "/api/v1/heatmap": ["get"], "/api/v1/series/sector/{code}": ["get"], "/api/v1/sect
+
+BUKTI B3 — gate midday (docs/07 B3) di data/rotation.db:
+{
+  "api_version": "1.0",
+  "midday_gate": {
+    "status": "stale",
+    "as_of_date": "2026-10-13",
+    "last_bar_at": null,
+    "required_bar_time": "11:30",
+    "probes": [
+      {
+        "ticker": "BBCA",
+        "last_bar_at": null
+      },
+      {
+        "ticker": "BBRI",
+        "last_bar_at": null
+      },
+      {
+        "ticker": "BMRI",
+        "last_bar_at": null
+      },
+      {
+        "ticker": "TLKM",
+        "last_bar_at": null
+      },
+      {
+        "ticker": "ASII",
+        "last_bar_at": null
+      }
+    ],
+    "checked_at": "2026-10-13T02:13:04+07:00"
+  },
+  "daily_ingest": {
+    "status": "stale",
+    "last_data_at": "2026-10-13T00:22:51+07:00",
+    "last_bar_date": "2026-10-09",
+    "expected_bar_date": "2026-10-13"
+  }
+}
+  `python -m backend.cli midday` → {
+  "gate": "stale",
+  "last_bar_at": null,
+  "required_bar_time": "11:30",
+  "computed": false,
+  "api_version": "1.0"
+} (exit 0)
+
+price_intraday: 217 bar, tanggal terakhir 2026-10-12
+data_freshness:
+  {'key': 'midday_gate', 'status': 'stale', 'as_of_date': '2026-10-13', 'last_bar_at': None, 'checked_at': '2026-10-13T03:09:19+07:00'}
+
+Test yang menjaga perilaku ini (backend/tests/test_b14_audit.py):
+  test_openapi_memuat_schema_response            — keempat endpoint punya model; amplop `runs` (§4.6) & `run` (§4.3) ditegakkan
+  test_weekly_picks_tidak_membocorkan_field…     — item picks persis field kontrak (`week_end`/`sector_id` tidak bocor)
+  test_freshness_dan_runs_ikut_model             — envelope freshness/runs/run lolos model
+  test_ret_4w_config_driven                      — angka `ret_4w` berubah saat `scoring.return_window_weeks` diubah
+  test_rule_hits_ret_4w_pakai_sumber_yang_sama   — `rule_hits.ret_4w` = acuan return seri indeks (bukan `sector_metrics.ret_1m`)
+  test_require_sektor_kandidat_dihormati         — true: hanya sektor kandidat; false: semua sektor ikut disaring
+  test_ingest_intraday_catat_baris_freshness     — baris `intraday_ingest` (B3 sisa) ditulis setelah ingest
+  test_ingest_daily_catat_baris_freshness        — baris `daily_ingest` juga ditulis

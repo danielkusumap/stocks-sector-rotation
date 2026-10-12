@@ -21,6 +21,7 @@ from ..config import get_settings
 from ..ingest import excel, prices
 from ..repo import run as runs
 from ..repo import stock as stocks
+from .schemas import RunDetailResponse, RunsResponse
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 _API_VERSION = get_settings().app.api_version
@@ -164,7 +165,7 @@ def midday(async_: bool = Query(False, alias="async")):
     return _queued(run_id) if result is None else result
 
 
-@router.get("/runs")
+@router.get("/runs", response_model=RunsResponse)
 def list_runs(limit: int = Query(20, ge=1, le=200)) -> dict:
     """Riwayat run terbaru (docs/05 §4.6: kunci `runs`, bukan `items`)."""
     conn = db.connect()
@@ -200,7 +201,7 @@ def run_retention() -> dict:
     return {"api_version": _API_VERSION, **maintenance.retention()}
 
 
-@router.get("/runs/{run_id}")
+@router.get("/runs/{run_id}", response_model=RunDetailResponse)
 def get_run(run_id: int) -> dict:
     conn = db.connect()
     try:

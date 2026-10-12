@@ -8,7 +8,7 @@ from .. import cache, db
 from ..config import get_settings
 from ..ingest import freshness
 from .rrg import _check
-from .schemas import MetaConfigResponse, MetaDatesResponse, MetaSectorsResponse
+from .schemas import FreshnessResponse, MetaConfigResponse, MetaDatesResponse, MetaSectorsResponse
 
 router = APIRouter(prefix="/api/v1", tags=["meta"])
 _API_VERSION = get_settings().app.api_version
@@ -107,7 +107,7 @@ def meta_config() -> dict:
     }
 
 
-@router.get("/freshness")
+@router.get("/freshness", response_model=FreshnessResponse)
 def get_freshness() -> dict:
     """Status gate `midday` + kesegaran bar harian. Selalu 200 — kesegaran ada di body."""
     conn = db.connect()

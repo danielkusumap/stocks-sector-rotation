@@ -240,6 +240,19 @@ def ingest_intraday(*, tickers=None, sectors=None, db_path=None, report=None) ->
                 if i < len(batches):
                     time.sleep(cfg.ingest["sleep_seconds"])
 
+        status = "ok" if stored and not failed else ("partial" if stored else "failed")
+        day = datetime.now(ZoneInfo(tz)).date().isoformat()
+        last_bar = conn.execute(
+            "SELECT MAX(ts) FROM price_intraday WHERE session = 'regular' AND substr(ts, 1, 10) = ?", (day,)
+        ).fetchone()[0]
+        _record_freshness(
+            conn,
+            "intraday_ingest",
+            as_of_date=day,
+            last_bar_at=last_bar,
+            status=status,
+            detail={"rows": stored, "intervals": intervals, "failed_tickers": failed},
+        )
         return {
             "rows": stored,
             "batches": len(batches),
@@ -248,6 +261,7 @@ def ingest_intraday(*, tickers=None, sectors=None, db_path=None, report=None) ->
             "tickers_ok": len(ingested),
             "tickers_total": len(universe),
             "failed_tickers": failed,
+            "status": status,
         }
     finally:
         conn.close()
@@ -300,6 +314,13 @@ def refresh_yahoo_sector(conn, tickers: list[str], refresh_days: int) -> list[st
         updated.append(ticker)
         conn.commit()
     return updated
+
+
+def _record_freshness(conn, key: str, *, as_of_date: str, last_bar_at: str | None, status: str, detail: dict) -> None:
+    """Catat baris `data_freshness` setelah ingest (docs/04 §4; `intraday_ingest`/`daily_ingest`)."""
+    from . import freshness  # impor lokal: `freshness` memakai `prices` (hindari siklus)
+
+    freshness.write_freshness(conn, key, as_of_date=as_of_date, last_bar_at=last_bar_at, status=status, detail=detail)
 
 
 def ingest_daily(
@@ -364,6 +385,15 @@ def ingest_daily(
 
         info_refreshed = refresh_yahoo_sector(conn, ingested, cfg.ingest["refresh_market_cap_days"]) if refresh_info else []
 
+        status = "ok" if ingested and not failed else ("partial" if ingested else "failed")
+        _record_freshness(
+            conn,
+            "daily_ingest",
+            as_of_date=end.isoformat(),
+            last_bar_at=conn.execute("SELECT MAX(date) FROM price_daily").fetchone()[0],
+            status=status,
+            detail={"rows": rows_done, "batches": len(batches), "failed_tickers": failed, "from": start.isoformat(), "to": end.isoformat()},
+        )
         return {
             "rows": rows_done,
             "batches": len(batches),
@@ -373,6 +403,7 @@ def ingest_daily(
             "from": start.isoformat(),
             "to": end.isoformat(),
             "yahoo_sector_refreshed": len(info_refreshed),
+            "status": status,
         }
     finally:
         conn.close()

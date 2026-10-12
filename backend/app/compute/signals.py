@@ -17,18 +17,20 @@ import pandas as pd
 from ..config import get_settings
 from ..db import connect, now_iso
 from ..labels import QUADRANT_LABEL, format_id_number
+from . import metrics as metrics_module
 from . import rrg as rrg_module
 
 SECTOR_ROWS_SQL = """
     SELECT r.ref_id AS code, s.id AS sector_id, s.name_id, r.quadrant, r.quadrant_prev,
-           r.quadrant_age_periods, r.rs_ratio, r.rs_momentum, r.rs_momentum_change_1p, r.score,
-           m.ret_1m AS ret_4w
+           r.quadrant_age_periods, r.rs_ratio, r.rs_momentum, r.rs_momentum_change_1p, r.score
     FROM rrg_daily r
     JOIN sector s ON s.code = r.ref_id
-    LEFT JOIN sector_metrics m ON m.sector_id = s.id AND m.as_of_date = r.as_of_date
-                              AND m.timeframe = r.timeframe AND m.weighting = r.weighting
     WHERE r.scope = 'sector' AND r.timeframe = 'w1_fri' AND r.weighting = ? AND r.as_of_date = ?
     ORDER BY r.ref_id
+"""
+INDEX_SERIES_SQL = """
+    SELECT date, index_close FROM sector_index_daily
+    WHERE sector_id = ? AND weighting = ? ORDER BY date
 """
 CONSTITUENTS_SQL = """
     SELECT constituents_count FROM sector_index_daily
@@ -211,16 +213,46 @@ def _score_candidates(rows: list[tuple], cfg) -> list[tuple]:
     return [(*row[:6], by_index[i], *row[7:]) for i, row in enumerate(rows)]
 
 
-def week_picks(conn, week_end: str, *, weighting: str, trading_dates: list[str], cfg) -> tuple[list[tuple], list[tuple]]:
-    """(baris sektor, baris saham) untuk satu minggu; saham hanya dari sektor kandidat."""
-    sectors = [
-        evaluate_sector(
-            row,
-            (conn.execute(CONSTITUENTS_SQL, (row["sector_id"], weighting, week_end)).fetchone() or [None])[0],
-            cfg,
+def reference_returns(conn, week_end: str, *, weighting: str, cfg) -> dict[int, float | None]:
+    """Return periode acuan `scoring.return_window_weeks` per sektor, dari seri indeks sektornya.
+
+    Sumber ini sama dengan yang dipakai `metrics._sector_reference` saat menghitung skor, jadi aturan
+    §6.1 (`ret_4w > 0`) dan `weight_return_window` skor memakai angka yang identik (ADR-028).
+    """
+    bars = cfg.scoring["return_window_weeks"]  # timeframe w1_fri = bar mingguan
+    out: dict[int, float | None] = {}
+    for row in conn.execute("SELECT id FROM sector WHERE is_active = 1"):
+        bars_rows = conn.execute(INDEX_SERIES_SQL, (row["id"], weighting)).fetchall()
+        if not bars_rows:
+            continue
+        series = pd.Series(
+            [r["index_close"] for r in bars_rows],
+            index=[r["date"] for r in bars_rows],
         )
-        for row in conn.execute(SECTOR_ROWS_SQL, (weighting, week_end))
-    ]
+        weekly = rrg_module.weekly(series, final_only=True)
+        if week_end in weekly.index:
+            out[row["id"]] = metrics_module.window_return(weekly, week_end, bars)
+    return out
+
+
+def week_picks(conn, week_end: str, *, weighting: str, trading_dates: list[str], cfg) -> tuple[list[tuple], list[tuple]]:
+    """(baris sektor, baris saham) untuk satu minggu.
+
+    Saham diambil hanya dari sektor kandidat bila `weekly.require_sektor_kandidat` true (`docs/03` §6.2);
+    kalau false, seluruh sektor aktif ikut disaring aturan saham.
+    """
+    refs = reference_returns(conn, week_end, weighting=weighting, cfg=cfg)
+    sectors = []
+    for row in conn.execute(SECTOR_ROWS_SQL, (weighting, week_end)):
+        row = dict(row)
+        row["ret_4w"] = refs.get(row["sector_id"])
+        sectors.append(
+            evaluate_sector(
+                row,
+                (conn.execute(CONSTITUENTS_SQL, (row["sector_id"], weighting, week_end)).fetchone() or [None])[0],
+                cfg,
+            )
+        )
     selectable = sorted([s for s in sectors if s["ok"]], key=lambda s: -(s["score"] or 0.0))[: cfg.weekly["max_sectors"]]
 
     sector_rows = []
@@ -246,19 +278,24 @@ def week_picks(conn, week_end: str, *, weighting: str, trading_dates: list[str],
             )
         )
 
-    if not selectable:
+    stock_sectors = (
+        [s["row"]["code"] for s in selectable]
+        if cfg.weekly["require_sektor_kandidat"]
+        else sorted(row["code"] for row in conn.execute("SELECT code FROM sector WHERE is_active = 1"))
+    )
+    if not stock_sectors:
         return sector_rows, []
 
     conn.execute("CREATE TEMP TABLE IF NOT EXISTS _candidate_sector (code TEXT PRIMARY KEY)")
     conn.execute("DELETE FROM _candidate_sector")  # tabel temp bertahan sepanjang koneksi (dipakai per minggu)
-    conn.executemany("INSERT OR IGNORE INTO _candidate_sector (code) VALUES (?)", [(s["row"]["code"],) for s in selectable])
+    conn.executemany("INSERT OR IGNORE INTO _candidate_sector (code) VALUES (?)", [(code,) for code in stock_sectors])
     cutoff = _cutoff_date(trading_dates, week_end, bars=5)
 
     stock_rows = []
-    for sector in selectable:
+    for code in stock_sectors:
         picks = []
         for row in conn.execute(STOCK_ROWS_SQL):
-            if row["sector_code"] != sector["row"]["code"]:
+            if row["sector_code"] != code:
                 continue
             close = conn.execute(CLOSE_SQL, (row["ticker"], week_end)).fetchone()
             last = conn.execute(LAST_BAR_SQL, (row["ticker"], week_end)).fetchone()
