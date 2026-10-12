@@ -11,6 +11,8 @@ import {
   type RrgResponse,
   type RotationMatrixParams,
   type RotationMatrixResponse,
+  type RunResponse,
+  type RunsResponse,
   type SectorDetailParams,
   type SectorDetailResponse,
   type SectorSeriesParams,
@@ -23,6 +25,7 @@ import {
   type WeeklyPicksParams,
   type WeeklyPicksResponse,
 } from "../lib/api";
+import { isFinal } from "../lib/pipeline";
 import { keyFor } from "../lib/queryKeys";
 
 /** Satu hook per endpoint docs/05 §1–§3. Kunci cache ikut parameter yang dikirim. */
@@ -77,3 +80,16 @@ export const useWeeklyPicks = (params: WeeklyPicksParams) =>
 
 export const useBriefing = (params: BriefingParams = {}) =>
   useApi<BriefingResponse, BriefingParams>("briefing", "/briefing/morning", params);
+
+export const useRuns = (limit = 20) =>
+  useApi<RunsResponse, { limit: number }>("runs", "/admin/runs", { limit });
+
+/** Poll 1 s selama status belum final; berhenti sendiri saat `ok|partial|failed|skipped` (docs/05 §5.1). */
+export function useRun(runId: number | null) {
+  return useQuery({
+    queryKey: keyFor("run", { run_id: runId }),
+    queryFn: ({ signal }) => apiGet<RunResponse, object>(`/admin/runs/${runId}`, undefined, signal),
+    enabled: runId !== null,
+    refetchInterval: (query) => (isFinal(query.state.data?.run.status) ? false : 1000),
+  });
+}

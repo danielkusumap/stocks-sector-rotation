@@ -138,11 +138,11 @@ Format:
 
 ## ADR-014 — `ret_positive_only`: filter ada di `docs/06` §7, param-nya tidak ada di `docs/05`
 - tanggal: 2026-10-13
-- status: usul (butuh keputusan user/backend)
-- konteks: daftar filter `docs/06` §7 memuat `ret_positive_only` (toggle, default off), tapi tidak satu pun endpoint `docs/05` §2 punya param itu: `/sectors/summary` & `/stocks` hanya menerima `sector, quadrant, transition, min_streak, min_turnover_idr, min_price_idr, q, sort, dir, limit, offset`. `docs/05` §6 juga menulis backend boleh menambah field, tapi param baru tetap perlu persetujuan.
-- keputusan: filter tetap dibaca dari URL (`lib/urlFilters.ts`) dan dikirim sebagai `ret_positive_only=1`; backend bebas mengabaikannya (param tak dikenal → diabaikan, jadi tidak memecah apa pun). Kontrol UI-nya baru dibuat di F5 kalau param ini resmi.
-- alternatif: (a) backend menambah `ret_positive_only` ke `/sectors/summary` & `/stocks` (frontend langsung berfungsi); (b) filter dihapus dari `docs/06` §7 (UI lebih jujur: tidak menawarkan filter yang tak jalan).
-- dampak: sampai diputuskan, filter ini **tidak akan menyaring apa pun**; karena itu jangan ditampilkan sebagai kontrol aktif di F5 sebelum (a) dikerjakan.
+- status: **selesai** — `docs/05` §2 direvisi: `ret_positive_only` (bool, default `false`) kini resmi di `/sectors/summary` dan `/stocks`
+- konteks: daftar filter `docs/06` §7 memuat `ret_positive_only` (toggle, default off), tapi tidak satu pun endpoint `docs/05` §2 punya param itu.
+- keputusan (saat itu): filter dibaca dari URL (`lib/urlFilters.ts`), dikirim sebagai `ret_positive_only=1`, backend boleh mengabaikannya; kontrol UI-nya belum dibuat.
+- resolusi: tipe `SectorSummaryParams`/`StocksParams` dan mock MSW sudah menerimanya. Untuk `/sectors/summary` acuannya = kolom return jendela aktif (`window=1w→ret_1w`, `1m→ret_1m`, `3m→ret_3m`, `6m→ret_6m`, `ytd→ret_ytd`; `1y` tidak punya kolom → filter diabaikan). Diukur di mock: 11 sektor → 8 (window 3m) → 6 (window 1w); 30 saham → 22.
+- dampak: kontrol toggle-nya dibuat di F5 (sekarang aman ditampilkan). Sisa ambiguitas untuk `/stocks` (tidak ada param `window`, jadi "jendela aktif" tidak terdefinisi) dicatat sebagai blocker #13.
 
 ## ADR-015 — Parameter multi-nilai dikirim koma-separated, bukan diulang
 - tanggal: 2026-10-13
@@ -151,3 +151,20 @@ Format:
 - keputusan: frontend selalu mengirim satu param koma-separated (`quadrant=leading%2Cimproving`, `sector=IDXFINANCE,IDXENERGY`) lewat satu fungsi `toSearchParams` (`src/lib/api.ts`). URL jadi shareable seperti contoh dokumen dan hanya ada satu bentuk kode di frontend.
 - alternatif: mengirim param berulang (`sector=A&sector=B`) — bentuk yang dipakai FastAPI `Query(List[str])` bawaan, tapi tidak cocok dengan contoh URL di `docs/05` §5 dan membuat `lib/urlFilters` harus tahu daftar param yang multi.
 - dampak: **backend wajib memecah nilai berdasarkan koma** untuk `sector`, `quadrant` (dan param multi lain) — `Query(List[str])` bawaan FastAPI akan menganggap `"leading,improving"` sebagai satu nilai dan mengembalikan 0 baris. Kalau backend memilih bentuk berulang, yang berubah hanya `toSearchParams` (satu fungsi) + test-nya.
+- catatan 2026-10-13: `docs/05` §0 lalu menetapkan **kedua bentuk wajib jalan** — frontend tetap mengirim bentuk koma (tidak berubah), backend menerima dua-duanya.
+
+## ADR-016 — Nama `run.kind` dan amplop `GET /admin/runs` (kontrak belum menetapkannya)
+- tanggal: 2026-10-13
+- status: usul (backend harus menyesuaikan; UI sudah jalan dengan nilai ini)
+- konteks: `docs/05` §4.3 hanya memberi satu contoh: `"kind": "prices_daily"`. Enam tombol `docs/05` §4.1 butuh nama kind yang stabil supaya halaman Data bisa menampilkan chip status ("belum pernah / terakhir ok …") dan menentukan prasyarat; amplop `GET /api/v1/admin/runs` juga tidak ditulis (hanya "daftar `ingest_run`"), sementara konvensi dokumen lain campur (`items` untuk meta/stocks, `sectors`/`stocks` untuk weekly).
+- keputusan: `kind` = `import_excel` · `prices_daily` · `prices_intraday` · `compute_all` · `compute_signals` · `midday` (`src/lib/pipeline.ts` → `RUN_KIND`). Amplop daftar = `{ api_version, runs: [...] }` (sejajar dengan `{ api_version, run }` di §4.3), tiap elemen satu objek `IngestRun` dengan kolom §4.3.
+- alternatif: mencocokkan kind dengan `startsWith` (mis. `prices*`) supaya tahan perubahan nama — ditolak: chip status jadi tidak bisa membedakan `prices_daily` vs `prices_intraday`, dan menyembunyikan ketidaksepakatan dengan backend; menebak amplop `items` — ditolak karena §4.3 memakai nama domain (`run`), bukan `items`.
+- dampak: kalau backend memakai nama/amplop lain, halaman Data **tidak error** tapi chip selalu "belum pernah" dan tabel riwayat kosong — dua gejala itu jadi penanda mismatch (blocker #10 & #11). Perbaikan hanya di dua tempat: `RUN_KIND` dan `useRuns`.
+
+## ADR-017 — Prasyarat tombol disimpulkan dari riwayat run; `Data` jadi menu ke-6
+- tanggal: 2026-10-13
+- status: diterima
+- konteks: `docs/05` §4.1 mewajibkan tombol 2–6 terkunci dengan alasan yang bisa dibaca user, tapi kontrak tidak punya endpoint "status prasyarat" (apakah universe ada, apakah `price_daily` terisi). Menaruh tombol Data di sidebar berarti 6 menu, sedangkan `docs/06` §5 menulis 5 menu.
+- keputusan: (a) prasyarat dihitung di frontend dari **riwayat run** `GET /admin/runs` — tombol 2/3 aktif setelah ada run `import_excel` berstatus `ok|partial`, tombol 4/5/6 setelah ada `prices_daily` `ok|partial`; backend tetap penjaga terakhir dan membalas `409` kalau UI keliru; (b) menu `Data` (ikon `Database`) ditambahkan sebagai item ke-6 di sidebar dengan route `/data`.
+- alternatif: (a) memakai `meta/sectors` (`constituents_active > 0`) sebagai penanda universe — ditolak karena dengan DB kosong mock/fixture tetap melaporkan angka, jadi AC "DB kosong → semua terkunci" tidak bisa diuji; menambah endpoint status prasyarat — ditolak: kontrak baru untuk 3 kondisi; (b) menyembunyikan halaman Data di balik `/status` — ditolak: `AGENTS.md` rule 10 menyebut halaman Data sebagai pintu masuk user, harus terlihat.
+- dampak: kalau `ingest_run` pernah dipangkas (retensi) tapi data masih ada, tombol bisa terkunci keliru — backend tetap menolak/menerima dengan benar, jadi hanya UX yang lebih konservatif. `docs/06` §5 perlu diperbarui (5 → 6 menu) saat F11 merapikan dokumen. `src/lib/format.ts` juga sudah dibuat sebagian di F12 (`formatDateTime`, `formatTime`, `formatDuration`) dan F3 tinggal menambahkan `formatRp`/`formatPct`/`formatNum` di file yang sama.

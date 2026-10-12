@@ -24,6 +24,7 @@ import type {
 import sectorsJson from "./fixtures/sectors.json";
 import stocksJson from "./fixtures/stocks.json";
 import weeklyJson from "./fixtures/weekly.json";
+import { adminHandlers } from "./admin";
 
 /**
  * Mock server (MSW) — dibangun dari bentuk JSON di docs/05 apa adanya, supaya UI
@@ -100,6 +101,15 @@ const STOCK_SORT_FIELD: Record<string, keyof StockRow> = {
   ret_1w: "ret_1w",
   turnover: "median_turnover_20d_idr",
   ticker: "ticker",
+};
+
+/** `ret_positive_only` → kolom return jendela aktif (docs/05 §2). `1y` tidak punya kolom → diabaikan. */
+const WINDOW_RET_FIELD: Record<string, keyof SectorSummaryItem> = {
+  "1w": "ret_1w",
+  "1m": "ret_1m",
+  "3m": "ret_3m",
+  "6m": "ret_6m",
+  ytd: "ret_ytd",
 };
 
 function sortRows<T>(rows: T[], field: keyof T, dir: string): T[] {
@@ -188,7 +198,12 @@ export const handlers = [
     const body: MetaConfigResponse = {
       api_version: "1.0",
       universe: { min_turnover_idr: 1_000_000_000, min_price_idr: 100, max_rsi: 75 },
-      rrg: { ema_span: 14, roc_lag: 10, weekly: { ema_span: 14, roc_lag: 4 }, min_points: 60 },
+      rrg: {
+        ema_span: 14,
+        roc_lag: 10,
+        weekly: { ema_span: 14, roc_lag: 4 },
+        min_points: { d1: 60, w1: 30, w1_fri: 30, midday: 60 },
+      },
       timeframes: ["d1", "w1", "w1_fri", "midday"],
       windows: ["1w", "1m", "3m", "6m", "1y", "ytd"],
       midday_gate_min_bar_time: "11:30",
@@ -291,6 +306,8 @@ export const handlers = [
     const minStreak = num(sp, "min_streak");
     const minTurnover = num(sp, "min_turnover_idr");
     const onlyPartial = sp.get("only_partial") === "true";
+    const retPositive = sp.get("ret_positive_only") === "true" || sp.get("ret_positive_only") === "1";
+    const retField = WINDOW_RET_FIELD[sp.get("window") ?? "3m"];
 
     const filtered = sectors.filter(
       (s) =>
@@ -299,6 +316,7 @@ export const handlers = [
         (sp.get("transition") === null || transition(s) === sp.get("transition")) &&
         s.streak_weeks >= minStreak &&
         (s.median_turnover_20d_idr ?? 0) >= minTurnover &&
+        (!retPositive || retField === undefined || Number(s[retField] ?? 0) > 0) &&
         (!onlyPartial || s.partial),
     );
 
@@ -438,12 +456,15 @@ export const handlers = [
     const q = (sp.get("q") ?? "").trim().toLowerCase();
     const minTurnover = num(sp, "min_turnover_idr");
     const minPrice = num(sp, "min_price_idr");
+    // shortcut mock: /stocks tidak punya param `window`, jadi acuan return positif = ret_1w
+    const retPositive = sp.get("ret_positive_only") === "true" || sp.get("ret_positive_only") === "1";
 
     const filtered = stocks.filter(
       (s) =>
         (wantedSectors.length === 0 || wantedSectors.includes(s.sector_code)) &&
         (wantedQuadrants.length === 0 || wantedQuadrants.includes(s.quadrant ?? "")) &&
         (q === "" || s.ticker.toLowerCase().includes(q) || s.name.toLowerCase().includes(q)) &&
+        (!retPositive || (s.ret_1w ?? 0) > 0) &&
         (s.median_turnover_20d_idr ?? 0) >= minTurnover &&
         s.close >= minPrice,
     );
@@ -605,4 +626,6 @@ export const handlers = [
     };
     return HttpResponse.json(body);
   }),
+
+  ...adminHandlers,
 ];

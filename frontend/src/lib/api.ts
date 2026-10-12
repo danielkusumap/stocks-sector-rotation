@@ -98,7 +98,8 @@ export interface MetaConfigResponse {
     ema_span: number;
     roc_lag: number;
     weekly: { ema_span: number; roc_lag: number };
-    min_points: number;
+    /** per timeframe (docs/05 §1 terkoreksi): { d1: 60, w1: 30, w1_fri: 30, midday: 60 } */
+    min_points: Record<Timeframe, number>;
   };
   timeframes: Timeframe[];
   windows: Window[];
@@ -206,6 +207,8 @@ export interface SectorSummaryParams extends CommonParams {
   transition?: string;
   min_streak?: number;
   min_turnover_idr?: number;
+  /** hanya baris dengan nilai kolom return jendela aktif > 0 (docs/05 §2). */
+  ret_positive_only?: boolean;
   only_partial?: boolean;
   sort?: SectorSort;
   dir?: Dir;
@@ -290,6 +293,7 @@ export interface StocksParams {
   as_of?: string;
   sector?: string[];
   quadrant?: Quadrant[];
+  ret_positive_only?: boolean;
   q?: string;
   min_turnover_idr?: number;
   min_price_idr?: number;
@@ -499,6 +503,73 @@ export interface BriefingResponse {
   notes_for_report: string;
 }
 
+// ── §4 Admin / jobs — dipicu halaman Data (docs/08 F12) ──────────────────────
+
+export type RunStatus = "queued" | "running" | "ok" | "partial" | "failed" | "skipped";
+
+/** Status akhir: polling wajib berhenti di sini (docs/05 §5.1). */
+export const RUN_FINAL: readonly RunStatus[] = ["ok", "partial", "failed", "skipped"];
+
+export interface IngestRun {
+  run_id: number;
+  kind: string;
+  status: RunStatus;
+  started_at: string | null;
+  finished_at: string | null;
+  phase: string | null;
+  rows: number | null;
+  rows_total: number | null;
+  /** null = rows_total belum diketahui → UI pakai spinner + message (docs/05 §4.3). */
+  percent: number | null;
+  message: string | null;
+  failed_tickers: string[];
+  params_json?: unknown;
+  result_json?: unknown;
+}
+
+export interface RunsResponse {
+  api_version: string;
+  runs: IngestRun[];
+}
+
+export interface RunResponse {
+  api_version: string;
+  run: IngestRun;
+}
+
+export interface StartRunResponse {
+  run_id: number;
+  status: RunStatus;
+}
+
+export interface ImportResult {
+  import_id: number;
+  inserted: number;
+  updated: number;
+  deactivated: number;
+  errors: { sheet: string; row_no: number; raw_value: string; reason: string }[];
+}
+
+export interface IngestPricesBody {
+  mode: "daily" | "intraday";
+  from?: string | null;
+  to?: string | null;
+  sectors?: string[] | null;
+  tickers?: string[] | null;
+}
+
+export interface ComputeBody {
+  stage: "index" | "rrg" | "signals" | "all";
+  timeframe?: Timeframe;
+  as_of?: string | null;
+}
+
+export interface MiddayResult {
+  gate: "ok" | "stale";
+  last_bar_at: string | null;
+  computed: boolean;
+}
+
 // ── Transport ───────────────────────────────────────────────────────────────
 
 /** Semua endpoint web app hidup di bawah prefiks ini (diproxikan Vite → :8000). */
@@ -532,15 +603,49 @@ export function toSearchParams(params: Record<string, QueryValue>): URLSearchPar
   return sp;
 }
 
+function querySuffix(params?: object): string {
+  const qs = toSearchParams((params ?? {}) as Record<string, QueryValue>).toString();
+  return qs ? `?${qs}` : "";
+}
+
 export async function apiGet<T, P extends object>(
   path: string,
   params?: P,
   signal?: AbortSignal,
 ): Promise<T> {
-  const qs = toSearchParams((params ?? {}) as Record<string, QueryValue>).toString();
-  const res = await fetch(`${API_BASE}${path}${qs ? `?${qs}` : ""}`, {
+  return send<T>(`${path}${querySuffix(params)}`, { signal });
+}
+
+export function apiPost<T, B extends object>(
+  path: string,
+  body?: B,
+  params?: Record<string, QueryValue>,
+  signal?: AbortSignal,
+): Promise<T> {
+  return send<T>(`${path}${querySuffix(params)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
     signal,
-    headers: { Accept: "application/json" },
+  });
+}
+
+/** Import Excel: multipart, satu field bernama `file` (docs/05 §4). */
+export function apiUpload<T>(
+  path: string,
+  file: File,
+  params?: Record<string, QueryValue>,
+): Promise<T> {
+  const form = new FormData();
+  form.append("file", file);
+  return send<T>(`${path}${querySuffix(params)}`, { method: "POST", body: form });
+}
+
+async function send<T>(path: string, init: RequestInit): Promise<T> {
+  const apiKey = localStorage.getItem(API_KEY_STORAGE); // docs/05 §4.5: diisi manual user, bukan VITE_*
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...init,
+    headers: { Accept: "application/json", ...(apiKey ? { "X-API-Key": apiKey } : {}), ...init.headers },
   });
   const body: unknown = await res.json().catch(() => null);
   if (!res.ok) {
@@ -554,3 +659,5 @@ export async function apiGet<T, P extends object>(
   }
   return body as T;
 }
+
+export const API_KEY_STORAGE = "rotation_api_key";

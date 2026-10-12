@@ -2,6 +2,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import AppShell from "./components/layout/AppShell";
 import { queryClient } from "./lib/queryClient";
+import DataPage from "./pages/DataPage";
 import OverviewPage from "./pages/OverviewPage";
 import SectorPage from "./pages/SectorPage";
 import StockPage from "./pages/StockPage";
@@ -19,6 +20,7 @@ export default function App() {
             <Route path="/stocks" element={<StockPage />} />
             <Route path="/weekly" element={<WeeklyPage />} />
             <Route path="/status" element={<StatusPage />} />
+            <Route path="/data" element={<DataPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
