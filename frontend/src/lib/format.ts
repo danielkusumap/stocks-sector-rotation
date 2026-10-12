@@ -22,6 +22,19 @@ export function formatDateTime(iso: string | null | undefined): string {
   return `${day} ${time}`;
 }
 
+/** Tanggal ISO tanpa jam: "2026-10-12" → "12 Okt 2026" (WIB, dipakai AsOfPicker). */
+export function formatDate(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const date = new Date(`${iso.slice(0, 10)}T00:00:00+07:00`);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("id-ID", {
+    timeZone: TZ,
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+}
+
 /** Jam WIB saja: "11:05". */
 export function formatTime(iso: string | null | undefined): string {
   if (!iso) return "—";

@@ -5,6 +5,7 @@ import type {
   FreshnessResponse,
   HeatmapResponse,
   MetaConfigResponse,
+  MetaDatesResponse,
   MetaSectorsResponse,
   Quadrant,
   RrgItem,
@@ -135,6 +136,20 @@ function datesBack(count: number): string[] {
   );
 }
 
+/** Hari bursa mundur dari `AS_OF`: Sen–Jum, minus satu libur buatan (docs/05 §1 `meta/dates`). */
+const MOCK_HOLIDAY = "2026-10-05";
+function tradingDays(count: number): string[] {
+  const end = new Date(`${AS_OF}T00:00:00Z`).getTime();
+  const out: string[] = [];
+  for (let i = 0; out.length < count && i < count * 3; i += 1) {
+    const iso = new Date(end - i * 86_400_000).toISOString().slice(0, 10);
+    const weekday = new Date(`${iso}T00:00:00Z`).getUTCDay();
+    if (weekday === 0 || weekday === 6 || iso === MOCK_HOLIDAY) continue;
+    out.push(iso);
+  }
+  return out;
+}
+
 function sectorSeries(row: SectorRow, count: number) {
   const end = 100 + (row.rs_ratio - 100) * 3;
   const dates = datesBack(count);
@@ -222,6 +237,21 @@ function padStockItems(items: RrgItem[], sectorCode: string | null, upto = 60): 
 }
 
 export const handlers = [
+  http.get(`${API}/meta/dates`, ({ request }) => {
+    const sp = new URL(request.url).searchParams;
+    const timeframe = (sp.get("timeframe") ?? "d1") as Timeframe;
+    const limit = Math.max(1, Math.min(400, num(sp, "limit", 120)));
+    // `?mock=empty` → belum ada hasil hitung: UI wajib jatuh ke <input type="date"> (docs/05 §1)
+    const dates = sp.get("mock") === "empty" ? [] : tradingDays(limit);
+    const body: MetaDatesResponse = {
+      api_version: "1.1",
+      timeframe,
+      latest: dates[0] ?? null,
+      dates,
+    };
+    return HttpResponse.json(body);
+  }),
+
   http.get(`${API}/meta/sectors`, () => {
     const body: MetaSectorsResponse = {
       api_version: "1.0",

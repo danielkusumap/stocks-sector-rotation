@@ -13,7 +13,7 @@ describe("kolom tabel sektor (docs/06 §5)", () => {
       "1M",
       "1B",
       "3B",
-      "Turnover",
+      "Turnover hr ini",
       "Streak",
       "Skor",
     ]);

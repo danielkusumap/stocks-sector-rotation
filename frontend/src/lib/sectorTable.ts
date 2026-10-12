@@ -29,7 +29,7 @@ export const SECTOR_COLUMNS: readonly SectorColumn[] = [
   { key: "ret_1w", label: "1M", sort: "ret_1w", align: "right", hint: "return 1 minggu" },
   { key: "ret_1m", label: "1B", sort: "ret_1m", align: "right", hint: "return 1 bulan" },
   { key: "ret_3m", label: "3B", sort: null, align: "right", hint: "return 3 bulan" },
-  { key: "turnover", label: "Turnover", sort: "turnover", align: "right", hint: "turnover periode aktif (filter likuiditas memakai median 20 hari)" },
+  { key: "turnover", label: "Turnover hr ini", sort: "turnover", align: "right", hint: "turnover periode aktif (docs/06 §5). Filter likuiditas memakai median 20 hari, jadi baris bisa tampak kecil walau lolos filter" },
   { key: "streak", label: "Streak", sort: null, align: "right", hint: "minggu berturut-turut masuk sinyal" },
   { key: "score", label: "Skor", sort: "score", align: "right" },
 ];

@@ -6,6 +6,8 @@ import {
   type FreshnessResponse,
   type HeatmapResponse,
   type MetaConfigResponse,
+  type MetaDatesParams,
+  type MetaDatesResponse,
   type MetaSectorsResponse,
   type RrgParams,
   type RrgResponse,
@@ -38,6 +40,10 @@ function useApi<T, P extends object>(name: string, path: string, params?: P, ena
 }
 
 export const useMetaSectors = () => useApi<MetaSectorsResponse, object>("meta-sectors", "/meta/sectors");
+
+/** Tanggal yang punya hasil hitung (docs/05 §1) — dipakai `AsOfPicker` untuk menonaktifkan libur. */
+export const useMetaDates = (params: MetaDatesParams) =>
+  useApi<MetaDatesResponse, MetaDatesParams>("meta-dates", "/meta/dates", params);
 
 export const useMetaConfig = () => useApi<MetaConfigResponse, object>("meta-config", "/meta/config");
 

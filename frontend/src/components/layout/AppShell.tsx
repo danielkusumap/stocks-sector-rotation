@@ -12,6 +12,8 @@ import {
   Sun,
 } from "lucide-react";
 import { useTheme } from "../../hooks/useTheme";
+import { useFilterState } from "../../hooks/useFilterState";
+import { AsOfPicker } from "../domain/AsOfPicker";
 
 const NAV = [
   { to: "/", label: "Overview", icon: LayoutGrid, end: true },
@@ -25,6 +27,7 @@ const NAV = [
 export default function AppShell() {
   const [open, setOpen] = useState(true);
   const { theme, toggle } = useTheme();
+  const { filters, setFilters } = useFilterState();
   const { pathname } = useLocation();
   const title =
     [...NAV].reverse().find((n) => (n.end ? pathname === n.to : pathname.startsWith(n.to)))
@@ -83,18 +86,26 @@ export default function AppShell() {
         <header className="flex h-12 shrink-0 items-center gap-3 border-b border-border bg-surface px-4">
           <h1 className="text-base font-semibold">{title}</h1>
           <span className="text-sm text-fg-faint">Sector Rotation IDX</span>
-          <button
-            type="button"
-            onClick={toggle}
-            aria-label={theme === "dark" ? "Ganti ke tema terang" : "Ganti ke tema gelap"}
-            className="ml-auto rounded-sm p-1.5 text-fg-muted hover:bg-surface-hover hover:text-fg"
-          >
-            {theme === "dark" ? (
-              <Sun size={16} strokeWidth={1.75} />
-            ) : (
-              <Moon size={16} strokeWidth={1.75} />
-            )}
-          </button>
+          <div className="ml-auto flex items-center gap-1.5">
+            {/* AsOfPicker di topbar (docs/06 §5): satu tempat untuk semua halaman */}
+            <AsOfPicker
+              value={filters.as_of}
+              onChange={(date) => setFilters({ as_of: date })}
+              timeframe={filters.timeframe}
+            />
+            <button
+              type="button"
+              onClick={toggle}
+              aria-label={theme === "dark" ? "Ganti ke tema terang" : "Ganti ke tema gelap"}
+              className="rounded-sm p-1.5 text-fg-muted hover:bg-surface-hover hover:text-fg"
+            >
+              {theme === "dark" ? (
+                <Sun size={16} strokeWidth={1.75} />
+              ) : (
+                <Moon size={16} strokeWidth={1.75} />
+              )}
+            </button>
+          </div>
         </header>
 
         <main id="konten" className="flex-1 overflow-y-auto p-4">

@@ -8,14 +8,19 @@ export function Popover({
   children,
   align = "start",
   className,
+  open,
+  onOpenChange,
 }: {
   trigger: ReactElement;
   children: ReactNode;
   align?: "start" | "center" | "end";
   className?: string;
+  /** Terkontrol (mis. picker tanggal yang harus menutup diri setelah memilih) — opsional. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }) {
   return (
-    <PopoverPrimitive.Root>
+    <PopoverPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <PopoverPrimitive.Trigger asChild>{trigger}</PopoverPrimitive.Trigger>
       <PopoverPrimitive.Portal>
         <PopoverPrimitive.Content

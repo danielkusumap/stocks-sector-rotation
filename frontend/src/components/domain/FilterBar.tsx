@@ -98,16 +98,6 @@ export function FilterBar({
                 onChange={(value) => setFilters({ weighting: value })}
                 options={WEIGHTINGS}
               />
-              <label className="flex items-center gap-2 text-sm text-fg-muted">
-                per tanggal
-                <input
-                  type="date"
-                  aria-label="Tanggal acuan"
-                  value={filters.as_of ?? ""}
-                  onChange={(event) => setFilters({ as_of: event.target.value || null })}
-                  className="h-8 rounded-sm border border-border-strong bg-surface px-2 text-base text-fg"
-                />
-              </label>
             </div>
             <p className="text-sm text-fg-faint">
               Jendela hanya mengubah panjang ekor &amp; kolom return, tidak mengubah kuadran.

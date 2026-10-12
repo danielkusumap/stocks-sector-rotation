@@ -91,6 +91,20 @@ export interface MetaSectorsResponse {
   items: SectorMeta[];
 }
 
+/** `GET /meta/dates` (docs/05 §1): tanggal yang benar-benar punya hasil hitung, urut menurun. */
+export interface MetaDatesParams {
+  timeframe?: Timeframe;
+  limit?: number;
+}
+
+export interface MetaDatesResponse {
+  api_version: string;
+  timeframe: Timeframe;
+  /** `null` kalau belum ada hasil hitung sama sekali. */
+  latest: string | null;
+  dates: string[];
+}
+
 export interface MetaConfigResponse {
   api_version: string;
   universe: { min_turnover_idr: number; min_price_idr: number; max_rsi: number };
@@ -629,7 +643,14 @@ export function toSearchParams(params: Record<string, QueryValue>): URLSearchPar
 }
 
 function querySuffix(params?: object): string {
-  const qs = toSearchParams((params ?? {}) as Record<string, QueryValue>).toString();
+  const sp = toSearchParams((params ?? {}) as Record<string, QueryValue>);
+  // dev: knob `?mock=...` di URL halaman diteruskan ke API supaya skenario MSW
+  // (stale / notfriday / empty) bisa dicoba langsung dari browser, bukan hanya lewat console.
+  if (import.meta.env.DEV) {
+    const mock = new URLSearchParams(window.location.search).get("mock");
+    if (mock && !sp.has("mock")) sp.set("mock", mock);
+  }
+  const qs = sp.toString();
   return qs ? `?${qs}` : "";
 }
 
