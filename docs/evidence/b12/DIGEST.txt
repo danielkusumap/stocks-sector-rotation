@@ -1,0 +1,4 @@
+POST /api/v1/admin/midday → 200 {"gate": "stale", "last_bar_at": null, "required_bar_time": "11:30", "computed": false}
+midday.compute_midday() → {"rows": 0, "sectors": 0, "as_of": "2026-10-13", "message": "belum ada bar intraday hari ini"}
+price_intraday: 217 bar, tanggal terakhir 2026-10-12 (hari ini belum ada bar → tombol 6 menjawab gate stale)
+sector_metrics timeframe='midday': 0 baris

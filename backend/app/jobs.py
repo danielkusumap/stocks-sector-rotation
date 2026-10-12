@@ -13,7 +13,7 @@ import time
 from typing import Callable
 
 from . import db
-from .compute import index, metrics, rrg, signals
+from .compute import index, metrics, midday as midday_compute, rrg, signals
 from .ingest import freshness, prices
 from .repo import run as runs
 
@@ -38,12 +38,16 @@ def midday(params: dict, report: Callable[..., None]) -> dict:
             }
         report(phase="ingest_intraday")
         intraday = prices.ingest_intraday(report=report)
+        computed = midday_compute.compute_midday(report=report)
         return {
             "gate": "ok",
             "last_bar_at": gate["last_bar_at"],
-            "computed": False,  # compute rrg midday menyusul di B5 (gate-nya sudah terbuka)
+            "computed": computed["sectors"] > 0,
             "intraday_rows": intraday["rows"],
-            "message": "ingest intraday selesai; compute midday menyusul di B5",
+            "midday_rows": computed["rows"],
+            "sectors": computed["sectors"],
+            "as_of": computed["as_of"],
+            "message": computed.get("message") or "RRG & metrik midday dihitung ulang",
         }
     finally:
         conn.close()
