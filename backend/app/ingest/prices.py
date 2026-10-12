@@ -55,19 +55,28 @@ def resolve_symbols(conn, *, tickers=None, sectors=None) -> list[tuple[str, str]
     return [bench, *[(r["ticker"], r["yahoo_symbol"]) for r in rows if r["ticker"] != bench[0]]]
 
 
-def fetch(symbols: list[str], start: str, end: str, *, retries: int, backoff: float) -> pd.DataFrame | None:
+def fetch(
+    symbols: list[str],
+    start: str,
+    end: str,
+    *,
+    retries: int,
+    backoff: float,
+    interval: str = "1d",
+    period: str | None = None,
+) -> pd.DataFrame | None:
     """`yf.download` batch dengan retry+backoff. `None` = gagal total (bukan exception ke pemanggil)."""
     for attempt in range(retries):
         try:
+            window = {"period": period} if period else {"start": start, "end": end}  # yfinance: `end` eksklusif
             return yf.download(
                 symbols,
-                start=start,
-                end=end,  # yfinance: `end` eksklusif
-                interval="1d",
+                interval=interval,
                 auto_adjust=False,  # butuh Close mentah + Adj Close
                 group_by="ticker",
                 progress=False,
                 threads=True,
+                **window,
             )
         except Exception:
             if attempt == retries - 1:
@@ -76,17 +85,27 @@ def fetch(symbols: list[str], start: str, end: str, *, retries: int, backoff: fl
     return None
 
 
-def _frame_for(df: pd.DataFrame, symbol: str) -> pd.DataFrame | None:
+def frame_for(df: pd.DataFrame, symbol: str) -> pd.DataFrame | None:
     if isinstance(df.columns, pd.MultiIndex):
         return df[symbol] if symbol in df.columns.get_level_values(0) else None
     return df  # satu simbol saja → kolom tidak bertingkat
+
+
+def session_of(stamp) -> str | None:
+    """Sesi bar menurut jam WIB (docs/02 §5). Di luar jam bursa → `None` (tidak disimpan)."""
+    t = stamp.strftime("%H:%M")
+    if "09:00" <= t < "12:00" or "13:30" <= t < "16:00":
+        return "regular"
+    if "16:00" <= t < "16:15":
+        return "post"  # post-trading: disimpan untuk audit, tidak dipakai hitung
+    return None
 
 
 def _bars(df: pd.DataFrame | None, symbol: str, tz: str) -> list[tuple]:
     """Baris `price_daily` untuk satu simbol; bar tanpa harga penutupan dibuang."""
     if df is None or df.empty:
         return []
-    sub = _frame_for(df, symbol)
+    sub = frame_for(df, symbol)
     if sub is None or sub.empty:
         return []
     sub = sub.dropna(subset=["Close"])
@@ -132,6 +151,105 @@ def upsert_bars(conn, ticker: str, bars: list[tuple]) -> int:
         [(ticker, *bar) for bar in bars],
     )
     return len(bars)
+
+
+def upsert_intraday_bars(conn, ticker: str, bars: list[tuple]) -> int:
+    conn.executemany(
+        """
+        INSERT INTO price_intraday (ticker, ts, interval, open, high, low, close, volume, session, ingested_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(ticker, ts, interval) DO UPDATE SET
+          open = excluded.open, high = excluded.high, low = excluded.low, close = excluded.close,
+          volume = excluded.volume, session = excluded.session, ingested_at = excluded.ingested_at
+        """,
+        [(ticker, *bar) for bar in bars],
+    )
+    return len(bars)
+
+
+def _intraday_bars(df: pd.DataFrame | None, symbol: str, tz: str, interval: str) -> list[tuple]:
+    """Baris `price_intraday` — hanya jam bursa (reguler + post), lihat `session_of`."""
+    if df is None or df.empty:
+        return []
+    sub = frame_for(df, symbol)
+    if sub is None or sub.empty:
+        return []
+    ts_now = now_iso()
+    out = []
+    for ts, row in sub.dropna(subset=["Close"]).iterrows():
+        stamp = ts.tz_convert(tz) if getattr(ts, "tzinfo", None) else ts
+        session = session_of(stamp)
+        if session is None:
+            continue
+        close = float(row["Close"])
+        out.append(
+            (
+                stamp.isoformat(timespec="seconds"),
+                interval,
+                _opt(row.get("Open")),
+                _opt(row.get("High")),
+                _opt(row.get("Low")),
+                close,
+                0 if pd.isna(row.get("Volume")) else int(row["Volume"]),
+                session,
+                ts_now,
+            )
+        )
+    return out
+
+
+def ingest_intraday(*, tickers=None, sectors=None, db_path=None, report=None) -> dict:
+    """Unduh bar intraday (5m & 60m dari config) untuk hari berjalan. Tanpa `rows_total` → UI pakai spinner."""
+    cfg = get_settings()
+    tz = cfg.app.timezone
+    conn = db.connect(db_path)
+    try:
+        universe = resolve_symbols(conn, tickers=tickers, sectors=sectors)
+        intervals = cfg.ingest["intraday_intervals"]
+        stored = 0
+        sessions = {"regular": 0, "post": 0}
+        failed: list[str] = []
+        ingested: list[str] = []
+
+        for interval in intervals:
+            batches = _chunks(universe, cfg.ingest["batch_size"])
+            for i, batch in enumerate(batches, start=1):
+                df = fetch(
+                    [sym for _, sym in batch],
+                    "",
+                    "",
+                    retries=cfg.ingest["retries"],
+                    backoff=cfg.ingest["backoff_seconds"],
+                    interval=interval,
+                    period="1d",  # hanya hari berjalan; riwayat intraday Yahoo terbatas
+                )
+                for ticker, symbol in batch:
+                    bars = _intraday_bars(df, symbol, tz, interval)
+                    if bars:
+                        stored += upsert_intraday_bars(conn, ticker, bars)
+                        sessions["post"] += sum(1 for b in bars if b[7] == "post")
+                        sessions["regular"] += sum(1 for b in bars if b[7] == "regular")
+                        if ticker not in ingested:
+                            ingested.append(ticker)
+                    elif ticker not in failed:
+                        failed.append(ticker)
+                conn.commit()
+                if report:
+                    first, last = batch[0][0], batch[-1][0]
+                    report(rows=stored, phase="ingest_intraday", message=f"{interval} batch {i}/{len(batches)} (emiten {first}–{last})")
+                if i < len(batches):
+                    time.sleep(cfg.ingest["sleep_seconds"])
+
+        return {
+            "rows": stored,
+            "intervals": intervals,
+            "sessions": sessions,
+            "tickers_ok": len(ingested),
+            "tickers_total": len(universe),
+            "failed_tickers": failed,
+        }
+    finally:
+        conn.close()
 
 
 def refresh_derived(conn, tickers: list[str], ts: str) -> None:

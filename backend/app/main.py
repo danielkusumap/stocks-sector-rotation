@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from . import db
-from .api import admin
+from .api import admin, meta
 from .config import get_settings
 
 _settings = get_settings()
@@ -23,6 +23,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(admin.router)
+app.include_router(meta.router)
 
 
 @app.exception_handler(HTTPException)

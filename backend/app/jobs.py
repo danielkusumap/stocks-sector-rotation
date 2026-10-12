@@ -12,10 +12,39 @@ import threading
 from typing import Callable
 
 from . import db
+from .ingest import freshness, prices
 from .repo import run as runs
 
 # fn(params, report) -> dict hasil. `report(rows=…, rows_total=…, message=…, phase=…)` menulis progres.
 JobFn = Callable[[dict, Callable[..., None]], dict]
+
+
+def midday(params: dict, report: Callable[..., None]) -> dict:
+    """Job tengah hari (docs/02 §5): cek gate → kalau lolos, ingest intraday hari berjalan.
+
+    Gate gagal bukan error: hasilnya `{"gate": "stale", "computed": false}` dengan HTTP 200.
+    """
+    conn = db.connect()
+    try:
+        gate = freshness.probe(conn)
+        if gate["gate"] != "ok":
+            return {
+                "gate": "stale",
+                "last_bar_at": gate["last_bar_at"],
+                "required_bar_time": gate["required_bar_time"],
+                "computed": False,
+            }
+        report(phase="ingest_intraday")
+        intraday = prices.ingest_intraday(report=report)
+        return {
+            "gate": "ok",
+            "last_bar_at": gate["last_bar_at"],
+            "computed": False,  # compute rrg midday menyusul di B5 (gate-nya sudah terbuka)
+            "intraday_rows": intraday["rows"],
+            "message": "ingest intraday selesai; compute midday menyusul di B5",
+        }
+    finally:
+        conn.close()
 
 
 def execute(

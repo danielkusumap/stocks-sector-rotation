@@ -88,6 +88,14 @@ Format:
 - alternatif: `.info` otomatis setiap ingest (ditolak: klik pertama user jadi ~5–10 menit dan bisa gagal 429 di tengah ingest harga); menyimpan penanda waktu di `stock.notes` (ditolak: menyalahgunakan kolom teks); memakai bar `Close = NaN` sebagai harga terakhir (ditolak: menulis harga kosong ke `market_cap_idr`).
 - dampak: `yahoo_sector` tetap `NULL` sampai user memilih refresh — kolom ini murni cross-check, tidak dipakai perhitungan apa pun. Untuk B3 perlu diperhatikan: **bar harian hari berjalan tidak bisa dipakai** untuk gate/perhitungan tengah hari; jalur intraday (`price_intraday`) yang harus dipakai, dan `price_daily` hari berjalan baru terisi setelah sesi tutup.
 
+## ADR-018 — Job `midday` berhenti di gate sampai compute RRG ada (B5)
+- tanggal: 2026-10-13
+- status: diterima
+- konteks: `docs/07` B3 minta `midday` = gate + hitung ulang + compute RRG `midday`, tetapi RRG (`docs/07` B5) belum ada. Gate sendiri sudah bisa diuji dan bermanfaat (menentukan boleh-tidaknya hitung, dan mengisi `data_freshness`).
+- keputusan: job `midday` dijalankan penuh sebagai langkah pipeline (`POST /admin/midday`, CLI `midday`, tercatat di `ingest_run`): probe gate → kalau `stale` berhenti dengan `{"gate":"stale","computed":false}` (HTTP 200, bukan error) → kalau `ok`, ingest intraday dijalankan lalu berhenti dengan `computed:false` + `message` yang menyebut compute menyusul. Bar `session='post'` (16:00–16:15) ikut disimpan untuk audit tetapi hanya bar `regular` yang dihitung gate. Status `daily_ingest` di `GET /freshness` dihitung langsung dari `price_daily` (bukan tabel bantu), dan hanya melewati Sabtu/Minggu — hari libur bursa tidak diketahui.
+- alternatif: (a) menunda seluruh B3 sampai B5 jadi → ditolak: gate + intraday tidak bergantung RRG, dan F12 butuh tombol 6 ada; (b) mengembalikan `computed:true` padahal belum menghitung → ditolak: melaporkan sukses palsu (dilarang juga oleh `docs/05` §5.1 "jangan biarkan tombol tampak selesai padahal run-nya gagal"); (c) menambah endpoint khusus gate → ditolak: kontrak `docs/05` §4 sudah menetapkan `POST /admin/midday`.
+- dampak: tombol 6 di halaman Data (F12) sekarang = gate + ingest intraday; setelah B5, `computed` berubah jadi `true` dan RRG `midday` ikut ditulis tanpa mengubah bentuk respons. Kalau `daily_ingest` perlu akurat pada hari libur bursa, perlu kalender hari bursa (belum ada di v1).
+
 ## ADR-005 — Git: satu task = satu commit, repo lokal dulu
 - tanggal: 2026-10-12
 - status: diterima

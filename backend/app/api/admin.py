@@ -71,8 +71,6 @@ def ingest_prices(body: PricesBody, async_: bool = Query(False, alias="async")):
     """Unduh bar harian (`mode=daily`) untuk seluruh/ sebagian universe. Butuh tabel `stock` terisi."""
     if body.mode not in ("daily", "intraday"):
         raise _error(400, "invalid_mode", "mode harus 'daily' atau 'intraday'", {"received": body.mode})
-    if body.mode == "intraday":
-        raise _error(400, "not_implemented", "mode intraday menyusul di task B3")
 
     conn = db.connect()
     try:
@@ -92,6 +90,8 @@ def ingest_prices(body: PricesBody, async_: bool = Query(False, alias="async")):
     }
 
     def job(p: dict, report) -> dict:
+        if p["mode"] == "intraday":
+            return prices.ingest_intraday(sectors=p["sectors"], tickers=p["tickers"], report=report)
         return prices.ingest_daily(
             from_date=p["from"],
             to_date=p["to"],
@@ -102,6 +102,13 @@ def ingest_prices(body: PricesBody, async_: bool = Query(False, alias="async")):
         )
 
     run_id, result = jobs.execute(f"prices_{body.mode}", params, job, async_=async_, triggered_by="api")
+    return _queued(run_id) if result is None else result
+
+
+@router.post("/midday")
+def midday(async_: bool = Query(False, alias="async")):
+    """Gate kesegaran sesi 1 → kalau lolos: ingest intraday + hitung ulang. Gate gagal = **200** `stale`."""
+    run_id, result = jobs.execute("midday", {"mode": "midday"}, jobs.midday, async_=async_, triggered_by="api")
     return _queued(run_id) if result is None else result
 
 

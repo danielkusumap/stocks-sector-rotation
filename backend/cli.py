@@ -2,7 +2,7 @@
 
 Setiap perintah job memakai fungsi yang sama dengan API (`app/jobs.py`), jadi CLI dan tombol
 di halaman Data meninggalkan baris `ingest_run` dengan bentuk yang sama.
-Perintah lain (compute, midday) menyusul di task B4–B10.
+Perintah lain (compute) menyusul di task B4–B10.
 """
 
 from __future__ import annotations
@@ -33,6 +33,7 @@ def main(argv: list[str] | None = None) -> int:
     p_prices.add_argument("--tickers", help="subset emiten, mis. BBCA,BBRI,ANTM (default: seluruh universe aktif)")
     p_prices.add_argument("--sectors", help="batasi ke kode sektor, mis. IDXFINANCE,IDXENERGY")
     p_prices.add_argument("--refresh-info", action="store_true", help="sekali pakai: ambil yahoo_sector lewat .info")
+    sub.add_parser("midday", help="cek gate kesegaran sesi 1 lalu ingest intraday (kalau lolos)")
     sub.add_parser("serve", help="jalankan API di host:port dari config")
     args = parser.parse_args(argv)
 
@@ -73,16 +74,6 @@ def main(argv: list[str] | None = None) -> int:
         from .app.ingest import prices
         from .app.repo import stock as stocks
 
-        if args.mode == "intraday":
-            print(
-                json.dumps(
-                    {"api_version": api_version, "error": {"code": "not_implemented", "message": "mode intraday menyusul di task B3"}},
-                    ensure_ascii=False,
-                ),
-                file=sys.stderr,
-            )
-            return 1
-
         conn = db.connect()
         try:
             has_universe = stocks.active_count(conn) > 0
@@ -101,19 +92,26 @@ def main(argv: list[str] | None = None) -> int:
             "tickers": args.tickers.split(",") if args.tickers else None,
             "refresh_info": args.refresh_info,
         }
-        _, result = jobs.execute(
-            f"prices_{args.mode}",
-            params,
-            lambda p, report: prices.ingest_daily(
+
+        def prices_job(p: dict, report) -> dict:
+            if p["mode"] == "intraday":
+                return prices.ingest_intraday(sectors=p["sectors"], tickers=p["tickers"], report=report)
+            return prices.ingest_daily(
                 from_date=p["from"],
                 to_date=p["to"],
                 sectors=p["sectors"],
                 tickers=p["tickers"],
                 refresh_info=p["refresh_info"],
                 report=report,
-            ),
-            triggered_by="cli",
-        )
+            )
+
+        _, result = jobs.execute(f"prices_{args.mode}", params, prices_job, triggered_by="cli")
+        result["api_version"] = api_version
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "midday":
+        _, result = jobs.execute("midday", {"mode": "midday"}, jobs.midday, triggered_by="cli")
         result["api_version"] = api_version
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
