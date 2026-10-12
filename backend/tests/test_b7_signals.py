@@ -41,7 +41,7 @@ def _row(**overrides) -> dict:
 # --- aturan saham §6.2 (fixture 6 saham seperti docs/03 §9) --------------------
 
 
-def test_weekly_rules_six_fixture_stocks():
+def test_weekly_rules():
     cfg = get_settings()
     week, cutoff = "2026-10-09", "2026-10-05"
 
@@ -122,7 +122,7 @@ def test_sector_rules():
 # --- streak (docs/03 §6.3) ----------------------------------------------------
 
 
-def test_streak_consecutive_and_reset():
+def test_streak():
     weeks = ["2026-09-04", "2026-09-11", "2026-09-18", "2026-09-25", "2026-10-02"]
     rows = [
         ("2026-09-04", "sector", "IDXFINANCE"),

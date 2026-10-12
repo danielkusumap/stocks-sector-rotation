@@ -1,0 +1,37 @@
+Uji "checkout bersih" (docs/07 B11 AC) — 2026-10-13
+clone: C:/Users/ACER/AppData/Local/hermes/cache/scratch/clean-checkout (git clone dari E:/stocks-sector-rotation, tanpa .venv/data)
+
+1) venv + install: python -m venv .venv && pip install -e "backend[dev]"
+   -> "import deps ok" (fastapi, pandas, yfinance, openpyxl, pytest, httpx)
+   (perbaikan B11: pyproject.toml dulu mendaftarkan paket backend.api/backend.compute/... →
+    `error: package directory '.\api' does not exist`; sekarang backend.app.api/... )
+
+2) alur README
+   db-init        : {"tables": 13, "user_version": 3}
+   import-excel   : {"import_id": 1, "sheet_count": 11, "rows": 962, "inserted": 962, "updated": 0}
+   ingest-prices  : {"rows": 984, "batches": 1, "tickers_ok": 3, "tickers_total": 3, "failed_tickers": [],
+                     "from": "2025-06-01", "to": "2026-10-13"}
+   compute index  : {"stage": "index", "sectors": 11, "tickers": 962, "weightings": ["equal","turnover","captier"],
+                     "rows": 984, "duration_s": 0.2}
+   compute rrg d1 : {"rows": 2336, "metrics_rows": 986, "score_rows": 5, "duration_s": 1.86}
+   compute w1_fri (hari kerja) -> 409 {"error": {"code": "gate_weekly_not_final", "detail": {"gate": "not_final",
+                                    "weekday": "Tuesday"}}} , exit=1  (sesuai docs/05 §4.1)
+   isi DB         : price_daily 984 | sector_index_daily 984 | rrg_daily 1345 (as_of 2026-10-09)
+                    sector_metrics 984 | stock_metrics 2
+
+3) pytest -q di checkout bersih -> 128 passed, 1 warning in 38.83s
+
+4) serve + curl (config salinan, min_prices_coverage 0.001)
+   /health                200 {"status":"ok","db":"ok","tables":13}
+   /api/v1/meta/config    200 (universe, rrg, timeframes, windows, midday_gate_min_bar_time, last_ingest)
+   /api/v1/sectors/summary 200 total 1 → IDXHEALTH leading "Memimpin" (2 emiten berharga di sektor ini)
+   /api/v1/rrg            200 api_version 1.1, as_of 2026-10-09, kuadran leading 1, 1 item
+   /api/v1/stocks         200 total 2 → RSGK close 1050, ret_1d +3,4%
+   /api/v1/briefing/morning 200 (market/regime/watch terisi)
+   /api/v1/weekly/picks   200 {"week_end": null, "is_final": false, "sectors": [], "stocks": []}
+   /api/v1/heatmap        200 11 baris (1d/1w/1m/3m)
+   POST /api/v1/admin/retention 200 {"intraday_deleted":0,...,"vacuumed":false}
+   GET /api/v1/admin/export/backup 200 282624 byte (DB kecil) — sqlite3 "PRAGMA integrity_check" = ok
+
+5) rasional: RRG butuh `rrg.min_points` (d1: 60 bar); jendela ingest 2 minggu → tabel kosong (bukan error),
+   karena itu contoh README memakai --from 2025-06-01.

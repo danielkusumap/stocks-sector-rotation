@@ -38,7 +38,7 @@ def test_quadrant_rules(ratio, momentum, expected):
     assert rrg.quadrant(ratio, momentum, previous="lagging") == expected
 
 
-def test_rrg_quadrant_leading_then_weakening():
+def test_rrg_quadrant():
     bench = _series(np.full(100, 100.0))
     # relatif naik makin cepat (60 bar) lalu melambat (40 bar): memimpin → melemah
     up_fast = 100 * np.cumprod(np.concatenate([np.full(60, 1.01), np.full(40, 1.008)]))
@@ -55,7 +55,7 @@ def test_rrg_quadrant_leading_then_weakening():
     assert rows[0][11] == 1  # quadrant_age_periods mulai dari 1
 
 
-def test_rrg_warmup_returns_no_rows():
+def test_rrg_warmup():
     bench = _series(np.full(100, 100.0))
     short = _series(100 * np.cumprod(np.full(30, 1.01)))
     frame = rrg.rrg_series(bench, short, ema_span=14, roc_lag=10, min_points=MIN_POINTS)
@@ -72,7 +72,7 @@ def test_rrg_series_bars_before_warmup_dropped():
 # --- resample mingguan --------------------------------------------------------
 
 
-def test_resample_wfri_labels_and_final_only():
+def test_resample_wfri():
     dates = ["2026-10-05", "2026-10-06", "2026-10-07", "2026-10-08", "2026-10-09", "2026-10-12", "2026-10-13"]
     daily = _series(np.arange(1, 8, dtype=float), dates)
 

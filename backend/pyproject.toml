@@ -28,11 +28,11 @@ build-backend = "setuptools.build_meta"
 package-dir = { "backend" = "." }
 packages = [
     "backend",
-    "backend.api",
     "backend.app",
-    "backend.compute",
-    "backend.ingest",
-    "backend.repo",
+    "backend.app.api",
+    "backend.app.compute",
+    "backend.app.ingest",
+    "backend.app.repo",
     "backend.tests",
 ]
 
