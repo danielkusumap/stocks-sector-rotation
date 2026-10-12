@@ -1,0 +1,136 @@
+# config/default.yaml — SATU-SATUNYA tempat angka ambang.
+# Jangan hardcode angka dari file ini di dalam kode. Backend membacanya,
+# frontend menerimanya lewat GET /api/v1/meta/config.
+# Setiap perubahan di sini WAJIB dicatat di docs/DECISIONS.md.
+
+app:
+  name: "Sector Rotation IDX"
+  timezone: "Asia/Jakarta"
+  api_version: "1.0"
+
+database:
+  path: "data/rotation.db"
+  journal_mode: "WAL"
+  busy_timeout_ms: 5000
+
+universe:
+  # Path file master sektor→saham (root repo, sudah ada; 11 sheet, 962 emiten).
+  excel_path: "saham_sektoral.xlsx"
+  # Bobot indeks sektor yang dipakai default: equal | turnover | captier
+  # (captier pakai kolom "Saham" dari Excel × harga → tidak butuh panggilan .info)
+  weighting: "equal"
+  # Kecualikan papan Pemantauan Khusus dari kandidat sinyal (tetap tampil di tabel,
+  # ditandai badge "PK"). Risiko: saham PK sering di-suspend & likuiditas palsu.
+  exclude_pemantauan_khusus: true
+  # Ambang likuiditas: rata-rata nilai transaksi harian minimum (Rp) selama 20 hari bursa.
+  # Gunanya: menyaring saham yang tidak bisa ditransaksikan dalam jumlah wajar —
+  # tanpa filter ini, saham "mati" (turnover Rp 5 juta/hari) bisa lolos rule momentum
+  # dan tampil sebagai kandidat, padahal mustahil masuk/keluar posisi tanpa menggerakkan harga.
+  # 1 M = Rp 1.000.000.000. Ini TEBAKAN AWAL — sesuaikan (mis. 5 M untuk lebih konservatif,
+  # 500 jt kalau kamu sanggup main di saham tipis). Ubah angkanya, jangan ubah namanya.
+  min_turnover_idr: 1000000000
+  # Harga minimum (Rp). Gunakan 50 bila kamu memang mau ikut saham gocap
+  # (tick size besar, risiko likuiditas tinggi, banyak saham Rp 50 nyangkut).
+  min_price_idr: 100
+  # Batas RSI agar tidak masuk saat sudah overbought (rule saham mingguan).
+  max_rsi: 75
+  # Jumlah konstituen minimum supaya indeks sektor dianggap layak dihitung.
+  min_constituents: 3
+
+ingest:
+  daily_lookback_days: 730          # 2 tahun riwayat harian
+  intraday_intervals: ["5m", "60m"]
+  intraday_history_days: 30         # batas retensi bar intraday
+  batch_size: 50                    # ticker per panggilan yf.download
+  sleep_seconds: 1.0                # jeda antar batch (sopan ke Yahoo)
+  retries: 3
+  backoff_seconds: 3
+  refresh_market_cap_days: 7        # umur cache market cap sebelum ambil .info lagi
+  benchmark_ticker: "^JKSE"         # IHSG
+  benchmark_alias: "IHSG"           # nama yang dipakai di tabel price_daily
+
+# Watchlist untuk gate kesegaran data (docs/02 §5). Pilih saham paling likuid:
+# kalau data mereka belum sampai, data saham lain juga belum bisa dipercaya.
+freshness_probe_tickers: ["BBCA.JK", "BBRI.JK", "BMRI.JK", "TLKM.JK", "ASII.JK"]
+
+midday:
+  # Bar terakhir (dari probe) harus >= jam ini agar perhitungan tengah hari dijalankan.
+  # Jam sesi 1 IDX: 09:00–12:00 WIB. Delay feed Yahoo belum terukur —
+  # ukur nyata selama 3 hari bursa lalu setel nilai ini (docs/02 §5).
+  gate_min_bar_time: "11:30"
+  retry_interval_minutes: 10
+  gate_deadline_time: "13:00"       # lewat ini, job midday dibatalkan & dicatat
+  # Ambang "datar" untuk label arah intraday sektor.
+  move_flat_pct: 0.0015
+  include_post_session_bars: false  # bar 16:00-16:15 (post-trading) tidak dipakai hitung
+
+rrg:
+  ema_span: 14
+  roc_lag: 10
+  # Warmup minimum PER TIMEFRAME (satuan bar timeframe itu sendiri).
+  # Harian  : EMA 14 + SMA(EMA) 14 + ROC 10 → 60 bar harian (~3 bulan bursa).
+  # Mingguan: EMA 14 minggu + SMA(EMA) 14 minggu + ROC 4 minggu → 30 bar MINGGU (~7 bulan bursa).
+  # Ini yang menentukan berapa lama riwayat harus ditarik — lihat docs/02 §7.
+  min_points:
+    d1: 60
+    w1: 30
+    w1_fri: 30
+    midday: 60
+  normalize_base: 100
+  weekly:
+    ema_span: 14
+    roc_lag: 4                      # 4 minggu
+  quadrants: ["leading", "weakening", "lagging", "improving"]
+
+timeframes:
+  default: "d1"
+  allowed: ["d1", "w1", "w1_fri", "midday"]
+  weekly_close_dow: "FRI"           # minggu Senin–Jumat, label tanggal Jumat
+
+windows:
+  default: "3m"
+  allowed: ["1w", "1m", "3m", "6m", "1y", "ytd"]
+  # Jendela TIDAK mengubah parameter RRG (ema_span/roc_lag tetap) — hanya panjang ekor & kolom return.
+
+scoring:
+  sector:
+    weight_rs_ratio: 0.35
+    weight_rs_momentum: 0.25
+    weight_return_window: 0.20      # return periode acuan (return_window: 4 minggu)
+    weight_turnover_growth: 0.20
+    penalty_decline_from: 0.40      # share saham decline di atas ini mulai kena penalti
+    penalty_decline_weight: 0.25
+  stock:
+    weight_rs_ratio: 0.40
+    weight_return_5d: 0.30
+    weight_turnover: 0.30
+  return_window_weeks: 4
+  turnover_short_days: 20
+  turnover_long_days: 60
+
+weekly:
+  max_sectors: 3
+  max_stocks_per_sector: 3
+  min_quadrant_age_periods: 2
+  atr_stop_mult: 1.5
+  rr_target: 2.0
+  # Risiko per posisi untuk saran jumlah lot (lot = 100 lembar).
+  risk_per_trade_idr: 2000000
+  require_sektor_kandidat: true     # saham hanya dipilih dari sektor kandidat
+
+retention:
+  intraday_days: 30
+  midday_rrg_days: 60
+  vacuum_min_file_mb: 200
+
+api:
+  host: "127.0.0.1"
+  port: 8000
+  cors_origins: ["http://localhost:5173", "http://127.0.0.1:5173"]
+  cache_ttl_seconds: 60
+  api_key: ""                       # kosong = /admin/* terbuka (single-user lokal)
+  backup_enabled: true
+
+logging:
+  level: "INFO"
+  keep_days: 14

@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+dist/
+.vite/
+coverage/
+
+# Data & secrets
+data/*.db
+data/*.db-wal
+data/*.db-shm
+*.xlsx
+!saham_sektoral.xlsx
+.env
+.env.local
+
+# Evidence & OS
+docs/evidence/*.png
+Thumbs.db
+.DS_Store
