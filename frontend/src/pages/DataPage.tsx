@@ -4,7 +4,7 @@ import { Button } from "../components/ui/Button";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { Panel } from "../components/ui/Panel";
 import { ProgressBar } from "../components/ui/ProgressBar";
-import { StatusPill } from "../components/ui/StatusPill";
+import { Pill } from "../components/ui/Pill";
 import { Table, Td, Th } from "../components/ui/Table";
 import { ToastStack, useToasts } from "../components/ui/Toast";
 import { useMetaSectors, useRuns } from "../hooks/useApiQuery";
@@ -119,7 +119,7 @@ export default function DataPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="font-medium">{step.title}</h3>
                     <span className="text-sm text-fg-muted">
-                      <StatusPill
+                      <Pill
                         tone={last?.status ?? "idle"}
                         label={statusChip(step, runs)}
                         bold={last?.status === "failed"}
@@ -214,7 +214,7 @@ export default function DataPage() {
                       </span>
                     </Td>
                     <Td>
-                      <StatusPill
+                      <Pill
                         tone={run.status}
                         label={RUN_LABEL[run.status] ?? run.status}
                         bold={run.status === "failed"}

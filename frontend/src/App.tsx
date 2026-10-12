@@ -1,4 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query";
+import { Suspense, lazy } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import AppShell from "./components/layout/AppShell";
 import { queryClient } from "./lib/queryClient";
@@ -8,6 +9,9 @@ import SectorPage from "./pages/SectorPage";
 import StockPage from "./pages/StockPage";
 import StatusPage from "./pages/StatusPage";
 import WeeklyPage from "./pages/WeeklyPage";
+
+// Playground komponen hanya ada di dev → tidak ikut bundle produksi (docs/08 F2).
+const PlaygroundPage = import.meta.env.DEV ? lazy(() => import("./pages/PlaygroundPage")) : null;
 
 export default function App() {
   return (
@@ -21,6 +25,16 @@ export default function App() {
             <Route path="/weekly" element={<WeeklyPage />} />
             <Route path="/status" element={<StatusPage />} />
             <Route path="/data" element={<DataPage />} />
+            {PlaygroundPage && (
+              <Route
+                path="/playground"
+                element={
+                  <Suspense fallback={null}>
+                    <PlaygroundPage />
+                  </Suspense>
+                }
+              />
+            )}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
