@@ -5,6 +5,7 @@ import { RotationMatrix } from "../components/charts/RotationMatrix";
 import { ChangeList } from "../components/domain/ChangeList";
 import { FilterBar } from "../components/domain/FilterBar";
 import { MarketSummary } from "../components/domain/MarketSummary";
+import { SectorDrawer } from "../components/domain/SectorDrawer";
 import { SectorTable } from "../components/domain/SectorTable";
 import { ErrorState } from "../components/ui/ErrorState";
 import { FreshnessPill } from "../components/ui/FreshnessPill";
@@ -65,6 +66,12 @@ export default function OverviewPage() {
     timeframe: filters.timeframe,
     weighting: filters.weighting,
   });
+  // Drawer detail dibuka dari URL: `?sector=IDXFINANCE` (satu sektor = fokus, docs/08 F7)
+  const openSector = filters.sector.length === 1 ? filters.sector[0] : null;
+  const openDetail = (code: string) => {
+    setSelectedRefId(code);
+    setFilters({ sector: [code] });
+  };
 
   return (
     <div className="flex flex-col gap-3">
@@ -85,6 +92,7 @@ export default function OverviewPage() {
             items={rrg.data.items}
             selectedRefId={selectedRefId}
             onSelect={setSelectedRefId}
+            onOpenDetail={openDetail}
             label="Diagram RRG sektor"
           />
             <p className="mt-2 text-sm text-fg-muted">
@@ -187,11 +195,20 @@ export default function OverviewPage() {
             dir={filters.dir}
             onSort={(next) => setFilters({ sort: next.sort, dir: next.dir })}
             selectedRefId={selectedRefId}
-            onSelect={setSelectedRefId}
+            onSelect={openDetail}
             onResetFilters={resetFilters}
           />
         )}
       </Panel>
+
+      <SectorDrawer
+        code={openSector}
+        onClose={() => setFilters({ sector: [] })}
+        timeframe={filters.timeframe}
+        window={filters.window}
+        weighting={filters.weighting}
+        asOf={filters.as_of ?? undefined}
+      />
     </div>
   );
 }

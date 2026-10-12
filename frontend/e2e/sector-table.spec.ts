@@ -101,6 +101,12 @@ test.describe("SectorTable & FilterBar", () => {
     await expect(page.getByTestId("rrg-chart")).toHaveAttribute("data-pinned", "IDXHEALTH");
     await expect(page.getByTestId("point-IDXENERGY")).toHaveAttribute("opacity", "0.22");
 
+    // klik baris juga membuka drawer detail (F7) → tutup dulu; pin harus tetap menempel
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.getByTestId("rrg-chart")).toHaveAttribute("data-pinned", "IDXHEALTH");
+
     // arah sebaliknya: klik titik chart → baris tabel ikut ter-highlight
     // (hover dulu: kartu PointCard mengikuti titik aktif, jadi harus pindah sebelum klik)
     await page.getByTestId("point-IDXFINANCE").hover();

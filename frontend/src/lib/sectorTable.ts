@@ -34,11 +34,11 @@ export const SECTOR_COLUMNS: readonly SectorColumn[] = [
   { key: "score", label: "Skor", sort: "score", align: "right" },
 ];
 
-/** Klik header: kolom lain → `desc`, kolom yang sama → balik arah (docs/08 F5). */
-export function nextSort(
+/** Klik header: kolom lain → `desc`, kolom yang sama → balik arah (docs/08 F5/F7). */
+export function nextSort<T extends string>(
   current: { sort: string; dir: Dir },
-  column: SectorColumn,
-): { sort: SectorSort; dir: Dir } | null {
+  column: { sort: T | null },
+): { sort: T; dir: Dir } | null {
   if (!column.sort) return null;
   if (current.sort !== column.sort) return { sort: column.sort, dir: "desc" };
   return { sort: column.sort, dir: current.dir === "desc" ? "asc" : "desc" };

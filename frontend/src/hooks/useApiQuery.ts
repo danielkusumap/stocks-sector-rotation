@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   apiGet,
   type BriefingParams,
@@ -36,6 +36,9 @@ function useApi<T, P extends object>(name: string, path: string, params?: P, ena
     queryKey: keyFor(name, params),
     queryFn: ({ signal }) => apiGet<T, P>(path, params, signal),
     enabled,
+    // data lama tetap tampil saat filter/sort berubah: tidak ada kedip skeleton, dan
+    // elemen yang sedang difokuskan (mis. baris tabel) tidak ikut ter-unmount
+    placeholderData: keepPreviousData,
   });
 }
 

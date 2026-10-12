@@ -11,7 +11,7 @@ import { StreakBadge } from "../ui/StreakBadge";
  * dengan tabel, jadi tidak ada perhitungan di sini. `rs_*_change_1p` boleh `null`
  * (docs/05 §2 → tampil "—") dan `streak_weeks` = 0 (badge tidak muncul).
  */
-export function PointCard({ item }: { item: RrgItem }) {
+export function PointCard({ item, onOpenDetail }: { item: RrgItem; onOpenDetail?: () => void }) {
   return (
     <div className="w-60 rounded-md border border-border bg-surface p-3 text-left shadow-float">
       <div className="flex items-center gap-2">
@@ -50,7 +50,19 @@ export function PointCard({ item }: { item: RrgItem }) {
         <p className="mt-1 text-sm text-fg-faint">ekor belum tersedia (data &lt; 2 periode)</p>
       )}
 
-      <div className="mt-2 flex justify-end">
+      <div className="mt-2 flex items-center justify-between gap-2">
+        {onOpenDetail ? (
+          <button
+            type="button"
+            data-testid="point-card-detail"
+            onClick={onOpenDetail}
+            className="pointer-events-auto text-sm text-accent underline underline-offset-2"
+          >
+            Detail sektor
+          </button>
+        ) : (
+          <span />
+        )}
         <Link
           to={`/stocks?sector=${item.ref_id}`}
           className="pointer-events-auto text-sm text-accent underline underline-offset-2"

@@ -38,6 +38,8 @@ export interface QuadrantChartProps {
   label?: string;
   /** tautan "lihat semua di tabel" saat titik dipotong (scope saham). */
   showAllHref?: string;
+  /** buka detail (drawer) dari kartu hover — dipakai `PointCard` (docs/08 F7). */
+  onOpenDetail?: (refId: string) => void;
   className?: string;
 }
 
@@ -53,6 +55,7 @@ export function QuadrantChart({
   onSelect,
   label = "Diagram RRG",
   showAllHref = "/stocks",
+  onOpenDetail,
   className,
 }: QuadrantChartProps) {
   const ordered = useMemo(() => orderedItems(items, scope), [items, scope]);
@@ -426,7 +429,10 @@ export function QuadrantChart({
           {/* kartu tidak boleh menangkap pointer: titik di baliknya harus tetap bisa di-hover/klik
               (yang tetap bisa diklik hanya tautan di dalamnya — lihat PointCard) */}
           <div className="pointer-events-none">
-            <PointCard item={activeItem} />
+            <PointCard
+              item={activeItem}
+              onOpenDetail={onOpenDetail ? () => onOpenDetail(activeItem.ref_id) : undefined}
+            />
           </div>
         </div>
       )}
