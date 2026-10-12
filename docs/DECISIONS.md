@@ -111,3 +111,27 @@ Format:
 - keputusan: warna sektor hidup sebagai token `--sector-*` di `src/styles/tokens.css` (dua tema, sudah ditulis di F0); komponen memakai tokennya. `color_hex` dari API hanya dipakai sebagai fallback bila kode sektor tidak dikenal token (belum ada di F0).
 - alternatif: pakai `color_hex` mentah dari API di inline style → ditolak: satu tema saja, dan justru bagian dari masalah asli; menambah `color_hex_dark` ke API → ditolak: mengubah kontrak v1 untuk hal yang sudah selesai di CSS.
 - dampak: `color_hex` tetap ada di tipe TS (sesuai kontrak, tidak dihapus) tapi bukan sumber warna utama; kalau nanti muncul sektor ke-12 dari backend, ia tampil dengan `color_hex` sampai token ditambahkan.
+
+## ADR-013 — Halaman Status butuh `/admin/*`, padahal `docs/05` §5.1 melarangnya
+- tanggal: 2026-10-13
+- status: usul (butuh keputusan user sebelum F10)
+- konteks: `docs/08` F10 meminta halaman `/status` menampilkan **daftar `ingest_run`** dan tombol **"Jalankan midday sekarang"** (`POST /api/v1/admin/midday` bila `api_key` kosong). `docs/05` §5.1 menulis tegas: "Frontend hanya memanggil endpoint §1–§3. Tidak ada `/admin/*`", dan §4 hanya menyebut `GET /api/v1/admin/runs` **tanpa bentuk field**-nya. F1 tidak menambah tipe admin sama sekali — menebak bentuk field akan melanggar aturan "jangan mengarang bentuk baru".
+- keputusan: belum diputuskan; F1 lanjut tanpa endpoint admin.
+- alternatif: (a) backend menambah `GET /api/v1/status` (read-only, §1-style) yang membungkus `ingest_run` + `meta/config` untuk halaman Status, dan `POST /admin/midday` tetap dipanggil lewat CLI/curl oleh user — halaman jadi murni baca (§5.1 utuh); (b) `docs/05` §5.1 dilonggarkan khusus halaman Status lokal (single-user) dan bentuk `ingest_run` ditulis di `docs/05` §4; (c) tombol midday dihapus dari UI.
+- dampak: F10 terblokir sampai ini diputuskan. Rekomendasi: (a) — paling kecil, tidak menyentuh kontrak v1, dan halaman Status memang cuma alat lihat.
+
+## ADR-014 — `ret_positive_only`: filter ada di `docs/06` §7, param-nya tidak ada di `docs/05`
+- tanggal: 2026-10-13
+- status: usul (butuh keputusan user/backend)
+- konteks: daftar filter `docs/06` §7 memuat `ret_positive_only` (toggle, default off), tapi tidak satu pun endpoint `docs/05` §2 punya param itu: `/sectors/summary` & `/stocks` hanya menerima `sector, quadrant, transition, min_streak, min_turnover_idr, min_price_idr, q, sort, dir, limit, offset`. `docs/05` §6 juga menulis backend boleh menambah field, tapi param baru tetap perlu persetujuan.
+- keputusan: filter tetap dibaca dari URL (`lib/urlFilters.ts`) dan dikirim sebagai `ret_positive_only=1`; backend bebas mengabaikannya (param tak dikenal → diabaikan, jadi tidak memecah apa pun). Kontrol UI-nya baru dibuat di F5 kalau param ini resmi.
+- alternatif: (a) backend menambah `ret_positive_only` ke `/sectors/summary` & `/stocks` (frontend langsung berfungsi); (b) filter dihapus dari `docs/06` §7 (UI lebih jujur: tidak menawarkan filter yang tak jalan).
+- dampak: sampai diputuskan, filter ini **tidak akan menyaring apa pun**; karena itu jangan ditampilkan sebagai kontrol aktif di F5 sebelum (a) dikerjakan.
+
+## ADR-015 — Parameter multi-nilai dikirim koma-separated, bukan diulang
+- tanggal: 2026-10-13
+- status: diterima
+- konteks: `docs/05` §5 mencontohkan URL `?timeframe=w1_fri&window=3m&quadrant=leading,improving&min_streak=2&sort=score`, sementara §27 menulis `sector` "boleh diulang" — dua bentuk berbeda untuk hal yang sama.
+- keputusan: frontend selalu mengirim satu param koma-separated (`quadrant=leading%2Cimproving`, `sector=IDXFINANCE,IDXENERGY`) lewat satu fungsi `toSearchParams` (`src/lib/api.ts`). URL jadi shareable seperti contoh dokumen dan hanya ada satu bentuk kode di frontend.
+- alternatif: mengirim param berulang (`sector=A&sector=B`) — bentuk yang dipakai FastAPI `Query(List[str])` bawaan, tapi tidak cocok dengan contoh URL di `docs/05` §5 dan membuat `lib/urlFilters` harus tahu daftar param yang multi.
+- dampak: **backend wajib memecah nilai berdasarkan koma** untuk `sector`, `quadrant` (dan param multi lain) — `Query(List[str])` bawaan FastAPI akan menganggap `"leading,improving"` sebagai satu nilai dan mengembalikan 0 baris. Kalau backend memilih bentuk berulang, yang berubah hanya `toSearchParams` (satu fungsi) + test-nya.

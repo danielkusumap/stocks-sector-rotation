@@ -1,0 +1,191 @@
+{
+ "week_end": "2026-10-09",
+ "is_final": true,
+ "sectors": [
+  {
+   "ref_id": "IDXFINANCE",
+   "name": "Keuangan",
+   "rank": 1,
+   "score": 87.4,
+   "streak_weeks": 2,
+   "rule_hits": {
+    "quadrant": "leading",
+    "age_ok": true,
+    "momentum_ok": true,
+    "ret_4w_ok": true,
+    "constituents_ok": true
+   },
+   "rationale": "Keuangan masuk kuadran Memimpin 2 periode berturut-turut, momentum relatif masih naik."
+  },
+  {
+   "ref_id": "IDXHEALTH",
+   "name": "Kesehatan",
+   "rank": 2,
+   "score": 71.2,
+   "streak_weeks": 1,
+   "rule_hits": {
+    "quadrant": "leading",
+    "age_ok": true,
+    "momentum_ok": true,
+    "ret_4w_ok": true,
+    "constituents_ok": true
+   },
+   "rationale": "Membaik dengan RS-Momentum di atas 100 dan turnover naik."
+  },
+  {
+   "ref_id": "IDXTRANS",
+   "name": "Transportasi & Logistik",
+   "rank": 3,
+   "score": 66.3,
+   "streak_weeks": 1,
+   "rule_hits": {
+    "quadrant": "leading",
+    "age_ok": true,
+    "momentum_ok": true,
+    "ret_4w_ok": true,
+    "constituents_ok": true
+   },
+   "rationale": "Masuk Memimpin untuk pertama kali; kekuatan datang dari saham penerbangan."
+  }
+ ],
+ "stocks": [
+  {
+   "ticker": "BBRI",
+   "name": "Bank Rakyat Indonesia",
+   "sector_code": "IDXFINANCE",
+   "rank": 1,
+   "score": 92.1,
+   "streak_weeks": 3,
+   "entry_ref": 4250,
+   "stop": 4132,
+   "target": 4486,
+   "atr14": 76.5,
+   "lots_hint": 12,
+   "rule_hits": {
+    "liquidity_ok": true,
+    "price_ok": true,
+    "trend_ok": true,
+    "rs_ok": true,
+    "momentum_ok": true,
+    "rsi_ok": true,
+    "no_suspension": true
+   },
+   "rationale": "3 minggu berturut-turut masuk daftar; tren di atas SMA20/SMA50, RSI 62."
+  },
+  {
+   "ticker": "BBCA",
+   "name": "Bank Central Asia",
+   "sector_code": "IDXFINANCE",
+   "rank": 2,
+   "score": 84.6,
+   "streak_weeks": 2,
+   "entry_ref": 9875,
+   "stop": 9680,
+   "target": 10265,
+   "atr14": 177.8,
+   "lots_hint": 5,
+   "rule_hits": {
+    "liquidity_ok": true,
+    "price_ok": true,
+    "trend_ok": true,
+    "rs_ok": true,
+    "momentum_ok": true,
+    "rsi_ok": true,
+    "no_suspension": true
+   },
+   "rationale": "RS-Ratio tertinggi di sektor Keuangan; volatilitas rendah, cocok untuk posisi inti."
+  },
+  {
+   "ticker": "BMRI",
+   "name": "Bank Mandiri",
+   "sector_code": "IDXFINANCE",
+   "rank": 3,
+   "score": 81.2,
+   "streak_weeks": 1,
+   "entry_ref": 6100,
+   "stop": 5975,
+   "target": 6350,
+   "atr14": 109.8,
+   "lots_hint": 8,
+   "rule_hits": {
+    "liquidity_ok": true,
+    "price_ok": true,
+    "trend_ok": true,
+    "rs_ok": true,
+    "momentum_ok": true,
+    "rsi_ok": true,
+    "no_suspension": true
+   },
+   "rationale": "Turnover 20 hari Rp 185 miliar, likuid untuk keluar masuk tanpa menggerakkan harga."
+  },
+  {
+   "ticker": "KLBF",
+   "name": "Kalbe Farma",
+   "sector_code": "IDXHEALTH",
+   "rank": 4,
+   "score": 74.3,
+   "streak_weeks": 1,
+   "entry_ref": 1520,
+   "stop": 1494,
+   "target": 1572,
+   "atr14": 27.4,
+   "lots_hint": 25,
+   "rule_hits": {
+    "liquidity_ok": true,
+    "price_ok": true,
+    "trend_ok": true,
+    "rs_ok": true,
+    "momentum_ok": true,
+    "rsi_ok": true,
+    "no_suspension": true
+   },
+   "rationale": "Harga baru menembus SMA50 dengan RSI 55, belum overbought."
+  },
+  {
+   "ticker": "MIKA",
+   "name": "Mitra Keluarga Karyasehat",
+   "sector_code": "IDXHEALTH",
+   "rank": 5,
+   "score": 70.8,
+   "streak_weeks": 1,
+   "entry_ref": 2870,
+   "stop": 2817,
+   "target": 2976,
+   "atr14": 51.7,
+   "lots_hint": 14,
+   "rule_hits": {
+    "liquidity_ok": true,
+    "price_ok": true,
+    "trend_ok": true,
+    "rs_ok": true,
+    "momentum_ok": true,
+    "rsi_ok": true,
+    "no_suspension": true
+   },
+   "rationale": "Saham paling kuat di sektor Kesehatan; RS-Ratio 102,8 dengan volume naik."
+  },
+  {
+   "ticker": "ASSA",
+   "name": "Adi Sarana Armada",
+   "sector_code": "IDXTRANS",
+   "rank": 6,
+   "score": 67.8,
+   "streak_weeks": 1,
+   "entry_ref": 745,
+   "stop": 723,
+   "target": 789,
+   "atr14": 13.4,
+   "lots_hint": 40,
+   "rule_hits": {
+    "liquidity_ok": true,
+    "price_ok": true,
+    "trend_ok": true,
+    "rs_ok": true,
+    "momentum_ok": true,
+    "rsi_ok": true,
+    "no_suspension": true
+   },
+   "rationale": "RS-Momentum 101,4 tertinggi di sektor Transportasi; turnover Rp 27 miliar."
+  }
+ ]
+}

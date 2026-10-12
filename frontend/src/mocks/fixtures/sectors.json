@@ -1,0 +1,629 @@
+[
+ {
+  "code": "IDXENERGY",
+  "name_id": "Energi",
+  "name_en": "Energy",
+  "color_token": "sector-energy",
+  "color_hex": "#B45309",
+  "color_hex_dark": "#F0A868",
+  "sort_order": 1,
+  "constituents_active": 35,
+  "constituents_count": 35,
+  "partial": false,
+  "quadrant": "lagging",
+  "quadrant_label": "Tertinggal",
+  "quadrant_desc": "Di bawah pasar dan masih melemah.",
+  "quadrant_prev": "lagging",
+  "quadrant_age_periods": 5,
+  "rs_ratio": 96.42,
+  "rs_momentum": 97.15,
+  "rs_ratio_change_1p": -0.18,
+  "rs_momentum_change_1p": -0.22,
+  "ret_1d": -0.008,
+  "ret_1w": -0.043,
+  "ret_1m": -0.061,
+  "ret_3m": -0.078,
+  "ret_6m": -0.1053,
+  "ret_ytd": -0.145,
+  "turnover_idr": 61000000000,
+  "median_turnover_20d_idr": 56120000000,
+  "turnover_growth": -0.12,
+  "advancers": 4,
+  "decliners": 28,
+  "unchanged": 3,
+  "score": 12.1,
+  "rank_score": 11,
+  "streak_weeks": 0,
+  "top_stock": {
+   "ticker": "ADRO",
+   "stock_score": 47.3
+  },
+  "tail": [
+   {
+    "as_of": "2026-09-25",
+    "rs_ratio": 98.75,
+    "rs_momentum": 98.72
+   },
+   {
+    "as_of": "2026-10-02",
+    "rs_ratio": 97.21,
+    "rs_momentum": 97.72
+   },
+   {
+    "as_of": "2026-10-09",
+    "rs_ratio": 96.42,
+    "rs_momentum": 97.15
+   }
+  ]
+ },
+ {
+  "code": "IDXBASIC",
+  "name_id": "Barang Baku",
+  "name_en": "Basic Materials",
+  "color_token": "sector-basic",
+  "color_hex": "#7C6F2A",
+  "color_hex_dark": "#D6C87A",
+  "sort_order": 2,
+  "constituents_active": 33,
+  "constituents_count": 33,
+  "partial": false,
+  "quadrant": "lagging",
+  "quadrant_label": "Tertinggal",
+  "quadrant_desc": "Di bawah pasar dan masih melemah.",
+  "quadrant_prev": "weakening",
+  "quadrant_age_periods": 2,
+  "rs_ratio": 97.6,
+  "rs_momentum": 98.2,
+  "rs_ratio_change_1p": -0.09,
+  "rs_momentum_change_1p": -0.15,
+  "ret_1d": -0.004,
+  "ret_1w": -0.021,
+  "ret_1m": -0.032,
+  "ret_3m": -0.045,
+  "ret_6m": -0.0607,
+  "ret_ytd": -0.071,
+  "turnover_idr": 78000000000,
+  "median_turnover_20d_idr": 71760000000,
+  "turnover_growth": -0.05,
+  "advancers": 7,
+  "decliners": 21,
+  "unchanged": 5,
+  "score": 28.4,
+  "rank_score": 10,
+  "streak_weeks": 0,
+  "top_stock": {
+   "ticker": "ANTM",
+   "stock_score": 69.3
+  },
+  "tail": [
+   {
+    "as_of": "2026-09-25",
+    "rs_ratio": 99.16,
+    "rs_momentum": 99.19
+   },
+   {
+    "as_of": "2026-10-02",
+    "rs_ratio": 98.13,
+    "rs_momentum": 98.56
+   },
+   {
+    "as_of": "2026-10-09",
+    "rs_ratio": 97.6,
+    "rs_momentum": 98.2
+   }
+  ]
+ },
+ {
+  "code": "IDXINDUST",
+  "name_id": "Perindustrian",
+  "name_en": "Industrials",
+  "color_token": "sector-indust",
+  "color_hex": "#4B5563",
+  "color_hex_dark": "#A8B0BC",
+  "sort_order": 3,
+  "constituents_active": 1,
+  "constituents_count": 1,
+  "partial": true,
+  "quadrant": "improving",
+  "quadrant_label": "Membaik",
+  "quadrant_desc": "Masih di bawah pasar, tapi mulai berbalik naik.",
+  "quadrant_prev": "lagging",
+  "quadrant_age_periods": 3,
+  "rs_ratio": 97.05,
+  "rs_momentum": 100.6,
+  "rs_ratio_change_1p": 0.24,
+  "rs_momentum_change_1p": 0.31,
+  "ret_1d": 0.001,
+  "ret_1w": 0.006,
+  "ret_1m": -0.012,
+  "ret_3m": -0.004,
+  "ret_6m": -0.0054,
+  "ret_ytd": 0.033,
+  "turnover_idr": 118000000000,
+  "median_turnover_20d_idr": 108560000000,
+  "turnover_growth": 0.09,
+  "advancers": 14,
+  "decliners": 12,
+  "unchanged": 6,
+  "score": 44.3,
+  "rank_score": 8,
+  "streak_weeks": 1,
+  "top_stock": {
+   "ticker": "ASII",
+   "stock_score": 65.4
+  },
+  "tail": [
+   {
+    "as_of": "2026-09-25",
+    "rs_ratio": 98.97,
+    "rs_momentum": 100.27
+   },
+   {
+    "as_of": "2026-10-02",
+    "rs_ratio": 97.7,
+    "rs_momentum": 100.48
+   },
+   {
+    "as_of": "2026-10-09",
+    "rs_ratio": 97.05,
+    "rs_momentum": 100.6
+   }
+  ]
+ },
+ {
+  "code": "IDXNONCYC",
+  "name_id": "Konsumen Primer",
+  "name_en": "Consumer Non-Cyclicals",
+  "color_token": "sector-noncyc",
+  "color_hex": "#0F766E",
+  "color_hex_dark": "#5FC9BE",
+  "sort_order": 4,
+  "constituents_active": 31,
+  "constituents_count": 31,
+  "partial": false,
+  "quadrant": "lagging",
+  "quadrant_label": "Tertinggal",
+  "quadrant_desc": "Di bawah pasar dan masih melemah.",
+  "quadrant_prev": "lagging",
+  "quadrant_age_periods": 7,
+  "rs_ratio": 99.1,
+  "rs_momentum": 99.4,
+  "rs_ratio_change_1p": 0.05,
+  "rs_momentum_change_1p": -0.04,
+  "ret_1d": 0.001,
+  "ret_1w": -0.002,
+  "ret_1m": 0.004,
+  "ret_3m": 0.008,
+  "ret_6m": 0.0108,
+  "ret_ytd": 0.019,
+  "turnover_idr": 96000000000,
+  "median_turnover_20d_idr": 88320000000,
+  "turnover_growth": 0.02,
+  "advancers": 11,
+  "decliners": 12,
+  "unchanged": 8,
+  "score": 33.7,
+  "rank_score": 9,
+  "streak_weeks": 0,
+  "top_stock": {
+   "ticker": "AMRT",
+   "stock_score": 66.9
+  },
+  "tail": [
+   {
+    "as_of": "2026-09-25",
+    "rs_ratio": 99.69,
+    "rs_momentum": 99.73
+   },
+   {
+    "as_of": "2026-10-02",
+    "rs_ratio": 99.3,
+    "rs_momentum": 99.52
+   },
+   {
+    "as_of": "2026-10-09",
+    "rs_ratio": 99.1,
+    "rs_momentum": 99.4
+   }
+  ]
+ },
+ {
+  "code": "IDXCYCLIC",
+  "name_id": "Konsumen Non-Primer",
+  "name_en": "Consumer Cyclicals",
+  "color_token": "sector-cyclic",
+  "color_hex": "#BE185D",
+  "color_hex_dark": "#F08CB4",
+  "sort_order": 5,
+  "constituents_active": 33,
+  "constituents_count": 33,
+  "partial": false,
+  "quadrant": "weakening",
+  "quadrant_label": "Melemah",
+  "quadrant_desc": "Masih di atas pasar, tapi laju mulai berkurang.",
+  "quadrant_prev": "leading",
+  "quadrant_age_periods": 1,
+  "rs_ratio": 100.42,
+  "rs_momentum": 99.55,
+  "rs_ratio_change_1p": 0.17,
+  "rs_momentum_change_1p": -0.28,
+  "ret_1d": -0.003,
+  "ret_1w": -0.011,
+  "ret_1m": 0.018,
+  "ret_3m": 0.052,
+  "ret_6m": 0.0702,
+  "ret_ytd": 0.121,
+  "turnover_idr": 176000000000,
+  "median_turnover_20d_idr": 161920000000,
+  "turnover_growth": 0.06,
+  "advancers": 13,
+  "decliners": 16,
+  "unchanged": 4,
+  "score": 52.8,
+  "rank_score": 6,
+  "streak_weeks": 0,
+  "top_stock": {
+   "ticker": "ACES",
+   "stock_score": 64.2
+  },
+  "tail": [
+   {
+    "as_of": "2026-09-25",
+    "rs_ratio": 100.15,
+    "rs_momentum": 99.8
+   },
+   {
+    "as_of": "2026-10-02",
+    "rs_ratio": 100.33,
+    "rs_momentum": 99.64
+   },
+   {
+    "as_of": "2026-10-09",
+    "rs_ratio": 100.42,
+    "rs_momentum": 99.55
+   }
+  ]
+ },
+ {
+  "code": "IDXHEALTH",
+  "name_id": "Kesehatan",
+  "name_en": "Healthcare",
+  "color_token": "sector-health",
+  "color_hex": "#0284C7",
+  "color_hex_dark": "#6EC1F0",
+  "sort_order": 6,
+  "constituents_active": 33,
+  "constituents_count": 33,
+  "partial": false,
+  "quadrant": "leading",
+  "quadrant_label": "Memimpin",
+  "quadrant_desc": "Tren relatif naik dan masih dipercepat.",
+  "quadrant_prev": "leading",
+  "quadrant_age_periods": 3,
+  "rs_ratio": 101.06,
+  "rs_momentum": 100.41,
+  "rs_ratio_change_1p": 0.11,
+  "rs_momentum_change_1p": 0.09,
+  "ret_1d": 0.002,
+  "ret_1w": 0.0092,
+  "ret_1m": 0.0244,
+  "ret_3m": 0.051,
+  "ret_6m": 0.0688,
+  "ret_ytd": 0.098,
+  "turnover_idr": 412000000000,
+  "median_turnover_20d_idr": 379040000000,
+  "turnover_growth": 0.08,
+  "advancers": 22,
+  "decliners": 9,
+  "unchanged": 2,
+  "score": 71.2,
+  "rank_score": 2,
+  "streak_weeks": 1,
+  "top_stock": {
+   "ticker": "KLBF",
+   "stock_score": 74.3
+  },
+  "tail": [
+   {
+    "as_of": "2026-09-25",
+    "rs_ratio": 100.37,
+    "rs_momentum": 100.18
+   },
+   {
+    "as_of": "2026-10-02",
+    "rs_ratio": 100.83,
+    "rs_momentum": 100.33
+   },
+   {
+    "as_of": "2026-10-09",
+    "rs_ratio": 101.06,
+    "rs_momentum": 100.41
+   }
+  ]
+ },
+ {
+  "code": "IDXFINANCE",
+  "name_id": "Keuangan",
+  "name_en": "Financials",
+  "color_token": "sector-finance",
+  "color_hex": "#1D4ED8",
+  "color_hex_dark": "#7C9BFF",
+  "sort_order": 7,
+  "constituents_active": 47,
+  "constituents_count": 47,
+  "partial": false,
+  "quadrant": "leading",
+  "quadrant_label": "Memimpin",
+  "quadrant_desc": "Tren relatif naik dan masih dipercepat.",
+  "quadrant_prev": "improving",
+  "quadrant_age_periods": 2,
+  "rs_ratio": 102.31,
+  "rs_momentum": 100.84,
+  "rs_ratio_change_1p": 0.42,
+  "rs_momentum_change_1p": 0.31,
+  "ret_1d": 0.0021,
+  "ret_1w": 0.0181,
+  "ret_1m": 0.0412,
+  "ret_3m": 0.0903,
+  "ret_6m": null,
+  "ret_ytd": 0.1533,
+  "turnover_idr": 1180000000000,
+  "median_turnover_20d_idr": 1085600000000,
+  "turnover_growth": 0.21,
+  "advancers": 31,
+  "decliners": 12,
+  "unchanged": 4,
+  "score": 87.4,
+  "rank_score": 1,
+  "streak_weeks": 2,
+  "top_stock": {
+   "ticker": "BBRI",
+   "stock_score": 92.1
+  },
+  "tail": [
+   {
+    "as_of": "2026-09-25",
+    "rs_ratio": 100.81,
+    "rs_momentum": 100.38
+   },
+   {
+    "as_of": "2026-10-02",
+    "rs_ratio": 101.8,
+    "rs_momentum": 100.67
+   },
+   {
+    "as_of": "2026-10-09",
+    "rs_ratio": 102.31,
+    "rs_momentum": 100.84
+   }
+  ]
+ },
+ {
+  "code": "IDXPROPERT",
+  "name_id": "Properti & Real Estat",
+  "name_en": "Properties & Real Estate",
+  "color_token": "sector-propert",
+  "color_hex": "#7C3AED",
+  "color_hex_dark": "#B492F8",
+  "sort_order": 8,
+  "constituents_active": 35,
+  "constituents_count": 35,
+  "partial": false,
+  "quadrant": "improving",
+  "quadrant_label": "Membaik",
+  "quadrant_desc": "Masih di bawah pasar, tapi mulai berbalik naik.",
+  "quadrant_prev": "lagging",
+  "quadrant_age_periods": 1,
+  "rs_ratio": 99.85,
+  "rs_momentum": 100.42,
+  "rs_ratio_change_1p": 0.19,
+  "rs_momentum_change_1p": 0.22,
+  "ret_1d": 0.001,
+  "ret_1w": 0.004,
+  "ret_1m": 0.011,
+  "ret_3m": 0.021,
+  "ret_6m": 0.0284,
+  "ret_ytd": 0.026,
+  "turnover_idr": 132000000000,
+  "median_turnover_20d_idr": 121440000000,
+  "turnover_growth": 0.03,
+  "advancers": 18,
+  "decliners": 14,
+  "unchanged": 3,
+  "score": 48.9,
+  "rank_score": 7,
+  "streak_weeks": 1,
+  "top_stock": {
+   "ticker": "BSDE",
+   "stock_score": 60.1
+  },
+  "tail": [
+   {
+    "as_of": "2026-09-25",
+    "rs_ratio": 99.95,
+    "rs_momentum": 100.19
+   },
+   {
+    "as_of": "2026-10-02",
+    "rs_ratio": 99.88,
+    "rs_momentum": 100.34
+   },
+   {
+    "as_of": "2026-10-09",
+    "rs_ratio": 99.85,
+    "rs_momentum": 100.42
+   }
+  ]
+ },
+ {
+  "code": "IDXTECHNO",
+  "name_id": "Teknologi",
+  "name_en": "Technology",
+  "color_token": "sector-techno",
+  "color_hex": "#0891B2",
+  "color_hex_dark": "#5FD1E8",
+  "sort_order": 9,
+  "constituents_active": 39,
+  "constituents_count": 39,
+  "partial": false,
+  "quadrant": "weakening",
+  "quadrant_label": "Melemah",
+  "quadrant_desc": "Masih di atas pasar, tapi laju mulai berkurang.",
+  "quadrant_prev": "leading",
+  "quadrant_age_periods": 2,
+  "rs_ratio": 100.95,
+  "rs_momentum": 99.3,
+  "rs_ratio_change_1p": 0.21,
+  "rs_momentum_change_1p": -0.33,
+  "ret_1d": -0.005,
+  "ret_1w": -0.014,
+  "ret_1m": 0.009,
+  "ret_3m": 0.038,
+  "ret_6m": 0.0513,
+  "ret_ytd": 0.087,
+  "turnover_idr": 198000000000,
+  "median_turnover_20d_idr": 182160000000,
+  "turnover_growth": -0.03,
+  "advancers": 15,
+  "decliners": 19,
+  "unchanged": 5,
+  "score": 55.1,
+  "rank_score": 5,
+  "streak_weeks": 0,
+  "top_stock": {
+   "ticker": "DCII",
+   "stock_score": 76.1
+  },
+  "tail": [
+   {
+    "as_of": "2026-09-25",
+    "rs_ratio": 100.33,
+    "rs_momentum": 99.69
+   },
+   {
+    "as_of": "2026-10-02",
+    "rs_ratio": 100.74,
+    "rs_momentum": 99.44
+   },
+   {
+    "as_of": "2026-10-09",
+    "rs_ratio": 100.95,
+    "rs_momentum": 99.3
+   }
+  ]
+ },
+ {
+  "code": "IDXINFRA",
+  "name_id": "Infrastruktur",
+  "name_en": "Infrastructure",
+  "color_token": "sector-infra",
+  "color_hex": "#65A30D",
+  "color_hex_dark": "#A9D666",
+  "sort_order": 10,
+  "constituents_active": 26,
+  "constituents_count": 26,
+  "partial": false,
+  "quadrant": "improving",
+  "quadrant_label": "Membaik",
+  "quadrant_desc": "Masih di bawah pasar, tapi mulai berbalik naik.",
+  "quadrant_prev": "lagging",
+  "quadrant_age_periods": 1,
+  "rs_ratio": 98.74,
+  "rs_momentum": 100.31,
+  "rs_ratio_change_1p": 0.31,
+  "rs_momentum_change_1p": 0.18,
+  "ret_1d": 0.001,
+  "ret_1w": 0.0044,
+  "ret_1m": -0.008,
+  "ret_3m": 0.012,
+  "ret_6m": 0.0162,
+  "ret_ytd": 0.041,
+  "turnover_idr": 245000000000,
+  "median_turnover_20d_idr": 225400000000,
+  "turnover_growth": 0.11,
+  "advancers": 12,
+  "decliners": 10,
+  "unchanged": 4,
+  "score": 58.6,
+  "rank_score": 4,
+  "streak_weeks": 1,
+  "top_stock": {
+   "ticker": "TLKM",
+   "stock_score": 72.5
+  },
+  "tail": [
+   {
+    "as_of": "2026-09-25",
+    "rs_ratio": 99.56,
+    "rs_momentum": 100.14
+   },
+   {
+    "as_of": "2026-10-02",
+    "rs_ratio": 99.02,
+    "rs_momentum": 100.25
+   },
+   {
+    "as_of": "2026-10-09",
+    "rs_ratio": 98.74,
+    "rs_momentum": 100.31
+   }
+  ]
+ },
+ {
+  "code": "IDXTRANS",
+  "name_id": "Transportasi & Logistik",
+  "name_en": "Transportation & Logistic",
+  "color_token": "sector-trans",
+  "color_hex": "#C2410C",
+  "color_hex_dark": "#F09A6E",
+  "sort_order": 11,
+  "constituents_active": 31,
+  "constituents_count": 31,
+  "partial": false,
+  "quadrant": "leading",
+  "quadrant_label": "Memimpin",
+  "quadrant_desc": "Tren relatif naik dan masih dipercepat.",
+  "quadrant_prev": "improving",
+  "quadrant_age_periods": 2,
+  "rs_ratio": 100.2,
+  "rs_momentum": 101.05,
+  "rs_ratio_change_1p": 0.13,
+  "rs_momentum_change_1p": 0.26,
+  "ret_1d": 0.003,
+  "ret_1w": 0.0121,
+  "ret_1m": 0.0206,
+  "ret_3m": 0.0402,
+  "ret_6m": 0.0543,
+  "ret_ytd": 0.066,
+  "turnover_idr": 305000000000,
+  "median_turnover_20d_idr": 280600000000,
+  "turnover_growth": 0.14,
+  "advancers": 17,
+  "decliners": 11,
+  "unchanged": 3,
+  "score": 66.3,
+  "rank_score": 3,
+  "streak_weeks": 1,
+  "top_stock": {
+   "ticker": "ASSA",
+   "stock_score": 67.8
+  },
+  "tail": [
+   {
+    "as_of": "2026-09-25",
+    "rs_ratio": 100.07,
+    "rs_momentum": 100.47
+   },
+   {
+    "as_of": "2026-10-02",
+    "rs_ratio": 100.16,
+    "rs_momentum": 100.84
+   },
+   {
+    "as_of": "2026-10-09",
+    "rs_ratio": 100.2,
+    "rs_momentum": 101.05
+   }
+  ]
+ }
+]
