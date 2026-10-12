@@ -36,6 +36,11 @@ universe:
   max_rsi: 75
   # Jumlah konstituen minimum supaya indeks sektor dianggap layak dihitung.
   min_constituents: 3
+  # Bagian minimum emiten aktif yang harus sudah punya bar harian sebelum tombol
+  # "Hitung semua" boleh jalan (prasyarat 409 prereq_no_prices di docs/05 §4.1).
+  # 0.5 = setengah universe. Ini TEBAKAN AWAL — turunkan kalau kamu mau menghitung
+  # lebih awal dengan data seadanya, naikkan kalau ingin memastikan data lengkap dulu.
+  min_prices_coverage: 0.5
 
 ingest:
   daily_lookback_days: 730          # 2 tahun riwayat harian

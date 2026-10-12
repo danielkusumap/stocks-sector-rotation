@@ -9,9 +9,11 @@ from __future__ import annotations
 
 import sqlite3
 import threading
+import time
 from typing import Callable
 
 from . import db
+from .compute import index
 from .ingest import freshness, prices
 from .repo import run as runs
 
@@ -45,6 +47,13 @@ def midday(params: dict, report: Callable[..., None]) -> dict:
         }
     finally:
         conn.close()
+
+
+def compute(params: dict, report: Callable[..., None]) -> dict:
+    """Stage hitung pipa (docs/05 §4.1 tombol 4/5). Sekarang: `index`; `rrg`/`signals` menyusul (B5/B7)."""
+    started = time.monotonic()
+    result = index.compute_index(report=report)
+    return {**result, "duration_s": round(time.monotonic() - started, 2)}
 
 
 def execute(

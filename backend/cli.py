@@ -33,6 +33,9 @@ def main(argv: list[str] | None = None) -> int:
     p_prices.add_argument("--tickers", help="subset emiten, mis. BBCA,BBRI,ANTM (default: seluruh universe aktif)")
     p_prices.add_argument("--sectors", help="batasi ke kode sektor, mis. IDXFINANCE,IDXENERGY")
     p_prices.add_argument("--refresh-info", action="store_true", help="sekali pakai: ambil yahoo_sector lewat .info")
+    p_compute = sub.add_parser("compute", help="hitung turunan (index; rrg/signals menyusul)")
+    p_compute.add_argument("--stage", choices=["index", "rrg", "signals", "all"], default="index", help="stage hitung")
+    p_compute.add_argument("--timeframe", default="d1", help="timeframe (d1 | w1 | w1_fri | midday)")
     sub.add_parser("midday", help="cek gate kesegaran sesi 1 lalu ingest intraday (kalau lolos)")
     sub.add_parser("serve", help="jalankan API di host:port dari config")
     args = parser.parse_args(argv)
@@ -106,6 +109,34 @@ def main(argv: list[str] | None = None) -> int:
             )
 
         _, result = jobs.execute(f"prices_{args.mode}", params, prices_job, triggered_by="cli")
+        result["api_version"] = api_version
+        print(json.dumps(result, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.command == "compute":
+        from .app.repo import stock as stocks
+
+        cfg = get_settings()
+        if args.stage in ("rrg", "signals"):
+            err = {"code": "not_implemented", "message": f"stage {args.stage} menyusul di B5/B7"}
+            print(json.dumps({"api_version": api_version, "error": err}, ensure_ascii=False), file=sys.stderr)
+            return 1
+
+        conn = db.connect()
+        try:
+            coverage = stocks.prices_coverage(conn)
+        finally:
+            conn.close()
+        if coverage < cfg.universe["min_prices_coverage"]:
+            err = {
+                "code": "prereq_no_prices",
+                "message": f"baru {coverage * 100:.0f}% emiten aktif punya bar harga — jalankan `ingest-prices` dulu",
+            }
+            print(json.dumps({"api_version": api_version, "error": err}, ensure_ascii=False), file=sys.stderr)
+            return 1
+
+        params = {"stage": args.stage, "timeframe": args.timeframe, "as_of": None}
+        _, result = jobs.execute(f"compute_{args.stage}", params, jobs.compute, triggered_by="cli")
         result["api_version"] = api_version
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

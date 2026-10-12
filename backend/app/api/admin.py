@@ -31,6 +31,12 @@ class PricesBody(BaseModel):
     refresh_info: bool = False  # `.info` per emiten (cross-check yahoo_sector) — mahal, default mati
 
 
+class ComputeBody(BaseModel):
+    stage: str = "all"
+    timeframe: str = "d1"
+    as_of: date | None = None
+
+
 def _error(status: int, code: str, message: str, detail: dict | None = None) -> HTTPException:
     return HTTPException(status, {"code": code, "message": message, "detail": detail or {}})
 
@@ -102,6 +108,41 @@ def ingest_prices(body: PricesBody, async_: bool = Query(False, alias="async")):
         )
 
     run_id, result = jobs.execute(f"prices_{body.mode}", params, job, async_=async_, triggered_by="api")
+    return _queued(run_id) if result is None else result
+
+
+@router.post("/compute")
+def compute(body: ComputeBody, async_: bool = Query(False, alias="async")):
+    """Stage hitung (`index` sekarang; `rrg`/`signals` menyusul). Prasyarat: `price_daily` cukup terisi."""
+    cfg = get_settings()
+    if body.stage not in ("index", "rrg", "signals", "all"):
+        raise _error(400, "invalid_stage", "stage harus index | rrg | signals | all", {"received": body.stage})
+    if body.timeframe not in cfg.timeframes["allowed"]:
+        raise _error(
+            400,
+            "invalid_timeframe",
+            f"timeframe harus salah satu dari: {', '.join(cfg.timeframes['allowed'])}",
+            {"received": body.timeframe},
+        )
+    if body.stage in ("rrg", "signals"):
+        raise _error(400, "not_implemented", f"stage {body.stage} menyusul di B5/B7")
+
+    conn = db.connect()
+    try:
+        coverage = stocks.prices_coverage(conn)
+    finally:
+        conn.close()
+    if coverage < cfg.universe["min_prices_coverage"]:
+        raise _error(
+            409,
+            "prereq_no_prices",
+            "jalankan 'Ambil harga harian' dulu: baru "
+            f"{coverage * 100:.0f}% emiten aktif punya bar harga (minimum {cfg.universe['min_prices_coverage'] * 100:.0f}%)",
+            {"coverage": round(coverage, 3), "min_coverage": cfg.universe["min_prices_coverage"]},
+        )
+
+    params = {"stage": body.stage, "timeframe": body.timeframe, "as_of": body.as_of.isoformat() if body.as_of else None}
+    run_id, result = jobs.execute(f"compute_{body.stage}", params, jobs.compute, async_=async_, triggered_by="api")
     return _queued(run_id) if result is None else result
 
 

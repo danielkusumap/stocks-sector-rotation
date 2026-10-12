@@ -96,6 +96,14 @@ Format:
 - alternatif: (a) menunda seluruh B3 sampai B5 jadi → ditolak: gate + intraday tidak bergantung RRG, dan F12 butuh tombol 6 ada; (b) mengembalikan `computed:true` padahal belum menghitung → ditolak: melaporkan sukses palsu (dilarang juga oleh `docs/05` §5.1 "jangan biarkan tombol tampak selesai padahal run-nya gagal"); (c) menambah endpoint khusus gate → ditolak: kontrak `docs/05` §4 sudah menetapkan `POST /admin/midday`.
 - dampak: tombol 6 di halaman Data (F12) sekarang = gate + ingest intraday; setelah B5, `computed` berubah jadi `true` dan RRG `midday` ikut ditulis tanpa mengubah bentuk respons. Kalau `daily_ingest` perlu akurat pada hari libur bursa, perlu kalender hari bursa (belum ada di v1).
 
+## ADR-019 — Detail indeks sektor & ambang prasyarat harga
+- tanggal: 2026-10-13
+- status: diterima
+- konteks: `docs/02` §3 menetapkan rumus indeks dan aturan kebersihan seri, tetapi beberapa detail tidak ditentukan: isi baris pertama seri, perlakuan hari "masuk kembali" setelah suspend, dan arti angka "sebagian besar emiten" pada prasyarat `prereq_no_prices` (`docs/05` §4.1) — sedangkan `AGENTS.md` rule 4 melarang angka ambang ada di kode.
+- keputusan: (a) baris pertama seri = base 100 dengan `ret_1d = NULL`, `constituents_count = 0`, `partial = 1` (belum ada return yang bisa dihitung); (b) saham dianggap suspend setelah **2 hari berturut-turut** tanpa transaksi, dikeluarkan dari perhitungan, dan hari transaksi pertama setelah suspend **juga** belum dipakai (return-nya lompat dari harga basi) — mulai hari berikutnya ikut lagi; (c) prasyarat `prereq_no_prices` memakai ambang baru di config, `universe.min_prices_coverage: 0.5` (tebakan awal, bisa dinaikkan/diturunkan user, dan bisa dibaca frontend lewat `/meta/config` di B8); (d) semua bobot (termasuk `equal`) dinormalisasi per hari → `equal` = rata-rata, bukan jumlah return; (e) `sector_index_daily` diisi untuk ketiga bobot (`equal`, `turnover`, `captier`) dalam satu kali jalan.
+- alternatif: (a) baris pertama dilewati → ditolak: RS/RRG (B5) butuh titik `t0` yang sama untuk semua seri (`docs/03` §1); (b) hari masuk kembali langsung dipakai → ditolak: satu saham suspend lama bisa menggeser indeks belasan persen dalam sehari; (c) prasyarat "ada baris di `price_daily`" → ditolak: tombol Hitung bisa jalan dengan 1 emiten; (d) ambang hardcode di kode → dilarang `AGENTS.md` rule 4.
+- dampak: `compute --stage index` untuk universe parsial (185 emiten) selesai ~3,8 s setelah bagian per-tanggal divektorkan (sebelumnya 21 s); perkiraan untuk 962 emiten ~15–20 s, masih di dalam estimasi UI. Kalau `equal` dan `captier` bergerak berlawanan jauh, itu sinyal rotasi didorong saham besar (catat di `rationale` saat B7). Frontend perlu tahu: baris `partial=1` (1.446 baris saat ini) muncul untuk sektor tipis dan untuk baris base tiap seri.
+
 ## ADR-005 — Git: satu task = satu commit, repo lokal dulu
 - tanggal: 2026-10-12
 - status: diterima
