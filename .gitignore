@@ -5,6 +5,7 @@ __pycache__/
 venv/
 .pytest_cache/
 .ruff_cache/
+*.egg-info/
 
 # Node
 node_modules/
@@ -23,5 +24,6 @@ data/*.db-shm
 
 # Evidence & OS
 docs/evidence/*.png
+docs/WATCH-LOG.md
 Thumbs.db
 .DS_Store

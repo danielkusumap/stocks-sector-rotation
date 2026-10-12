@@ -8,7 +8,7 @@ Legenda status: `todo` · `wip` · `blocked` · `done`
 
 | ID | Task | Status | Bukti / catatan |
 |---|---|---|---|
-| B0 | Skeleton, config, db-init | todo | |
+| B0 | Skeleton, config, db-init | done | `python -m backend.cli db-init` (2×, dari root) → `{"path": "E:\\stocks-sector-rotation\\data\\rotation.db", "tables": 13, "user_version": 0, "api_version": "1.0"}`; `sqlite_master` = 13 tabel + 2 view (`v_sector_latest`, `v_stock_latest`), `journal_mode=wal`; `curl /health` → `{"api_version":"1.0","status":"ok","db":"ok","tables":13,"detail":null,"uptime_s":1}`; preflight CORS `Origin: http://localhost:5173` → `access-control-allow-origin: http://localhost:5173`; `.venv/Scripts/python.exe -m pytest -q` → **4 passed** (dari root dan dari `backend/`); override config diuji lewat env `ROTATION_CONFIG` dan flag `--config` (keduanya menulis ke db di luar repo, `data/rotation.db` tidak tersentuh); `pip install -e backend` (setuptools, `package-dir`) terverifikasi. **Selisih:** AC menyebut 14 tabel, DDL `docs/04` mendefinisikan **13 tabel + 2 view** → `/health.tables` melaporkan hitungan live; lihat ADR-006 |
 | B1 | Import Excel | todo | |
 | B2 | Ingest harga harian | todo | |
 | B3 | Ingest intraday + gate | todo | |
@@ -53,6 +53,7 @@ Legenda status: `todo` · `wip` · `blocked` · `done`
 | Tanggal | Perubahan |
 |---|---|
 | 2026-10-12 | Planning pack awal dibuat (README + docs 01–08 + config + DECISIONS/PROGRESS). Data source yfinance diverifikasi langsung. |
+| 2026-10-13 | B0 selesai: `backend/` (pyproject, `app/config.py`, `app/db.py` + `db/schema.sql`, `app/main.py`, `cli.py`, `tests/`). Dua temuan dicatat di ADR-006 (jumlah tabel & `IF NOT EXISTS`) dan ADR-007 (packaging `pip install -e backend`). |
 | 2026-10-12 | Disesuaikan dengan `saham_sektoral.xlsx` nyata: kolom Excel (Kode/Nama/Tanggal Pencatatan/Saham/Papan), 962 emiten, `shares_outstanding` + `listing_date` masuk skema, weighting `captier` ditambahkan (ADR-004), AC task B1 memakai angka nyata dari file. |
 
 ## Cara kerja per task
