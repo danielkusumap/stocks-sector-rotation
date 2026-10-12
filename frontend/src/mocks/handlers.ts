@@ -638,6 +638,13 @@ export const handlers = [
     const sp = new URL(request.url).searchParams;
     const topN = Math.max(1, Math.min(11, num(sp, "top_n", 3)));
     const stale = sp.get("mock") === "stale";
+    // `?mock=fail` → panel Ringkasan Pasar gagal sendiri; panel lain harus tetap tampil
+    if (sp.get("mock") === "fail") {
+      return HttpResponse.json(
+        { api_version: "1.0", error: { code: "internal_error", message: "Mock: briefing gagal", detail: null } },
+        { status: 500 },
+      );
+    }
     const byScore = sortRows(sectors, "score", "desc");
     const ranked = (rows: SectorRow[]) =>
       rows.map((s) => ({
