@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sector Rotation IDX</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&family=JetBrains+Mono:wght@400..600&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      // Set tema sebelum paint supaya tidak ada flash. Pilihan user (localStorage) menang;
+      // kunjungan pertama mengikuti prefers-color-scheme.
+      (function () {
+        try {
+          var saved = localStorage.getItem("theme");
+          var dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+          document.documentElement.dataset.theme =
+            saved === "dark" || saved === "light" ? saved : dark ? "dark" : "light";
+        } catch (e) {
+          document.documentElement.dataset.theme = "light";
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

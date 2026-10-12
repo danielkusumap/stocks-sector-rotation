@@ -25,7 +25,7 @@ Legenda status: `todo` · `wip` · `blocked` · `done`
 
 | ID | Task | Status | Bukti / catatan |
 |---|---|---|---|
-| F0 | Skeleton & token | todo | |
+| F0 | Skeleton & token | done | `npm run build` bersih (tsc --noEmit + vite build: JS 85,75 kB gzip / CSS 3,59 kB). Tema: kunjungan pertama ikut `prefers-color-scheme` (diuji dark & light lewat emulasi media), toggle tersimpan di `localStorage` dan menang saat reload; `data-theme` dipasang script inline sebelum paint. Kontras token (canvas + WCAG) dark: fg/bg 15,43 · fg-muted 6,75 · fg-faint 4,68–4,92 · label nav aktif 11,9; light: 16,55 · 5,47 · 5,05 · 14,94 — semua ≥ 4,5. `--motion-panel` = 0 ms saat `prefers-reduced-motion`. `grep -rn "#[0-9a-fA-F]\{6\}" src/components src/pages src/hooks src/App.tsx` → 0 temuan (hex hanya di `src/styles/tokens.css`). Sidebar 64/216 px, topbar 48 px, padding panel 16 px. Screenshot: `docs/evidence/F0-dark.png`, `docs/evidence/F0-light.png`. Proxy terverifikasi: `curl -i http://localhost:5173/api/v1/meta/sectors` → `404` dari `server: uvicorn` (bukan connection error) = diteruskan ke `127.0.0.1:8000`; endpoint-nya sendiri baru ada di B8. |
 | F1 | Layer data | todo | |
 | F2 | Komponen UI dasar | todo | |
 | F3 | Format & util | todo | |
@@ -55,6 +55,7 @@ Legenda status: `todo` · `wip` · `blocked` · `done`
 | 2026-10-12 | Planning pack awal dibuat (README + docs 01–08 + config + DECISIONS/PROGRESS). Data source yfinance diverifikasi langsung. |
 | 2026-10-13 | B0 selesai: `backend/` (pyproject, `app/config.py`, `app/db.py` + `db/schema.sql`, `app/main.py`, `cli.py`, `tests/`). Dua temuan dicatat di ADR-006 (jumlah tabel & `IF NOT EXISTS`) dan ADR-007 (packaging `pip install -e backend`). |
 | 2026-10-12 | Disesuaikan dengan `saham_sektoral.xlsx` nyata: kolom Excel (Kode/Nama/Tanggal Pencatatan/Saham/Papan), 962 emiten, `shares_outstanding` + `listing_date` masuk skema, weighting `captier` ditambahkan (ADR-004), AC task B1 memakai angka nyata dari file. |
+| 2026-10-13 | Frontend `F0` selesai: token dua tema disesuaikan agar lolos AA (ADR-008), peta rute halaman dibuat (ADR-009), sumber warna sektor ditetapkan (ADR-010). |
 
 ## Cara kerja per task
 

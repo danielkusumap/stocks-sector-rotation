@@ -71,3 +71,27 @@ Format:
 - keputusan: SQL biasa + helper di `db.py`, migrasi file `.sql` bernomor.
 - alternatif: SQLAlchemy + Alembic — dukungan ORM/migrasi tidak sepadan untuk 1 pengguna.
 - dampak: disiplin manual pada SQL & parameter binding; tidak ada auto-migrate saat model berubah.
+
+## ADR-008 — Token `--fg-faint` disesuaikan agar lolos AA (light 0,64 → 0,54 · dark 0,56 → 0,62)
+- tanggal: 2026-10-13
+- status: diterima
+- konteks: `docs/06` §2 menetapkan `--fg-faint`, §4 mewajibkan nilai `null` ditampilkan `—` dengan warna itu, dan §9 nomor 3 mewajibkan axe 0 violation WCAG2AA di kedua tema. Diukur nyata (canvas → luminansi WCAG): nilai dokumen = **3,37:1** (light, di atas `--surface`) dan **3,68:1** (dark) — di bawah 4,5:1, jadi `—` di tabel akan selalu memicu violation.
+- keputusan: nilai token diubah jadi `oklch(0.54 0.008 255)` (light) dan `oklch(0.62 0.01 260)` (dark) → terukur **5,05 / 4,62** (light: surface / bg-subtle) dan **4,68 / 4,92** (dark). Tidak ada perubahan lain pada token.
+- alternatif: (a) mengecualikan `--fg-faint` dari teks & mengganti `—` ke `--fg-muted` → ditolak: `docs/06` §4 eksplisit meminta `--fg-faint`, dan tampilan akan kehilangan pembedaan tier; (b) membiarkan & menonaktifkan rule `color-contrast` saat axe → ditolak: itu menghapus alat ukurnya, bukan masalahnya.
+- dampak: light `--fg-faint` (0,54) jadi berdekatan dengan `--fg-muted` (0,50) — pembedaan tier tipis tapi tetap ada; kalau nanti terasa kurang jelas, `--fg-muted` boleh dinaikkan (bukan `--fg-faint` diturunkan, itu akan melanggar AA lagi). Dipakai sampai ada tes axe nyata di F11.
+
+## ADR-009 — Rute & menu frontend: 5 halaman, `Sektor` = `/sectors`
+- tanggal: 2026-10-13
+- status: diterima
+- konteks: `docs/06` §5 menyebut sidebar 5 menu (Overview, Sektor, Saham, Weekly, Status) dan §10 menyebut 5 nama halaman, tapi tidak ada satu pun daftar path. `docs/08` F7 menaruh detail sektor di **drawer** (`?sector=IDXFINANCE`), F8 menyebut dua path yang eksplisit (`/stocks`, `/stocks/{ticker}`).
+- keputusan: `/` Overview · `/sectors` Sektor · `/stocks` Saham · `/weekly` Weekly · `/status` Status; `*` → redirect `/`. Halaman `/stocks/{ticker}` (F8) belum dibuat di F0. Menu aktif memakai pencocokan prefix supaya `Saham` tetap aktif di `/stocks/BBRI`.
+- alternatif: (a) tanpa menu Sektor terpisah (semua lewat drawer) → ditolak: `docs/06` §5 meminta 5 menu; (b) `/sector/{code}` sebagai halaman penuh → ditolak dulu: F7 belum menetapkan bentuk halaman penuh, dan drawer sudah mengangkat state ke URL.
+- dampak: `/sectors` sekarang masih placeholder; kalau F7 cukup dengan drawer, halaman itu bisa jadi daftar sektor sederhana atau dikosongkan — keputusannya diambil saat F7.
+
+## ADR-010 — Warna sektor: token tema, bukan `color_hex` dari API
+- tanggal: 2026-10-13
+- status: diterima
+- konteks: `docs/06` §3 memberi 11 warna sektor dengan hex **berbeda per tema** (light & dark), sementara `docs/05` mengirim `color_hex` di payload (`meta/sectors`, `rrg`, `sectors/summary`) — nilainya contoh dan tidak bisa ikut berubah saat tema berganti.
+- keputusan: warna sektor hidup sebagai token `--sector-*` di `src/styles/tokens.css` (dua tema, sudah ditulis di F0); komponen memakai tokennya. `color_hex` dari API hanya dipakai sebagai fallback bila kode sektor tidak dikenal token (belum ada di F0).
+- alternatif: pakai `color_hex` mentah dari API di inline style → ditolak: satu tema saja, dan justru bagian dari masalah asli; menambah `color_hex_dark` ke API → ditolak: mengubah kontrak v1 untuk hal yang sudah selesai di CSS.
+- dampak: `color_hex` tetap ada di tipe TS (sesuai kontrak, tidak dihapus) tapi bukan sumber warna utama; kalau nanti muncul sektor ke-12 dari backend, ia tampil dengan `color_hex` sampai token ditambahkan.

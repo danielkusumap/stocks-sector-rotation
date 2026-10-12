@@ -1,0 +1,153 @@
+/* Token desain — SATU-SATUNYA sumber warna (docs/06 §2 & §3).
+   Komponen tidak boleh memakai hex/`bg-gray-800` langsung; selalu token di sini. */
+
+:root {
+  /* LIGHT (default bila OS terang) */
+  --bg: oklch(0.985 0.002 250);
+  --bg-subtle: oklch(0.968 0.003 250);
+  --surface: oklch(1 0 0);
+  --surface-hover: oklch(0.972 0.004 250);
+  --border: oklch(0.905 0.004 250);
+  --border-strong: oklch(0.84 0.006 250);
+  --fg: oklch(0.22 0.012 255);
+  --fg-muted: oklch(0.5 0.01 255);
+  --fg-faint: oklch(0.54 0.008 255); /* docs/06 §2 menulis 0.64 → 3,37:1 (gagal AA); dilihat ADR-006 */
+  --accent: oklch(0.55 0.14 258);
+  --accent-fg: oklch(0.99 0 0);
+  --accent-subtle: oklch(0.95 0.03 258);
+  --up: oklch(0.56 0.14 152);
+  --down: oklch(0.55 0.17 22);
+  --flat: oklch(0.6 0.01 255);
+  --warn: oklch(0.68 0.14 75);
+  --info: oklch(0.58 0.12 235);
+  --focus: oklch(0.62 0.16 258);
+
+  /* kuadran RRG */
+  --q-leading: oklch(0.6 0.13 165);
+  --q-improving: oklch(0.6 0.13 250);
+  --q-weakening: oklch(0.68 0.14 75);
+  --q-lagging: oklch(0.58 0.16 20);
+  --q-leading-bg: oklch(0.95 0.04 165);
+  --q-improving-bg: oklch(0.95 0.04 250);
+  --q-weakening-bg: oklch(0.96 0.05 75);
+  --q-lagging-bg: oklch(0.95 0.05 20);
+
+  /* 11 sektor IDX-IC (docs/06 §3) */
+  --sector-energy: #b45309;
+  --sector-basic: #7c6f2a;
+  --sector-indust: #4b5563;
+  --sector-noncyc: #0f766e;
+  --sector-cyclic: #be185d;
+  --sector-health: #0284c7;
+  --sector-finance: #1d4ed8;
+  --sector-propert: #7c3aed;
+  --sector-techno: #0891b2;
+  --sector-infra: #65a30d;
+  --sector-trans: #c2410c;
+
+  --motion-hover: 120ms;
+  --motion-panel: 180ms;
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --bg: oklch(0.175 0.008 260);
+  --bg-subtle: oklch(0.205 0.009 260);
+  --surface: oklch(0.225 0.01 260);
+  --surface-hover: oklch(0.255 0.012 260);
+  --border: oklch(0.3 0.012 260);
+  --border-strong: oklch(0.38 0.014 260);
+  --fg: oklch(0.93 0.004 260);
+  --fg-muted: oklch(0.7 0.01 260);
+  --fg-faint: oklch(0.62 0.01 260); /* docs/06 §2 menulis 0.56 → 3,68:1 (gagal AA); dilihat ADR-006 */
+  --accent: oklch(0.68 0.13 250);
+  --accent-fg: oklch(0.16 0.02 260);
+  --accent-subtle: oklch(0.28 0.05 250);
+  --up: oklch(0.72 0.15 152);
+  --down: oklch(0.68 0.17 22);
+  --flat: oklch(0.62 0.01 260);
+  --warn: oklch(0.78 0.13 75);
+  --info: oklch(0.72 0.11 235);
+  --focus: oklch(0.72 0.14 250);
+
+  --q-leading: oklch(0.74 0.13 165);
+  --q-improving: oklch(0.72 0.13 250);
+  --q-weakening: oklch(0.8 0.13 75);
+  --q-lagging: oklch(0.7 0.16 20);
+  --q-leading-bg: oklch(0.3 0.05 165);
+  --q-improving-bg: oklch(0.3 0.05 250);
+  --q-weakening-bg: oklch(0.32 0.05 75);
+  --q-lagging-bg: oklch(0.3 0.06 20);
+
+  --sector-energy: #f0a868;
+  --sector-basic: #d6c87a;
+  --sector-indust: #a8b0bc;
+  --sector-noncyc: #5fc9be;
+  --sector-cyclic: #f08cb4;
+  --sector-health: #6ec1f0;
+  --sector-finance: #7c9bff;
+  --sector-propert: #b492f8;
+  --sector-techno: #5fd1e8;
+  --sector-infra: #a9d666;
+  --sector-trans: #f09a6e;
+
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-hover: 0ms;
+    --motion-panel: 0ms;
+  }
+}
+
+/* Token → utility Tailwind. `inline` wajib: nilainya harus ikut berubah saat tema berganti. */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-subtle: var(--bg-subtle);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-faint: var(--fg-faint);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-subtle: var(--accent-subtle);
+  --color-up: var(--up);
+  --color-down: var(--down);
+  --color-flat: var(--flat);
+  --color-warn: var(--warn);
+  --color-info: var(--info);
+  --color-focus: var(--focus);
+  --color-q-leading: var(--q-leading);
+  --color-q-improving: var(--q-improving);
+  --color-q-weakening: var(--q-weakening);
+  --color-q-lagging: var(--q-lagging);
+  --color-q-leading-bg: var(--q-leading-bg);
+  --color-q-improving-bg: var(--q-improving-bg);
+  --color-q-weakening-bg: var(--q-weakening-bg);
+  --color-q-lagging-bg: var(--q-lagging-bg);
+}
+
+@theme {
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Skala teks docs/06 §1 — UI utama 13px */
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-base: 13px;
+  --text-md: 14px;
+  --text-lg: 16px;
+  --text-xl: 20px;
+  --text-2xl: 24px;
+  --text-3xl: 32px;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+
+  --shadow-float: 0 8px 24px rgb(0 0 0 / 0.28);
+}
