@@ -70,6 +70,9 @@ def compute(params: dict, report: Callable[..., None]) -> dict:
         metrics_result = metrics.compute_metrics(timeframes=timeframes_list, report=report)
         rows += metrics_result["rows"]
         result["metrics_rows"] = metrics_result["rows"]
+        scores_result = metrics.compute_scores(timeframes=timeframes_list)
+        rows += scores_result["rows"]
+        result["score_rows"] = scores_result["rows"]
 
     result["rows"] = rows
     result["duration_s"] = round(time.monotonic() - started, 2)

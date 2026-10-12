@@ -197,6 +197,166 @@ def upsert_stock(conn, rows: list[tuple], computed_at: str) -> int:
     return len(rows)
 
 
+def _percentile(values: pd.Series) -> pd.Series:
+    """Persentil 0–100, nilai tertinggi = 100 (docs/03 §5). Nilai kosong = 0 (tanpa kredit)."""
+    return values.rank(pct=True, method="average").mul(100).fillna(0.0)
+
+
+def score_frame(frame: pd.DataFrame, cfg, *, reference_return: pd.Series, decline_share: pd.Series) -> pd.DataFrame:
+    """Hitung `score` & `rank_score` lintas sektor dari komponen persentil (docs/03 §5).
+
+    `frame` harus punya kolom `code`, `rs_ratio`, `rs_momentum`, `turnover_growth`;
+    `reference_return` = return periode acuan (`scoring.return_window_weeks`).
+    """
+    sc = cfg.scoring["sector"]
+    out = frame.copy()
+    out["rank_rs_ratio"] = _percentile(out["rs_ratio"].astype(float))
+    out["rank_rs_momentum"] = _percentile(out["rs_momentum"].astype(float))
+    out["rank_return"] = _percentile(reference_return.reindex(out.index).astype(float))
+    out["rank_turnover"] = _percentile(out["turnover_growth"].astype(float))
+
+    share = decline_share.reindex(out.index).astype(float).fillna(0.0)
+    threshold = sc["penalty_decline_from"]
+    out["penalty_decline"] = ((share - threshold).clip(lower=0) / (1 - threshold) * 100).where(share >= threshold, 0.0)
+
+    raw = (
+        sc["weight_rs_ratio"] * out["rank_rs_ratio"]
+        + sc["weight_rs_momentum"] * out["rank_rs_momentum"]
+        + sc["weight_return_window"] * out["rank_return"]
+        + sc["weight_turnover_growth"] * out["rank_turnover"]
+        - sc["penalty_decline_weight"] * out["penalty_decline"]
+    )
+    out["score"] = raw.clip(lower=0, upper=100).round(1)  # skor 0–100, satu desimal (docs/03 §5)
+    out["rank_score"] = out["score"].rank(ascending=False, method="first").astype(int)
+    return out
+
+
+def stock_score_frame(frame: pd.DataFrame, cfg) -> pd.DataFrame:
+    """`stock_score` = persentil RS-Ratio / return 5 hari / median turnover (docs/03 §6.2), 0–100."""
+    sc = cfg.scoring["stock"]
+    out = frame.copy()
+    out["stock_score"] = (
+        sc["weight_rs_ratio"] * _percentile(out["rs_ratio"].astype(float))
+        + sc["weight_return_5d"] * _percentile(out["ret_5d"].astype(float))
+        + sc["weight_turnover"] * _percentile(out["median_turnover_20d_idr"].astype(float))
+    ).clip(lower=0, upper=100).round(1)
+    return out
+
+
+SECTOR_SNAPSHOT_SQL = """
+    SELECT s.id AS sector_id, s.code, m.rrg_rs_ratio AS rs_ratio, m.rrg_rs_momentum AS rs_momentum,
+           m.turnover_growth
+    FROM sector_metrics m JOIN sector s ON s.id = m.sector_id
+    WHERE m.timeframe = ? AND m.weighting = ? AND m.as_of_date = ?
+    ORDER BY s.sort_order
+"""
+SECTOR_INDEX_ALL_SQL = """
+    SELECT sector_id, date, index_close, decliners, constituents_count
+    FROM sector_index_daily WHERE weighting = ? ORDER BY date
+"""
+STOCK_SNAPSHOT_SQL = """
+    SELECT ticker, rs_ratio, ret_5d, median_turnover_20d_idr FROM stock_metrics
+    WHERE timeframe = ? AND as_of_date = (SELECT MAX(as_of_date) FROM stock_metrics WHERE timeframe = ?)
+    ORDER BY ticker
+"""
+
+
+def _sector_reference(conn, timeframe: str, weighting: str, cfg) -> tuple[dict, dict]:
+    """(return periode acuan, share saham turun) per `sector_id` — dari bar terakhir seri indeks."""
+    weekly_tf = timeframe in ("w1", "w1_fri")
+    bars = cfg.scoring["return_window_weeks"] if weekly_tf else 5 * cfg.scoring["return_window_weeks"]
+    ref: dict[int, float | None] = {}
+    share: dict[int, float] = {}
+    for sector_id, group in pd.read_sql(SECTOR_INDEX_ALL_SQL, conn, params=(weighting,)).groupby("sector_id"):
+        group = group.sort_values("date")
+        series = pd.Series(group["index_close"].to_numpy(), index=group["date"])
+        if weekly_tf:
+            series = rrg.weekly(series, final_only=timeframe == "w1_fri")
+        if series.empty:
+            continue
+        ref[sector_id] = _returns(series, series.index[-1], {"ref": bars})["ref"]
+        last = group.iloc[-1]
+        # share saham turun diambil dari bar harian terakhir (bar mingguan tidak menyimpan hitungan ini)
+        share[sector_id] = float(last["decliners"] / last["constituents_count"]) if last["constituents_count"] else 0.0
+    return ref, share
+
+
+def compute_scores(*, timeframes: list[str] | None = None, weightings: list[str] | None = None, db_path=None) -> dict:
+    """Isi `score`/`rank_score` (sektor, + `rrg_daily.score`) & `stock_score`/`quadrant` (saham).
+
+    Dihitung untuk `as_of` **terakhir** tiap (timeframe, weighting) — angka yang dipakai tabel UI.
+    """
+    cfg = get_settings()
+    timeframes = timeframes or ["d1"]
+    weightings = weightings or ["equal", "turnover", "captier"]
+    conn = connect(db_path)
+    try:
+        sector_rows = stock_rows = 0
+        for timeframe in timeframes:
+            for weighting in weightings:
+                latest = conn.execute(
+                    "SELECT MAX(as_of_date) FROM sector_metrics WHERE timeframe = ? AND weighting = ?",
+                    (timeframe, weighting),
+                ).fetchone()[0]
+                if not latest:
+                    continue
+                frame = pd.read_sql(SECTOR_SNAPSHOT_SQL, conn, params=(timeframe, weighting, latest))
+                if frame.empty:
+                    continue
+                ref, share = _sector_reference(conn, timeframe, weighting, cfg)
+                scored = score_frame(
+                    frame,
+                    cfg,
+                    reference_return=pd.Series(frame["sector_id"].map(ref)),
+                    decline_share=pd.Series(frame["sector_id"].map(share)),
+                )
+                payload = [
+                    (r["score"], r["rank_score"], r["sector_id"], latest, timeframe, weighting)
+                    for _, r in scored.iterrows()
+                ]
+                conn.executemany(
+                    """
+                    UPDATE sector_metrics SET score = ?, rank_score = ?
+                    WHERE sector_id = ? AND as_of_date = ? AND timeframe = ? AND weighting = ?
+                    """,
+                    payload,
+                )
+                conn.executemany(  # docs/04: skor juga disimpan di rrg_daily scope=sector
+                    """
+                    UPDATE rrg_daily SET score = ?
+                    WHERE scope = 'sector' AND ref_id = ? AND as_of_date = ? AND timeframe = ? AND weighting = ?
+                    """,
+                    [(r["score"], r["code"], latest, timeframe, weighting) for _, r in scored.iterrows()],
+                )
+                sector_rows += len(payload)
+
+            stocks = pd.read_sql(STOCK_SNAPSHOT_SQL, conn, params=(timeframe, timeframe))
+            if not stocks.empty:
+                scored_stocks = stock_score_frame(stocks, cfg)
+                conn.executemany(
+                    "UPDATE stock_metrics SET stock_score = ? WHERE ticker = ? AND timeframe = ?",
+                    [(r["stock_score"], r["ticker"], timeframe) for _, r in scored_stocks.iterrows()],
+                )
+                # quadrant di stock_metrics = kuadran RRG saham terakhir (docs/04 `stock_metrics.quadrant`)
+                conn.execute(
+                    """
+                    UPDATE stock_metrics SET quadrant = (
+                      SELECT r.quadrant FROM rrg_daily r
+                      WHERE r.scope = 'stock' AND r.ref_id = stock_metrics.ticker
+                        AND r.timeframe = stock_metrics.timeframe AND r.as_of_date = stock_metrics.as_of_date
+                      LIMIT 1)
+                    WHERE timeframe = ?
+                    """,
+                    (timeframe,),
+                )
+                stock_rows += len(scored_stocks)
+            conn.commit()
+
+        return {"sector_rows": sector_rows, "stock_rows": stock_rows, "rows": sector_rows + stock_rows, "timeframes": timeframes}
+    finally:
+        conn.close()
+
+
 def compute_metrics(*, timeframes: list[str] | None = None, weightings: list[str] | None = None, db_path=None, report=None) -> dict:
     cfg = get_settings()
     timeframes = timeframes or ["d1"]
