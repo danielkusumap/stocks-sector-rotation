@@ -1,6 +1,14 @@
 import { HttpResponse, http } from "msw";
-import type { IngestRun, MiddayResult, StartRunResponse } from "../lib/api";
+import type {
+  ComputeAllResult,
+  ComputeSignalsResult,
+  IngestRun,
+  MiddayResult,
+  PricesResult,
+  StartRunResponse,
+} from "../lib/api";
 import { RUN_KIND } from "../lib/pipeline";
+import weekly from "./fixtures/weekly.json";
 
 /**
  * Mock endpoint admin (`docs/05` §4) — mensimulasikan run async supaya halaman Data
@@ -55,10 +63,21 @@ const IMPORT_RESULT = {
   ],
 };
 
-function resultFor(kind: string, stale: boolean): unknown {
+/** `result_json` per kind — bentuk baku `docs/05` §4.6 (diekspor supaya diuji tanpa DOM). */
+export function resultFor(kind: string, stale: boolean): unknown {
   if (kind === RUN_KIND.importExcel) return IMPORT_RESULT;
-  if (kind === RUN_KIND.pricesDaily) return { rows: TOTAL_ROWS[kind], failed_tickers: ["MAP", "NICL"] };
-  if (kind === RUN_KIND.pricesIntraday) return { rows: TOTAL_ROWS[kind], failed_tickers: [] };
+  if (kind === RUN_KIND.pricesDaily) {
+    const daily: PricesResult = { rows: TOTAL_ROWS[kind], batches: 20, failed_tickers: ["MAP", "NICL"] };
+    return daily;
+  }
+  if (kind === RUN_KIND.pricesIntraday) {
+    const intraday: PricesResult = { rows: TOTAL_ROWS[kind], batches: 6, failed_tickers: [] };
+    return intraday;
+  }
+  if (kind === RUN_KIND.computeSignals) {
+    const signals: ComputeSignalsResult = { week_end: weekly.week_end, sectors: 3, stocks: 7 };
+    return signals;
+  }
   if (kind === RUN_KIND.midday) {
     const midday: MiddayResult = {
       gate: stale ? "stale" : "ok",
@@ -67,7 +86,8 @@ function resultFor(kind: string, stale: boolean): unknown {
     };
     return midday;
   }
-  return { sectors: 11, tickers: 962, duration_s: 42.1 };
+  const compute: ComputeAllResult = { timeframe: "d1", sectors: 11, tickers: 962, duration_s: 42.1 };
+  return compute;
 }
 
 function simulate(kind: string, params: unknown, stale: boolean): StartRunResponse {
@@ -181,7 +201,8 @@ export const adminHandlers = [
     const limit = Number(sp.get("limit") ?? 20) || 20;
     record(`GET /admin/runs?limit=${limit}`);
     const sorted = [...runs].sort((a, b) => b.run_id - a.run_id).slice(0, limit);
-    return HttpResponse.json({ api_version: "1.0", runs: sorted });
+    // amplop & versi persis `docs/05` §4.6 ("kuncinya `runs`, bukan `items`")
+    return HttpResponse.json({ api_version: "1.1", runs: sorted });
   }),
 
   http.get(`${API}/admin/runs/:run_id`, ({ params }) => {
@@ -190,10 +211,10 @@ export const adminHandlers = [
     const run = runs.find((r) => r.run_id === id);
     if (!run) {
       return HttpResponse.json(
-        { api_version: "1.0", error: { code: "run_not_found", message: `Run ${params.run_id} tidak ada`, detail: null } },
+        { api_version: "1.1", error: { code: "run_not_found", message: `Run ${params.run_id} tidak ada`, detail: null } },
         { status: 404 },
       );
     }
-    return HttpResponse.json({ api_version: "1.0", run });
+    return HttpResponse.json({ api_version: "1.1", run });
   }),
 ];

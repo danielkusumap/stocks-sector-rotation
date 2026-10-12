@@ -14,9 +14,30 @@ export const FOCUS_RADIUS = 8;
 export const FOCUS_RING_WIDTH = 2;
 export const DIM_POINT_OPACITY = 0.22;
 export const DIM_TAIL_OPACITY = 0.18;
-/** Ambang anti-tumpuk label, dalam satuan viewBox (docs/06 §6: "< 24px"). */
-export const MIN_LABEL_DISTANCE = 24;
+/** Ambang anti-tumpuk label, dalam **pixel layar** (docs/06 §6). */
+export const MIN_LABEL_DISTANCE_PX = 24;
+
+/**
+ * Jarak layar (px) → satuan viewBox. Chart digambar dengan `viewBox` tetap lalu
+ * diskalakan, jadi ambang 24 px harus dikonversi: `24 / (lebar_render / lebar_viewBox)`.
+ */
+export function viewBoxDistanceForScreenPx(
+  screenPx: number,
+  renderedWidthPx: number,
+  viewBoxWidth: number,
+): number {
+  if (renderedWidthPx <= 0) return screenPx;
+  return screenPx / (renderedWidthPx / viewBoxWidth);
+}
 export const STOCK_SCOPE_LIMIT = 25;
+
+/**
+ * Perkiraan lebar 1 karakter label (fontSize 11 di satuan viewBox).
+ * shortcut: lebar teks diperkirakan, bukan diukur; naikkan ke `getBBox()` kalau ada label bertumpuk.
+ */
+const LABEL_CHAR_W = 6.4;
+const LABEL_DX = 11;
+const LABEL_HALF_H = 7;
 
 /** `pad = max(0.6, 1.15 × max|nilai − 100|)` → rentang sumbu selalu memuat 100 & simetris. */
 export function axisPad(values: number[]): number {
@@ -60,21 +81,32 @@ export function cappedItems(
 }
 
 /**
- * Titik yang boleh diberi label supaya tidak bertumpuk: ambil berurutan, lewati titik
- * yang lebih dekat dari `minDistance` ke titik yang sudah dipilih (docs/06 §6).
+ * Titik yang boleh diberi label supaya tidak bertumpuk (docs/06 §6). Label digambar di
+ * kanan titik dan lebarnya ikut panjang nama, jadi yang dibandingkan **kotak label**
+ * (lebar ≈ panjang teks), bukan jarak titik. `minDistance` sudah dalam satuan viewBox
+ * dan berasal dari ambang pixel layar (`viewBoxDistanceForScreenPx`).
  */
 export function labelledRefIds(
-  points: readonly { refId: string; x: number; y: number }[],
-  minDistance = MIN_LABEL_DISTANCE,
+  points: readonly { refId: string; x: number; y: number; label: string }[],
+  minDistance = MIN_LABEL_DISTANCE_PX,
 ): Set<string> {
-  const chosen: { x: number; y: number }[] = [];
+  const gap = minDistance / 2;
+  const placed: { x1: number; y1: number; x2: number; y2: number }[] = [];
   const labels = new Set<string>();
   for (const point of points) {
-    const tooClose = chosen.some(
-      (other) => Math.hypot(point.x - other.x, point.y - other.y) < minDistance,
+    const x1 = point.x + LABEL_DX - gap;
+    const y1 = point.y - LABEL_HALF_H - gap;
+    const box = {
+      x1,
+      y1,
+      x2: x1 + point.label.length * LABEL_CHAR_W + minDistance,
+      y2: y1 + LABEL_HALF_H * 2 + minDistance,
+    };
+    const collides = placed.some(
+      (other) => box.x1 < other.x2 && other.x1 < box.x2 && box.y1 < other.y2 && other.y1 < box.y2,
     );
-    if (tooClose) continue;
-    chosen.push({ x: point.x, y: point.y });
+    if (collides) continue;
+    placed.push(box);
     labels.add(point.refId);
   }
   return labels;

@@ -131,4 +131,53 @@ test.describe("QuadrantChart RRG", () => {
       "/stocks?sector=IDXFINANCE",
     );
   });
+
+  // Ambang anti-tumpuk diukur dalam pixel layar (docs/06 §6): diukur dari kotak nyata label.
+  test("label tidak bertumpuk di lebar 1280 px maupun 640 px", async ({ page }) => {
+    for (const width of [1280, 640]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/");
+      await expect(page.getByTestId("point-IDXFINANCE")).toBeVisible();
+      await page.waitForTimeout(500); // transisi titik 200 ms (--motion-panel) harus selesai dulu
+
+      const labels = page.locator("[data-testid^=label-]");
+      const count = await labels.count();
+      const overlaps = await labels.evaluateAll((nodes) =>
+        nodes.flatMap((node, index) => {
+          const a = node.getBoundingClientRect();
+          return nodes.slice(index + 1).flatMap((other) => {
+            const b = other.getBoundingClientRect();
+            const hit = a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+            return hit ? [`${node.textContent} ⨯ ${other.textContent}`] : [];
+          });
+        }),
+      );
+
+      expect({ width, overlaps }).toEqual({ width, overlaps: [] });
+      expect(count).toBeGreaterThan(0);
+    }
+  });
+
+  // docs/05 §2 (api 1.1): Δ1p + streak; `null` harus aman (tampil "—", tanpa badge, tanpa crash).
+  test("PointCard: Δ1p & badge streak, aman saat field null", async ({ page }) => {
+    await page.goto("/");
+    await page.getByTestId("point-IDXFINANCE").hover();
+
+    const card = page.getByTestId("point-card");
+    await expect(card).toBeVisible();
+    await expect(card).toContainText("Keuangan");
+    await expect(card.getByTestId("point-card-rs-ratio")).toHaveText("102,31");
+    await expect(card.getByTestId("point-card-rs-momentum")).toHaveText("100,84");
+    await expect(card).toContainText("+0,42");
+    await expect(card).toContainText("+0,31");
+    await expect(card).toContainText("Δ1p");
+    await expect(card.getByText(/^\d+w$/)).toHaveText("2w");
+
+    // IDXENERGY: mock mengirim rs_*_change_1p = null dan streak_weeks = 0
+    await page.getByTestId("point-IDXENERGY").hover();
+    await expect(card.getByTestId("point-card-rs-ratio")).toHaveText("96,42");
+    await expect(card).toContainText("—");
+    await expect(card.getByText(/^\d+w$/)).toHaveCount(0);
+    await expect(page.getByTestId("rrg-chart")).toBeVisible(); // tidak ada layar error
+  });
 });

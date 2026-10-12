@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { RrgItem } from "./api";
 import {
   AXIS_CENTER,
+  MIN_LABEL_DISTANCE_PX,
   STOCK_SCOPE_LIMIT,
   axisPad,
   axisTicks,
@@ -12,6 +13,7 @@ import {
   orderedItems,
   tailSegmentOpacity,
   tickLabel,
+  viewBoxDistanceForScreenPx,
 } from "./rrgChart";
 
 const item = (ref_id: string, extra: Partial<RrgItem> = {}): RrgItem => ({
@@ -20,6 +22,9 @@ const item = (ref_id: string, extra: Partial<RrgItem> = {}): RrgItem => ({
   color_hex: "#888888",
   rs_ratio: 101,
   rs_momentum: 100.5,
+  rs_ratio_change_1p: null,
+  rs_momentum_change_1p: null,
+  streak_weeks: 0,
   quadrant: "leading",
   quadrant_prev: null,
   transition: null,
@@ -114,20 +119,58 @@ describe("urutan & batas titik", () => {
 describe("label anti-tumpuk", () => {
   it("titik yang berdekatan (<24) tidak diberi label", () => {
     const labels = labelledRefIds([
-      { refId: "A", x: 100, y: 100 },
-      { refId: "B", x: 110, y: 105 },
-      { refId: "C", x: 200, y: 200 },
+      { refId: "A", label: "A", x: 100, y: 100 },
+      { refId: "B", label: "B", x: 110, y: 105 },
+      { refId: "C", label: "C", x: 200, y: 200 },
     ]);
     expect([...labels]).toEqual(["A", "C"]);
   });
 
   it("label mengikuti urutan yang diberikan (titik kuat menang)", () => {
     const labels = labelledRefIds([
-      { refId: "lemah", x: 50, y: 50 },
-      { refId: "kuat", x: 55, y: 50 },
+      { refId: "lemah", label: "lemah", x: 50, y: 50 },
+      { refId: "kuat", label: "kuat", x: 55, y: 50 },
     ]);
     expect(labels.has("lemah")).toBe(true);
     expect(labels.has("kuat")).toBe(false);
+  });
+
+  it("nama panjang menahan label lain yang kotaknya bertumpuk walau titiknya jauh", () => {
+    // jarak titik 30 unit (> ambang 24), tapi "Properti & Real Estat" memanjang ke kanan
+    const labels = labelledRefIds(
+      [
+        { refId: "IDXPROPERT", label: "Properti & Real Estat", x: 100, y: 100 },
+        { refId: "IDXHEALTH", label: "Kesehatan", x: 130, y: 100 },
+      ],
+      24,
+    );
+    expect([...labels]).toEqual(["IDXPROPERT"]);
+  });
+});
+
+describe("ambang label dalam pixel layar (docs/06 §6)", () => {
+  it("mengubah 24 px layar menjadi satuan viewBox sesuai lebar render", () => {
+    // viewBox 780 digambar pada 780 px → 1 unit = 1 px
+    expect(viewBoxDistanceForScreenPx(MIN_LABEL_DISTANCE_PX, 780, 780)).toBe(24);
+    // separuh lebar → 1 unit = 0,5 px → ambang dua kali lipat
+    expect(viewBoxDistanceForScreenPx(MIN_LABEL_DISTANCE_PX, 390, 780)).toBe(48);
+    // chart lebar (1280) → 1 unit = 1,64 px → ambang lebih kecil dari 24 unit
+    expect(viewBoxDistanceForScreenPx(MIN_LABEL_DISTANCE_PX, 1280, 780)).toBeCloseTo(14.625, 3);
+  });
+
+  it("jatuh kembali ke nilai px kalau lebar belum terukur (0)", () => {
+    expect(viewBoxDistanceForScreenPx(MIN_LABEL_DISTANCE_PX, 0, 780)).toBe(24);
+  });
+
+  it("di layar sempit (640 px) titik yang tadinya boleh berlabel jadi disembunyikan", () => {
+    const points = [
+      { refId: "A", label: "A", x: 100, y: 100 },
+      { refId: "B", label: "B", x: 125, y: 100 }, // jarak 25 unit
+    ];
+    // 1280 px: ambang ≈ 14,6 unit → kotak kedua label masih lepas
+    expect([...labelledRefIds(points, viewBoxDistanceForScreenPx(24, 1280, 780))]).toEqual(["A", "B"]);
+    // 640 px: ambang ≈ 29,3 unit → kotak B bertumpuk kotak A
+    expect([...labelledRefIds(points, viewBoxDistanceForScreenPx(24, 640, 780))]).toEqual(["A"]);
   });
 });
 

@@ -142,12 +142,17 @@ export interface RrgItem {
   color_hex: string;
   rs_ratio: number;
   rs_momentum: number;
+  /** docs/05 §2 (api 1.1): perubahan 1 periode; `null` kalau `rrg_daily` belum punya — jangan 0. */
+  rs_ratio_change_1p: number | null;
+  rs_momentum_change_1p: number | null;
   quadrant: Quadrant;
   quadrant_prev: Quadrant | null;
   transition: string | null;
   quadrant_age_periods: number;
   score: number | null;
   rank_score: number | null;
+  /** docs/05 §2: 0 bila `ref_id` tidak pernah muncul di sinyal mingguan. */
+  streak_weeks: number;
   ret_1w: number | null;
   median_turnover_20d_idr: number | null;
   tail: RrgTailPoint[];
@@ -548,6 +553,26 @@ export interface ImportResult {
   updated: number;
   deactivated: number;
   errors: { sheet: string; row_no: number; raw_value: string; reason: string }[];
+}
+
+/** `result_json` per kind — bentuk baku `docs/05` §4.6. */
+export interface PricesResult {
+  rows: number;
+  batches: number;
+  failed_tickers: string[];
+}
+
+export interface ComputeAllResult {
+  timeframe: Timeframe;
+  sectors: number;
+  tickers: number;
+  duration_s: number;
+}
+
+export interface ComputeSignalsResult {
+  week_end: string;
+  sectors: number;
+  stocks: number;
 }
 
 export interface IngestPricesBody {

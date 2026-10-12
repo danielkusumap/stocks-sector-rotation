@@ -10,6 +10,7 @@ import {
   DIM_TAIL_OPACITY,
   FOCUS_RADIUS,
   FOCUS_RING_WIDTH,
+  MIN_LABEL_DISTANCE_PX,
   POINT_RADIUS,
   axisPad,
   axisTicks,
@@ -20,6 +21,7 @@ import {
   orderedItems,
   tailSegmentOpacity,
   tickLabel,
+  viewBoxDistanceForScreenPx,
 } from "../../lib/rrgChart";
 import { PointCard } from "../domain/PointCard";
 
@@ -83,12 +85,30 @@ export function QuadrantChart({
   const [keyboardIndex, setKeyboardIndex] = useState<number | null>(null);
   const [chartFocused, setChartFocused] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [labelDistance, setLabelDistance] = useState(MIN_LABEL_DISTANCE_PX);
   const rootRef = useRef<HTMLDivElement>(null);
   const lastExternal = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => setMounted(true));
     return () => cancelAnimationFrame(frame);
+  }, []);
+
+  // Ambang anti-tumpuk label diukur dalam pixel layar (docs/06 §6) → dikonversi ke satuan viewBox
+  // dan dihitung ulang tiap lebar berubah, supaya chart sempit tidak menumpuk labelnya.
+  useEffect(() => {
+    const element = rootRef.current;
+    if (!element) return;
+    const update = () => {
+      const renderedWidth = element.clientWidth;
+      if (renderedWidth > 0) {
+        setLabelDistance(viewBoxDistanceForScreenPx(MIN_LABEL_DISTANCE_PX, renderedWidth, VIEW_W));
+      }
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(element);
+    return () => observer.disconnect();
   }, []);
 
   // Elemen fokus terakhir di luar chart — dipakai Esc untuk mengembalikan fokus (docs/06 §6.1).
@@ -111,14 +131,15 @@ export function QuadrantChart({
     () =>
       shown.map((item) => ({
         refId: item.ref_id,
+        label: item.name,
         x: xScale(item.rs_ratio),
         y: yScale(item.rs_momentum),
       })),
     [shown, xScale, yScale],
   );
   const labels = useMemo(
-    () => (dimmed ? new Set(activeRefId ? [activeRefId] : []) : labelledRefIds(points)),
-    [dimmed, activeRefId, points],
+    () => (dimmed ? new Set(activeRefId ? [activeRefId] : []) : labelledRefIds(points, labelDistance)),
+    [dimmed, activeRefId, points, labelDistance],
   );
 
   // Urutan gambar ekor: yang aktif terakhir supaya tidak tertutup (ekor tidak interaktif).

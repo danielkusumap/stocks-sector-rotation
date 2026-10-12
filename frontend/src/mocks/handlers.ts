@@ -204,12 +204,15 @@ function padStockItems(items: RrgItem[], sectorCode: string | null, upto = 60): 
       color_hex: color,
       rs_ratio: rs,
       rs_momentum: mom,
+      rs_ratio_change_1p: null,
+      rs_momentum_change_1p: null,
       quadrant,
       quadrant_prev: null,
       transition: null,
       quadrant_age_periods: 1,
       score: Math.round((80 - i * 0.6) * 10) / 10,
       rank_score: null,
+      streak_weeks: 0,
       ret_1w: Math.round((0.03 - i * 0.001) * 10_000) / 10_000,
       median_turnover_20d_idr: Math.max(1_000_000_000, 300_000_000_000 - i * 4_000_000_000),
       tail: tailFor(rs, mom),
@@ -299,6 +302,10 @@ export const handlers = [
             quadrant_age_periods: s.quadrant_age_periods,
             score: s.score,
             rank_score: s.rank_score,
+            // mock: satu sektor tanpa perubahan 1 periode untuk menguji jalur `null` (docs/05 §2 → PointCard "—")
+            rs_ratio_change_1p: s.code === "IDXENERGY" ? null : s.rs_ratio_change_1p,
+            rs_momentum_change_1p: s.code === "IDXENERGY" ? null : s.rs_momentum_change_1p,
+            streak_weeks: s.streak_weeks,
             ret_1w: s.ret_1w,
             median_turnover_20d_idr: s.median_turnover_20d_idr,
             tail: s.tail.slice(-tailPoints),
@@ -320,6 +327,10 @@ export const handlers = [
                   quadrant_age_periods: 1,
                   score: s.stock_score,
                   rank_score: null,
+                  // mock: perubahan 1 periode per saham tidak ada di fixture → `null` (jalur aman)
+                  rs_ratio_change_1p: null,
+                  rs_momentum_change_1p: null,
+                  streak_weeks: weekly.stocks.find((p) => p.ticker === s.ticker)?.streak_weeks ?? 0,
                   ret_1w: s.ret_1w,
                   median_turnover_20d_idr: s.median_turnover_20d_idr,
                   tail: tailFor(s.rs_ratio ?? 100, s.rs_momentum ?? 100).slice(-tailPoints),
@@ -332,7 +343,7 @@ export const handlers = [
     for (const item of items) quadrants[item.quadrant] += 1;
 
     const body: RrgResponse = {
-      api_version: "1.0",
+      api_version: "1.1",
       timeframe: (sp.get("timeframe") ?? "d1") as Timeframe,
       as_of: sp.get("as_of") ?? AS_OF,
       window: "3m",
