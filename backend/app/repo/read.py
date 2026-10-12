@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 
+from ..ingest import freshness
 from ..labels import WINDOW_DAYS
 
 
@@ -39,8 +40,8 @@ def resolve_as_of(conn, timeframe: str, *, scope: str = "sector", weighting: str
 def data_status(conn, *, as_of: str | None, timeframe: str, weighting: str) -> dict:
     """Blok `data_status` konvensi `docs/05` (status: ok | stale | partial).
 
-    `stale` mengikuti baris `data_freshness` (`daily_ingest`) — belum ditulis sampai ingest harian
-    mencatatnya, jadi praktis `ok`/`partial` (ADR-023). Tidak ada ambang tanggal yang dikarang di sini.
+    `stale` mengikuti blok `daily_ingest` dari `freshness.read` (dihitung dari `price_daily`), jadi
+    tidak ada ambang tanggal yang dikarang di sini (ADR-023).
     """
     partial_sectors = [
         r[0]
@@ -53,10 +54,10 @@ def data_status(conn, *, as_of: str | None, timeframe: str, weighting: str) -> d
     computed_at = conn.execute(
         "SELECT MAX(computed_at) FROM rrg_daily WHERE as_of_date = ? AND timeframe = ?", (as_of, timeframe)
     ).fetchone()[0]
-    daily = conn.execute("SELECT last_bar_at, status FROM data_freshness WHERE key = 'daily_ingest'").fetchone()
+    daily = freshness.read(conn).get("daily_ingest") or {}
     if partial_sectors:
         status = "partial"
-    elif daily and daily[1] in ("stale", "partial", "failed"):
+    elif daily.get("status") in ("stale", "partial", "failed"):
         status = "stale"
     else:
         status = "ok"
@@ -64,7 +65,7 @@ def data_status(conn, *, as_of: str | None, timeframe: str, weighting: str) -> d
         "as_of": as_of,
         "timeframe": timeframe,
         "status": status,
-        "last_data_at": (daily[0] if daily else None),
+        "last_data_at": daily.get("last_data_at"),
         "computed_at": computed_at,
         "partial_sectors": partial_sectors,
     }

@@ -126,6 +126,11 @@ weekly:
   risk_per_trade_idr: 2000000
   require_sektor_kandidat: true     # saham hanya dipilih dari sektor kandidat
 
+briefing:
+  # docs/05 §3: regime risk_off bila sectors_down ≥ ambang, risk_on bila sectors_up ≥ ambang.
+  regime_sector_threshold: 7
+  top_n_default: 3
+
 retention:
   intraday_days: 30
   midday_rrg_days: 60

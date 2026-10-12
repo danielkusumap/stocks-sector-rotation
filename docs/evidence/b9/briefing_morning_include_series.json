@@ -1,0 +1,383 @@
+{
+  "api_version": "1.0",
+  "generated_at": "2026-10-13T01:54:49+07:00",
+  "data_status": {
+    "as_of": "2026-10-09",
+    "timeframe": "d1",
+    "status": "partial",
+    "last_data_at": "2026-10-13T00:22:51+07:00",
+    "computed_at": "2026-10-13T01:15:14+07:00",
+    "partial_sectors": [
+      "IDXHEALTH"
+    ]
+  },
+  "market": {
+    "ihsg_close": 6093.7587890625,
+    "ihsg_ret_1d": 0.01035842575374013,
+    "ihsg_ret_1w": 0.009420516620351815,
+    "sectors_up": 10,
+    "sectors_down": 1,
+    "breadth": {
+      "advancers": 95,
+      "decliners": 45,
+      "unchanged": 26
+    },
+    "regime": "risk_on",
+    "regime_note": "10 dari 11 sektor naik; rotasi masuk ke pasar."
+  },
+  "leaders": [
+    {
+      "code": "IDXCYCLIC",
+      "name_id": "Barang Konsumen Non-Primer",
+      "quadrant": "leading",
+      "score": 81.8,
+      "ret_1w": 0.09107566154291291,
+      "streak_weeks": 0,
+      "series": [
+        {
+          "date": "2026-08-31",
+          "index_close": 193.66862238641335
+        },
+        {
+          "date": "2026-09-01",
+          "index_close": 193.32415460522017
+        },
+        {
+          "date": "2026-09-02",
+          "index_close": 189.6434119657998
+        },
+        {
+          "date": "2026-09-03",
+          "index_close": 191.3539052170713
+        },
+        {
+          "date": "2026-09-04",
+          "index_close": 192.23174386186054
+        },
+        {
+          "date": "2026-09-07",
+          "index_close": 194.74046697993185
+        },
+        {
+          "date": "2026-09-08",
+          "index_close": 198.4060730520761
+        },
+        {
+          "date": "2026-09-09",
+          "index_close": 203.55410660983316
+        },
+        {
+          "date": "2026-09-10",
+          "index_close": 198.80660814144912
+        },
+        {
+          "date": "2026-09-11",
+          "index_close": 196.23072334265404
+        },
+        {
+          "date": "2026-09-14",
+          "index_close": 195.99225331885896
+        },
+        {
+          "date": "2026-09-15",
+          "index_close": 197.06303335356415
+        },
+        {
+          "date": "2026-09-16",
+          "index_close": 195.1305478098434
+        },
+        {
+          "date": "2026-09-17",
+          "index_close": 197.23568601092188
+        },
+        {
+          "date": "2026-09-18",
+          "index_close": 197.67045897914736
+        },
+        {
+          "date": "2026-09-21",
+          "index_close": 197.69400467322362
+        },
+        {
+          "date": "2026-09-22",
+          "index_close": 196.12772303136234
+        },
+        {
+          "date": "2026-09-23",
+          "index_close": 197.57643729276325
+        },
+        {
+          "date": "2026-09-24",
+          "index_close": 198.82016381782944
+        },
+        {
+          "date": "2026-09-25",
+          "index_close": 192.69040135790814
+        },
+        {
+          "date": "2026-09-28",
+          "index_close": 190.96777427825884
+        },
+        {
+          "date": "2026-09-29",
+          "index_close": 189.6788748560725
+        },
+        {
+          "date": "2026-09-30",
+          "index_close": 191.57619447621272
+        },
+        {
+          "date": "2026-10-01",
+          "index_close": 194.5972275271288
+        },
+        {
+          "date": "2026-10-02",
+          "index_close": 197.52459609801645
+        },
+        {
+          "date": "2026-10-05",
+          "index_close": 205.97382351284668
+        },
+        {
+          "date": "2026-10-06",
+          "index_close": 208.38223027502121
+        },
+        {
+          "date": "2026-10-07",
+          "index_close": 214.83757214871
+        },
+        {
+          "date": "2026-10-08",
+          "index_close": 209.72459935788623
+        },
+        {
+          "date": "2026-10-09",
+          "index_close": 215.51427935863998
+        }
+      ]
+    }
+  ],
+  "laggards": [
+    {
+      "code": "IDXINFRA",
+      "name_id": "Infrastruktur",
+      "quadrant": "weakening",
+      "score": 21.6,
+      "ret_1w": 0.02529433245066759,
+      "streak_weeks": 0,
+      "series": [
+        {
+          "date": "2026-08-31",
+          "index_close": 163.98069821813013
+        },
+        {
+          "date": "2026-09-01",
+          "index_close": 165.18602992401955
+        },
+        {
+          "date": "2026-09-02",
+          "index_close": 168.76831360112507
+        },
+        {
+          "date": "2026-09-03",
+          "index_close": 169.55566359080694
+        },
+        {
+          "date": "2026-09-04",
+          "index_close": 167.85178403956712
+        },
+        {
+          "date": "2026-09-07",
+          "index_close": 171.8218961077954
+        },
+        {
+          "date": "2026-09-08",
+          "index_close": 175.1349833555161
+        },
+        {
+          "date": "2026-09-09",
+          "index_close": 178.75469715698037
+        },
+        {
+          "date": "2026-09-10",
+          "index_close": 180.78067495080225
+        },
+        {
+          "date": "2026-09-11",
+          "index_close": 179.36724761205159
+        },
+        {
+          "date": "2026-09-14",
+          "index_close": 170.99303599901484
+        },
+        {
+          "date": "2026-09-15",
+          "index_close": 172.59160465483964
+        },
+        {
+          "date": "2026-09-16",
+          "index_close": 167.8591836932731
+        },
+        {
+          "date": "2026-09-17",
+          "index_close": 170.07293326330387
+        },
+        {
+          "date": "2026-09-18",
+          "index_close": 169.05968580167738
+        },
+        {
+          "date": "2026-09-21",
+          "index_close": 168.39469900492992
+        },
+        {
+          "date": "2026-09-22",
+          "index_close": 166.75609631079578
+        },
+        {
+          "date": "2026-09-23",
+          "index_close": 168.73567907619176
+        },
+        {
+          "date": "2026-09-24",
+          "index_close": 173.41371134277065
+        },
+        {
+          "date": "2026-09-25",
+          "index_close": 170.6238529669861
+        },
+        {
+          "date": "2026-09-28",
+          "index_close": 166.10734586879045
+        },
+        {
+          "date": "2026-09-29",
+          "index_close": 165.4609153093969
+        },
+        {
+          "date": "2026-09-30",
+          "index_close": 165.35376408983578
+        },
+        {
+          "date": "2026-10-01",
+          "index_close": 162.19125062178588
+        },
+        {
+          "date": "2026-10-02",
+          "index_close": 158.37169662784575
+        },
+        {
+          "date": "2026-10-05",
+          "index_close": 172.1463685472546
+        },
+        {
+          "date": "2026-10-06",
+          "index_close": 174.63594697959033
+        },
+        {
+          "date": "2026-10-07",
+          "index_close": 170.45794762457155
+        },
+        {
+          "date": "2026-10-08",
+          "index_close": 164.37107921858282
+        },
+        {
+          "date": "2026-10-09",
+          "index_close": 162.37760297312676
+        }
+      ]
+    }
+  ],
+  "changes": [
+    {
+      "ref_id": "IDXBASIC",
+      "name": "Barang Baku",
+      "from": "leading",
+      "to": "weakening",
+      "as_of": "2026-10-09"
+    },
+    {
+      "ref_id": "IDXENERGY",
+      "name": "Energi",
+      "from": "weakening",
+      "to": "leading",
+      "as_of": "2026-10-09"
+    }
+  ],
+  "weekly_focus": {
+    "week_end": "2026-10-09",
+    "sectors": [
+      {
+        "code": "IDXBASIC",
+        "streak_weeks": 2,
+        "rationale": "Barang Baku bertahan 9 periode di kuadran Memimpin dengan momentum relatif 101,6 (>100) yang masih naik."
+      },
+      {
+        "code": "IDXTRANS",
+        "streak_weeks": 1,
+        "rationale": "Transportasi & Logistik bertahan 5 periode di kuadran Memimpin dengan momentum relatif 101,7 (>100) yang masih naik."
+      },
+      {
+        "code": "IDXTECHNO",
+        "streak_weeks": 1,
+        "rationale": "Teknologi bertahan 19 periode di kuadran Memimpin dengan momentum relatif 100,8 (>100) yang masih naik."
+      }
+    ],
+    "stocks": [
+      {
+        "ticker": "AYLS",
+        "entry_ref": 190.0,
+        "stop": 156.9133530971854,
+        "target": 256.1732938056292,
+        "streak_weeks": 1,
+        "rationale": "Baru masuk daftar; harga 190 di atas SMA20 186 dan SMA50, RSI 55. Nilai transaksi harian rata-rata Rp 2,3 M."
+      },
+      {
+        "ticker": "MPXL",
+        "entry_ref": 290.0,
+        "stop": 256.64313082274305,
+        "target": 356.7137383545139,
+        "streak_weeks": 1,
+        "rationale": "Baru masuk daftar; harga 290 di atas SMA20 223 dan SMA50, RSI 70. Nilai transaksi harian rata-rata Rp 3,0 M."
+      },
+      {
+        "ticker": "MITI",
+        "entry_ref": 354.0,
+        "stop": 303.3242670303012,
+        "target": 455.3514659393976,
+        "streak_weeks": 1,
+        "rationale": "Baru masuk daftar; harga 354 di atas SMA20 296 dan SMA50, RSI 66. Nilai transaksi harian rata-rata Rp 3,4 M."
+      },
+      {
+        "ticker": "SAPX",
+        "entry_ref": 410.0,
+        "stop": 334.5338612650073,
+        "target": 560.9322774699854,
+        "streak_weeks": 1,
+        "rationale": "Baru masuk daftar; harga 410 di atas SMA20 391 dan SMA50, RSI 56. Nilai transaksi harian rata-rata Rp 1,8 M."
+      }
+    ]
+  },
+  "midday": {
+    "available": false,
+    "as_of": null,
+    "gate": "stale",
+    "moves": []
+  },
+  "watch": [
+    {
+      "level": "warning",
+      "message": "Data intraday Yahoo belum sampai 11:30 WIB (bar terakhir belum ada bar); angka midday = penutupan sebelumnya."
+    },
+    {
+      "level": "info",
+      "message": "Status data `partial`: IDXHEALTH."
+    },
+    {
+      "level": "info",
+      "message": "Angka tengah hari belum tersedia — jalankan tombol 'Tengah hari'."
+    }
+  ],
+  "notes_for_report": "Susun 5–8 paragraf: kondisi pasar, sektor kuat/lemah, perubahan kuadran, fokus mingguan (sebut streak), risiko & catatan data."
+}

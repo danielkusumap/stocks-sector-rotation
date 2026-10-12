@@ -1,0 +1,177 @@
+{
+  "api_version": "1.0",
+  "generated_at": "2026-10-13T01:54:49+07:00",
+  "data_status": {
+    "as_of": "2026-10-09",
+    "timeframe": "d1",
+    "status": "partial",
+    "last_data_at": "2026-10-13T00:22:51+07:00",
+    "computed_at": "2026-10-13T01:15:14+07:00",
+    "partial_sectors": [
+      "IDXHEALTH"
+    ]
+  },
+  "market": {
+    "ihsg_close": 6093.7587890625,
+    "ihsg_ret_1d": 0.01035842575374013,
+    "ihsg_ret_1w": 0.009420516620351815,
+    "sectors_up": 10,
+    "sectors_down": 1,
+    "breadth": {
+      "advancers": 95,
+      "decliners": 45,
+      "unchanged": 26
+    },
+    "regime": "risk_on",
+    "regime_note": "10 dari 11 sektor naik; rotasi masuk ke pasar."
+  },
+  "leaders": [
+    {
+      "code": "IDXCYCLIC",
+      "name_id": "Barang Konsumen Non-Primer",
+      "quadrant": "leading",
+      "score": 81.8,
+      "ret_1w": 0.09107566154291291,
+      "streak_weeks": 0,
+      "series": null
+    },
+    {
+      "code": "IDXTRANS",
+      "name_id": "Transportasi & Logistik",
+      "quadrant": "weakening",
+      "score": 73.2,
+      "ret_1w": 0.07801915505590218,
+      "streak_weeks": 1,
+      "series": null
+    },
+    {
+      "code": "IDXBASIC",
+      "name_id": "Barang Baku",
+      "quadrant": "weakening",
+      "score": 66.8,
+      "ret_1w": 0.06338136417790108,
+      "streak_weeks": 2,
+      "series": null
+    }
+  ],
+  "laggards": [
+    {
+      "code": "IDXINFRA",
+      "name_id": "Infrastruktur",
+      "quadrant": "weakening",
+      "score": 21.6,
+      "ret_1w": 0.02529433245066759,
+      "streak_weeks": 0,
+      "series": null
+    },
+    {
+      "code": "IDXFINANCE",
+      "name_id": "Keuangan",
+      "quadrant": "leading",
+      "score": 29.5,
+      "ret_1w": 0.041832963672639334,
+      "streak_weeks": 0,
+      "series": null
+    },
+    {
+      "code": "IDXNONCYC",
+      "name_id": "Barang Konsumen Primer",
+      "quadrant": "weakening",
+      "score": 33.6,
+      "ret_1w": 0.04766547864209647,
+      "streak_weeks": 0,
+      "series": null
+    }
+  ],
+  "changes": [
+    {
+      "ref_id": "IDXBASIC",
+      "name": "Barang Baku",
+      "from": "leading",
+      "to": "weakening",
+      "as_of": "2026-10-09"
+    },
+    {
+      "ref_id": "IDXENERGY",
+      "name": "Energi",
+      "from": "weakening",
+      "to": "leading",
+      "as_of": "2026-10-09"
+    }
+  ],
+  "weekly_focus": {
+    "week_end": "2026-10-09",
+    "sectors": [
+      {
+        "code": "IDXBASIC",
+        "streak_weeks": 2,
+        "rationale": "Barang Baku bertahan 9 periode di kuadran Memimpin dengan momentum relatif 101,6 (>100) yang masih naik."
+      },
+      {
+        "code": "IDXTRANS",
+        "streak_weeks": 1,
+        "rationale": "Transportasi & Logistik bertahan 5 periode di kuadran Memimpin dengan momentum relatif 101,7 (>100) yang masih naik."
+      },
+      {
+        "code": "IDXTECHNO",
+        "streak_weeks": 1,
+        "rationale": "Teknologi bertahan 19 periode di kuadran Memimpin dengan momentum relatif 100,8 (>100) yang masih naik."
+      }
+    ],
+    "stocks": [
+      {
+        "ticker": "AYLS",
+        "entry_ref": 190.0,
+        "stop": 156.9133530971854,
+        "target": 256.1732938056292,
+        "streak_weeks": 1,
+        "rationale": "Baru masuk daftar; harga 190 di atas SMA20 186 dan SMA50, RSI 55. Nilai transaksi harian rata-rata Rp 2,3 M."
+      },
+      {
+        "ticker": "MPXL",
+        "entry_ref": 290.0,
+        "stop": 256.64313082274305,
+        "target": 356.7137383545139,
+        "streak_weeks": 1,
+        "rationale": "Baru masuk daftar; harga 290 di atas SMA20 223 dan SMA50, RSI 70. Nilai transaksi harian rata-rata Rp 3,0 M."
+      },
+      {
+        "ticker": "MITI",
+        "entry_ref": 354.0,
+        "stop": 303.3242670303012,
+        "target": 455.3514659393976,
+        "streak_weeks": 1,
+        "rationale": "Baru masuk daftar; harga 354 di atas SMA20 296 dan SMA50, RSI 66. Nilai transaksi harian rata-rata Rp 3,4 M."
+      },
+      {
+        "ticker": "SAPX",
+        "entry_ref": 410.0,
+        "stop": 334.5338612650073,
+        "target": 560.9322774699854,
+        "streak_weeks": 1,
+        "rationale": "Baru masuk daftar; harga 410 di atas SMA20 391 dan SMA50, RSI 56. Nilai transaksi harian rata-rata Rp 1,8 M."
+      }
+    ]
+  },
+  "midday": {
+    "available": false,
+    "as_of": null,
+    "gate": "stale",
+    "moves": []
+  },
+  "watch": [
+    {
+      "level": "warning",
+      "message": "Data intraday Yahoo belum sampai 11:30 WIB (bar terakhir belum ada bar); angka midday = penutupan sebelumnya."
+    },
+    {
+      "level": "info",
+      "message": "Status data `partial`: IDXHEALTH."
+    },
+    {
+      "level": "info",
+      "message": "Angka tengah hari belum tersedia — jalankan tombol 'Tengah hari'."
+    }
+  ],
+  "notes_for_report": "Susun 5–8 paragraf: kondisi pasar, sektor kuat/lemah, perubahan kuadran, fokus mingguan (sebut streak), risiko & catatan data."
+}

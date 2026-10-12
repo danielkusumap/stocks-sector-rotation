@@ -313,3 +313,90 @@ class HeatmapRow(BaseModel):
 class HeatmapResponse(Envelope):
     columns: list[str]
     rows: list[HeatmapRow]
+
+
+# --- §3 briefing pagi --------------------------------------------------------
+
+
+class Market(BaseModel):
+    ihsg_close: float | None
+    ihsg_ret_1d: float | None
+    ihsg_ret_1w: float | None
+    sectors_up: int
+    sectors_down: int
+    breadth: dict[str, int]
+    regime: str
+    regime_note: str
+
+
+class BriefItem(BaseModel):
+    code: str
+    name_id: str
+    quadrant: str | None
+    score: float | None
+    ret_1w: float | None
+    streak_weeks: int
+    series: list[dict[str, Any]] | None = None
+
+
+class BriefChange(BaseModel):
+    ref_id: str
+    name: str | None
+    from_: str | None = Field(default=None, alias="from")
+    to: str | None = None
+    as_of: str
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class WeeklyFocusSector(BaseModel):
+    code: str
+    streak_weeks: int
+    rationale: str
+
+
+class WeeklyFocusStock(BaseModel):
+    ticker: str
+    entry_ref: float | None
+    stop: float | None
+    target: float | None
+    streak_weeks: int
+    rationale: str
+
+
+class WeeklyFocus(BaseModel):
+    week_end: str | None
+    sectors: list[WeeklyFocusSector]
+    stocks: list[WeeklyFocusStock]
+
+
+class MiddayMove(BaseModel):
+    code: str
+    ret_intraday: float | None
+    direction: str | None
+    projected_quadrant: str | None
+
+
+class MiddayBlock(BaseModel):
+    available: bool
+    as_of: str | None
+    gate: str
+    moves: list[MiddayMove]
+
+
+class WatchItem(BaseModel):
+    level: str
+    message: str
+
+
+class BriefingResponse(Envelope):
+    generated_at: str
+    data_status: DataStatus
+    market: Market
+    leaders: list[BriefItem]
+    laggards: list[BriefItem]
+    changes: list[BriefChange]
+    weekly_focus: WeeklyFocus
+    midday: MiddayBlock
+    watch: list[WatchItem]
+    notes_for_report: str

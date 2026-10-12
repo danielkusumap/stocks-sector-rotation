@@ -1,0 +1,10 @@
+HTTP 200 | data_status.status=partial partial_sectors=['IDXHEALTH']
+generated_at=2026-10-13T01:54:49+07:00
+market: IHSG 6093.7587890625 (1d 0.0104, 1w 0.0094) | naik 10 turun 1 | breadth {'advancers': 95, 'decliners': 45, 'unchanged': 26}
+regime: risk_on — “10 dari 11 sektor naik; rotasi masuk ke pasar.”
+leaders: IDXCYCLIC 81.8 (leading, streak 0) | IDXTRANS 73.2 (weakening, streak 1) | IDXBASIC 66.8 (weakening, streak 2)
+laggards: IDXINFRA 21.6 (weakening, streak 0) | IDXFINANCE 29.5 (leading, streak 0) | IDXNONCYC 33.6 (weakening, streak 0)
+changes: IDXBASIC leading→weakening | IDXENERGY weakening→leading
+weekly_focus: 2026-10-09 sektor ['IDXBASIC', 'IDXTRANS', 'IDXTECHNO'] saham ['AYLS', 'MPXL', 'MITI', 'SAPX']
+midday: available=False gate=stale as_of=None
+watch: [warning] Data intraday Yahoo belum sampai 11:30 WIB (bar terakhir belum ada bar); angka midday = penutupan sebelumnya. | [info] Status data `partial`: IDXHEALTH. | [info] Angka tengah hari belum tersedia — jalankan tombol 'Tengah hari'.

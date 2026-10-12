@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from . import db
-from .api import admin, meta, rrg, sectors, stocks, weekly
+from .api import admin, briefing, meta, rrg, sectors, stocks, weekly
 from .config import get_settings
 
 _settings = get_settings()
@@ -29,6 +29,7 @@ app.include_router(weekly.router)
 app.include_router(rrg.router)
 app.include_router(sectors.router)
 app.include_router(stocks.router)
+app.include_router(briefing.router)
 
 
 @app.exception_handler(HTTPException)
