@@ -72,6 +72,14 @@ Format:
 - alternatif: menulis `deactivated` apa adanya → ditolak: satu salah unggah mematikan 962 emiten sekaligus.
 - dampak: import file kosong/salah tidak mengubah tabel `stock` sama sekali (tidak ada baris `excel_import` yang tercatat juga). Error import yang tidak fatal tetap tersimpan di `excel_import_error` dan dikembalikan di field `errors`.
 
+## ADR-016 — Job pipeline: satu jalur untuk CLI & API, migrasi kolom progres `ingest_run`
+- tanggal: 2026-10-13
+- status: diterima
+- konteks: revisi `docs/05` §4 + `docs/04` §4 (kolom progres `ingest_run`) + `docs/07` B12 mewajibkan API dan CLI memakai fungsi Python yang sama, pola `?async=true` → `202 {run_id, status:"queued"}`, dan `GET /admin/runs/{run_id}`. Tabel `ingest_run` sudah terlanjur dibuat di `data/rotation.db` oleh B0 dengan DDL lama.
+- keputusan: (a) `schema.sql` memuat DDL baru (baseline db baru) **dan** `db/migrations/001_ingest_run_progress.sql` menambahkan kolomnya ke db lama; runner migrasi mengabaikan error `duplicate column name` sehingga db baru melewati migrasi 001 tanpa error (SQLite tidak punya `ADD COLUMN IF NOT EXISTS`). (b) Semua job lewat `app/jobs.execute(kind, params, fn, async_=…, triggered_by=…)` — `fn(params, report)` menerima callback `report(rows=…, rows_total=…, message=…, phase=…)` untuk menulis progres per batch; sinkron mengembalikan hasil job, async menjalankan di thread dan mengembalikan `run_id`. (c) Setiap job mengisi `rows` di hasilnya (dipakai kolom `ingest_run.rows`, jadi `rows` juga muncul di respons import). (d) Respons `GET /admin/runs/{run_id}` memuat `params_json`, `result_json`, dan `failed_tickers` (dibutuhkan panel riwayat F12); `GET /admin/runs` berbentuk `{api_version, total, items[]}` seperti daftar lain di `docs/05` §2. (e) Error 500 juga memakai envelope `{api_version, error:{code,message,detail}}` tanpa stack trace.
+- alternatif: (a) API memanggil CLI via subprocess → dilarang `docs/07` B12; (b) `BackgroundTasks` FastAPI → tidak bisa dipakai dari CLI, dan statusnya hilang setelah respons; (c) menyimpan progres per baris → dilarang `docs/07` B12 #5 (SQLite jadi sibuk); (d) membuang db lama lalu `db-init` ulang → ditolak: user akan punya data harga saat B2/B3 jalan, tidak boleh hilang.
+- dampak: job baru (`prices`, `compute`, `midday`) wajib lewat `jobs.execute` dan mengisi `rows`; kalau perlu progres di UI, panggil `report(...)` tiap batch. Migrasi berikutnya ditulis dengan pola yang sama (ALTER yang tahan db baru + catat di DECISIONS). Satu risiko yang diketahui: kalau proses mati saat job async jalan, baris `ingest_run` tetap `running` (belum ada pembersih otomatis) — terlihat di panel riwayat sebagai run menggantung.
+
 ## ADR-005 — Git: satu task = satu commit, repo lokal dulu
 - tanggal: 2026-10-12
 - status: diterima

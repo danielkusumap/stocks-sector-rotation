@@ -179,12 +179,19 @@ CREATE INDEX IF NOT EXISTS idx_signal_week ON signal_weekly(week_end DESC, scope
 CREATE TABLE IF NOT EXISTS ingest_run (
   id          INTEGER PRIMARY KEY,
   kind        TEXT NOT NULL,               -- excel | prices_daily | prices_intraday | compute_index | compute_rrg | compute_signals | midday
+  status      TEXT NOT NULL,               -- queued | running | ok | partial | failed | skipped
+  phase       TEXT,                        -- tahap yang sedang jalan (mis. "ingest", "compute_rrg")
   started_at  TEXT NOT NULL,
   finished_at TEXT,
-  status      TEXT NOT NULL,               -- running | ok | partial | failed | skipped
   rows        INTEGER NOT NULL DEFAULT 0,
-  message     TEXT
+  rows_total  INTEGER,                     -- perkiraan total baris/emiten untuk progress bar UI
+  percent     REAL,                        -- 0-100, NULL kalau rows_total belum diketahui
+  message     TEXT,                        -- teks progres terakhir yang bisa ditampilkan UI
+  params_json TEXT,                        -- query/body asli (mode, stage, timeframe, from, to)
+  result_json TEXT,                        -- ringkasan hasil (inserted/updated/errors/failed_tickers)
+  triggered_by TEXT NOT NULL DEFAULT 'cli' -- cli | api | ui | cron
 );
+CREATE INDEX IF NOT EXISTS idx_ingest_run_started ON ingest_run(started_at DESC);
 
 CREATE VIEW IF NOT EXISTS v_sector_latest AS
 SELECT s.code, s.name_id, s.color_hex,

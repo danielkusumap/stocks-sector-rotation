@@ -26,7 +26,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 package-dir = { "backend" = "." }
-packages = ["backend", "backend.app", "backend.api", "backend.ingest", "backend.tests"]
+packages = ["backend", "backend.api", "backend.app", "backend.ingest", "backend.repo", "backend.tests"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

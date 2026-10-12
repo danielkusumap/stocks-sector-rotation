@@ -4,68 +4,15 @@ from __future__ import annotations
 
 from datetime import datetime
 
-import openpyxl
 import pytest
 from fastapi.testclient import TestClient
 
 from backend.app import db
 from backend.app.config import ROOT
 from backend.app.ingest import excel
+from backend.tests.fixtures import BOARDS, FIXTURE_SHEETS, PER_SECTOR, write_xlsx
 
 REAL_XLSX = ROOT / "saham_sektoral.xlsx"
-
-PER_SECTOR = {
-    "IDXCYCLIC": 162,
-    "IDXNONCYC": 133,
-    "IDXBASIC": 114,
-    "IDXFINANCE": 106,
-    "IDXPROPERT": 93,
-    "IDXENERGY": 90,
-    "IDXINFRA": 70,
-    "IDXINDUST": 66,
-    "IDXTECHNO": 47,
-    "IDXHEALTH": 41,
-    "IDXTRANS": 40,
-}
-BOARDS = {"Utama": 293, "Pengembangan": 556, "Pemantauan Khusus": 69, "Akselerasi": 43, "Ekonomi Baru": 1}
-HEADER = ["No", "Kode", "Nama Perusahaan", "Tanggal Pencatatan", "Saham", "Papan Pencatatan"]
-
-
-def _xlsx(path, sheets: dict[str, list[tuple]]) -> bytes:
-    wb = openpyxl.Workbook()
-    wb.remove(wb.active)
-    for name, rows in sheets.items():
-        ws = wb.create_sheet(name)
-        ws.append(HEADER)
-        for i, row in enumerate(rows, start=1):
-            ws.append((i, *row))
-    wb.save(path)
-    return path.read_bytes()
-
-
-FIXTURE_SHEETS = {
-    "IDXFINANCE": [
-        ("BBCA", "Bank Central Asia Tbk.", "06 Jul 2021", 8603416176, "Utama"),
-        ("BBRI", "Bank Rakyat Indonesia Tbk.", "10 Nov 2003", 151000000000, "Utama"),
-        ("BMRI", "Bank Mandiri Tbk.", "14 Jul 2003", 93333333333, "Utama"),
-        ("BBNI", "Bank Negara Indonesia Tbk.", "25 Nov 1996", 37300000000, "Utama"),
-        ("BNGA", "Bank CIMB Niaga Tbk.", "29 Nov 1989", 25000000000, "Utama"),
-    ],
-    "IDXBASIC": [("BCA", "Kode cuma 3 huruf", "01 Jan 2000", 1000, "Utama")],
-    "IDXCYCLIC": [("bbca.jk", "Duplikat BBCA lewat normalisasi", "01 Jan 2000", 1000, "Utama")],
-}
-
-
-@pytest.fixture
-def tmp_db(tmp_path):
-    p = tmp_path / "rotation.db"
-    db.init_db(p)
-    return p
-
-
-@pytest.fixture
-def fixture_xlsx(tmp_path):
-    return _xlsx(tmp_path / "kecil.xlsx", FIXTURE_SHEETS)
 
 
 # --- parsing helpers ---------------------------------------------------------
@@ -185,7 +132,7 @@ def test_import_real_file_then_force(tmp_db):
 
 def test_small_file_deactivates_missing(tmp_db):
     excel.import_excel(REAL_XLSX.read_bytes(), REAL_XLSX.name, db_path=tmp_db)
-    fixture = _xlsx(tmp_db.parent / "kecil.xlsx", FIXTURE_SHEETS)
+    fixture = write_xlsx(tmp_db.parent / "kecil.xlsx", FIXTURE_SHEETS)
     r = excel.import_excel(fixture, "kecil.xlsx", db_path=tmp_db)
 
     assert r["inserted"] == 0
@@ -205,7 +152,10 @@ def test_small_file_deactivates_missing(tmp_db):
 
 
 def test_unknown_sheet_is_error_unless_strict(tmp_db, tmp_path):
-    data = _xlsx(tmp_path / "asing.xlsx", {"IDXFINANCE": FIXTURE_SHEETS["IDXFINANCE"], "FOO": [("AAAA", None, None, None, None)]})
+    data = write_xlsx(
+        tmp_path / "asing.xlsx",
+        {"IDXFINANCE": FIXTURE_SHEETS["IDXFINANCE"], "FOO": [("AAAA", None, None, None, None)]},
+    )
 
     with pytest.raises(excel.UnknownSheet):
         excel.import_excel(data, "asing.xlsx", strict=True, db_path=tmp_db)
@@ -217,7 +167,7 @@ def test_unknown_sheet_is_error_unless_strict(tmp_db, tmp_path):
 
 
 def test_no_valid_rows_refused(tmp_db, tmp_path):
-    data = _xlsx(tmp_path / "kosong.xlsx", {"IDXBASIC": [("XX", "bukan kode", None, None, None)]})
+    data = write_xlsx(tmp_path / "kosong.xlsx", {"IDXBASIC": [("XX", "bukan kode", None, None, None)]})
     with pytest.raises(excel.NoValidRows):
         excel.import_excel(data, "kosong.xlsx", db_path=tmp_db)
 

@@ -35,6 +35,18 @@ async def http_error(request: Request, exc: HTTPException) -> JSONResponse:
     )
 
 
+@app.exception_handler(Exception)
+async def unhandled_error(request: Request, exc: Exception) -> JSONResponse:
+    """500 juga memakai envelope kontrak (tanpa stack trace ke klien)."""
+    return JSONResponse(
+        status_code=500,
+        content={
+            "api_version": _settings.app.api_version,
+            "error": {"code": "internal_error", "message": f"{type(exc).__name__}: {exc}"[:200], "detail": {}},
+        },
+    )
+
+
 @app.get("/health")
 def health() -> dict:
     """Selalu 200 — kesegaran data dilaporkan di body, bukan lewat kode error."""

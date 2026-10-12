@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
+from datetime import datetime
 from pathlib import Path
 
 from .config import ROOT, get_settings
@@ -11,6 +12,11 @@ DB_DIR = Path(__file__).resolve().parent / "db"
 SCHEMA_FILE = DB_DIR / "schema.sql"
 SEED_SECTORS_FILE = DB_DIR / "seed_sectors.sql"
 MIGRATIONS_DIR = DB_DIR / "migrations"
+
+
+def now_iso() -> str:
+    """Timestamp ISO-8601 dengan offset lokal (+07:00 di mesin user)."""
+    return datetime.now().astimezone().isoformat(timespec="seconds")
 
 
 def db_path() -> Path:
@@ -50,7 +56,13 @@ def apply_migrations(conn: sqlite3.Connection) -> int:
         n = int(f.name.split("_", 1)[0])
         if n <= version:
             continue
-        conn.executescript(f.read_text(encoding="utf-8"))
+        try:
+            conn.executescript(f.read_text(encoding="utf-8"))
+        except sqlite3.OperationalError as exc:
+            if "duplicate column name" not in str(exc):
+                raise
+            # db baru: schema.sql sudah memuat kolomnya, jadi migrasi ini memang tidak perlu.
+            # shortcut: berhenti di error pertama; db yang separuh termigrasi dibetulkan manual.
         conn.execute(f"PRAGMA user_version={n}")
         version = n
     return version

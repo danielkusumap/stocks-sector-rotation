@@ -1,5 +1,7 @@
 """CLI backend — dijalankan dari root repo: `python -m backend.cli <cmd>`.
 
+Setiap perintah job memakai fungsi yang sama dengan API (`app/jobs.py`), jadi CLI dan tombol
+di halaman Data meninggalkan baris `ingest_run` dengan bentuk yang sama.
 Perintah lain (ingest-prices, compute, midday) menyusul di task B2–B10.
 """
 
@@ -11,7 +13,7 @@ import os
 import sys
 from pathlib import Path
 
-from .app import db
+from .app import db, jobs
 from .app.config import ROOT, get_settings
 
 
@@ -42,8 +44,15 @@ def main(argv: list[str] | None = None) -> int:
         from .app.ingest import excel
 
         path = Path(args.path) if args.path else ROOT / get_settings().universe["excel_path"]
+        data = path.read_bytes()
+        params = {"filename": path.name, "force": args.force, "strict": args.strict, "bytes": len(data)}
         try:
-            result = excel.import_excel_path(path, force=args.force, strict=args.strict)
+            _, result = jobs.execute(
+                "excel",
+                params,
+                lambda p, _report: excel.import_excel(data, p["filename"], force=p["force"], strict=p["strict"]),
+                triggered_by="cli",
+            )
         except (excel.AlreadyImported, excel.UnknownSheet, excel.NoValidRows) as exc:
             codes = {"AlreadyImported": "already_imported", "UnknownSheet": "unknown_sheet", "NoValidRows": "no_valid_rows"}
             err = {"code": codes[type(exc).__name__], "message": str(exc)}

@@ -12,6 +12,7 @@ import openpyxl
 from openpyxl.workbook import Workbook
 
 from .. import db
+from ..db import now_iso
 
 TICKER_OK = re.compile(r"[A-Z0-9]{4}\Z")
 ID_MONTHS = {
@@ -51,10 +52,6 @@ class UnknownSheet(Exception):
 
 class NoValidRows(Exception):
     """File tidak menghasilkan satu saham pun — jangan dipakai untuk menonaktifkan universe."""
-
-
-def now_iso() -> str:
-    return datetime.now().astimezone().isoformat(timespec="seconds")
 
 
 def normalize_ticker(raw: object) -> str | None:
@@ -263,6 +260,7 @@ def import_excel(
             "import_id": import_id,
             "sha256": sha,
             "sheet_count": sheet_count,
+            "rows": inserted + updated,  # saham yang dibaca dari file (dipakai progress ingest_run)
             "inserted": inserted,
             "updated": updated,
             "deactivated": deactivated,
@@ -270,8 +268,3 @@ def import_excel(
         }
     finally:
         conn.close()
-
-
-def import_excel_path(path: str | Path, **kwargs) -> dict:
-    p = Path(path)
-    return import_excel(p.read_bytes(), filename=p.name, **kwargs)
