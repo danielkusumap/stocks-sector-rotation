@@ -56,6 +56,22 @@ Format:
 - alternatif: `pip install -r requirements.txt` (duplikat daftar dependency di dua tempat) atau menaruh `pyproject.toml` di root repo (menyimpang dari struktur `docs/07`).
 - dampak: perintah setup yang didokumentasikan nanti di `backend/README.md` = `python -m venv .venv && .venv/Scripts/pip install -e backend`. Setiap kali ada modul baru di `backend/app/` (`repo/`, `ingest/`, `compute/`, `api/` dari struktur `docs/07`), namanya **wajib** ditambahkan ke `packages` di `pyproject.toml` supaya ikut terpasang.
 
+## ADR-011 — Master 11 sektor di-seed saat `db-init`
+- tanggal: 2026-10-13
+- status: diterima
+- konteks: tabel `sector` (docs/04 §1) harus terisi sebelum import Excel, karena `stock.sector_id` adalah FK ke sana. Dokumen tidak menyebut dari mana 11 baris `sector` berasal; `docs/02` §6 punya kode & nama sektor, `docs/06` §3 punya warna tetap dan urutan tampil.
+- keputusan: master sektor disimpan sebagai data (`backend/app/db/seed_sectors.sql`, `INSERT OR IGNORE`) dan dijalankan oleh `init_db` setelah `schema.sql`. Isinya: `code` + `name_id` + `name_en` dari `docs/02` §6, `color_hex` (hex tema terang) dari `docs/06` §3, `sort_order` = urutan tabel `docs/06` §3 (1–11, IDXFINANCE = 7 sesuai contoh `docs/05` §1).
+- alternatif: (a) seed dari kode Python (dict) → ditolak: isi jadi ikut berubah lewat deploy kode, sedangkan ini data referensi; (b) hanya mengisi `sector` saat import Excel → ditolak: `GET /api/v1/meta/sectors` harus bekerja walau import belum pernah dijalankan.
+- dampak: `db-init` sekarang juga mengisi 11 baris `sector`; jumlah tabel tetap 13 (+2 view). Kalau nama/warna sektor berubah, ubah `seed_sectors.sql` (`INSERT OR IGNORE` **tidak** menimpa baris yang sudah ada — perlu `DELETE`/`UPDATE` manual atau migrasi).
+
+## ADR-012 — Guard import Excel: file tanpa baris valid ditolak
+- tanggal: 2026-10-13
+- status: diterima
+- konteks: import menandai `is_active = 0` untuk saham yang hilang dari file. File yang salah (mis. sheet salah nama, kolom tergeser) akan menghasilkan 0 baris valid → seluruh universe nonaktif hanya karena salah file. Aturan `docs/02` §6 tidak menyebut kasus ini.
+- keputusan: `import_excel` menolak (`NoValidRows`, HTTP 400 `no_valid_rows`) bila hasil parsing 0 baris valid. Baris kosong **di ekor** sheet diabaikan (artefak Excel); baris berisi data tapi tanpa nilai `Kode` dicatat `empty_row`; baris dengan `Kode` yang gagal normalisasi `[A-Z0-9]{4}` → `invalid_ticker` (dengan `raw_value`). CLI `import-excel` mencetak error JSON + exit 1 (bukan traceback) untuk `already_imported` / `unknown_sheet` / `no_valid_rows`.
+- alternatif: menulis `deactivated` apa adanya → ditolak: satu salah unggah mematikan 962 emiten sekaligus.
+- dampak: import file kosong/salah tidak mengubah tabel `stock` sama sekali (tidak ada baris `excel_import` yang tercatat juga). Error import yang tidak fatal tetap tersimpan di `excel_import_error` dan dikembalikan di field `errors`.
+
 ## ADR-005 — Git: satu task = satu commit, repo lokal dulu
 - tanggal: 2026-10-12
 - status: diterima

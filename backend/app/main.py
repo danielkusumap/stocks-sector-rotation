@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import time
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from . import db
+from .api import admin
 from .config import get_settings
 
 _settings = get_settings()
@@ -20,6 +22,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(admin.router)
+
+
+@app.exception_handler(HTTPException)
+async def http_error(request: Request, exc: HTTPException) -> JSONResponse:
+    """Bentuk error sesuai docs/05 §1 — tanpa stack trace."""
+    detail = exc.detail if isinstance(exc.detail, dict) else {"code": "http_error", "message": str(exc.detail)}
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"api_version": _settings.app.api_version, "error": detail},
+    )
 
 
 @app.get("/health")

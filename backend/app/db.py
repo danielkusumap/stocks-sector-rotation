@@ -9,6 +9,7 @@ from .config import ROOT, get_settings
 
 DB_DIR = Path(__file__).resolve().parent / "db"
 SCHEMA_FILE = DB_DIR / "schema.sql"
+SEED_SECTORS_FILE = DB_DIR / "seed_sectors.sql"
 MIGRATIONS_DIR = DB_DIR / "migrations"
 
 
@@ -61,6 +62,7 @@ def init_db(path: str | Path | None = None) -> dict:
     conn = connect(target)
     try:
         conn.executescript(SCHEMA_FILE.read_text(encoding="utf-8"))
+        conn.executescript(SEED_SECTORS_FILE.read_text(encoding="utf-8"))  # master 11 sektor (INSERT OR IGNORE)
         version = apply_migrations(conn)
         conn.commit()
         return {"path": str(target), "tables": table_count(conn), "user_version": version}
