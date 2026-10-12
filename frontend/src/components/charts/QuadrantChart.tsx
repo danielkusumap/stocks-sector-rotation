@@ -1,0 +1,416 @@
+import { scaleLinear } from "d3-scale";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { Link } from "react-router";
+import type { Quadrant, RrgItem } from "../../lib/api";
+import { cn } from "../../lib/cn";
+import { QUADRANT_BG } from "../../lib/quadrant";
+import {
+  AXIS_CENTER,
+  DIM_POINT_OPACITY,
+  DIM_TAIL_OPACITY,
+  FOCUS_RADIUS,
+  FOCUS_RING_WIDTH,
+  POINT_RADIUS,
+  axisPad,
+  axisTicks,
+  cappedItems,
+  describePoint,
+  hasTail,
+  labelledRefIds,
+  orderedItems,
+  tailSegmentOpacity,
+  tickLabel,
+} from "../../lib/rrgChart";
+import { PointCard } from "../domain/PointCard";
+
+const VIEW_W = 780;
+const VIEW_H = 608; // rasio 1 : 0.78 (docs/06 §6)
+const PAD = 32; // ruang label
+
+export interface QuadrantChartProps {
+  items: RrgItem[];
+  scope?: "sector" | "stock";
+  /** state pin bersama halaman/tabel: satu `selectedRefId` untuk chart + tabel (docs/06 §6.1). */
+  selectedRefId: string | null;
+  onSelect: (refId: string | null) => void;
+  label?: string;
+  /** tautan "lihat semua di tabel" saat titik dipotong (scope saham). */
+  showAllHref?: string;
+  className?: string;
+}
+
+/**
+ * Diagram RRG (docs/06 §6 + §6.1). Menggambar sendiri dengan `d3-scale` — tanpa library chart.
+ * Mode fokus: titik aktif terang & r membesar (dirender paling atas), titik/ekor lain meredup,
+ * sedangkan garis 100 dan zona kuadran tidak ikut meredup.
+ */
+export function QuadrantChart({
+  items,
+  scope = "sector",
+  selectedRefId,
+  onSelect,
+  label = "Diagram RRG",
+  showAllHref = "/stocks",
+  className,
+}: QuadrantChartProps) {
+  const ordered = useMemo(() => orderedItems(items, scope), [items, scope]);
+  const { items: shown, hiddenCount } = useMemo(() => cappedItems(ordered, scope), [ordered, scope]);
+
+  const pad = useMemo(
+    () =>
+      axisPad(
+        shown.flatMap((item) => [
+          item.rs_ratio,
+          item.rs_momentum,
+          ...item.tail.flatMap((point) => [point.rs_ratio, point.rs_momentum]),
+        ]),
+      ),
+    [shown],
+  );
+  const xScale = useMemo(
+    () => scaleLinear().domain([AXIS_CENTER - pad, AXIS_CENTER + pad]).range([PAD, VIEW_W - PAD]),
+    [pad],
+  );
+  const yScale = useMemo(
+    () =>
+      scaleLinear()
+        .domain([AXIS_CENTER - pad, AXIS_CENTER + pad])
+        .range([VIEW_H - PAD, PAD]),
+    [pad],
+  );
+
+  const [hovered, setHovered] = useState<string | null>(null);
+  const [keyboardIndex, setKeyboardIndex] = useState<number | null>(null);
+  const [chartFocused, setChartFocused] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const lastExternal = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  // Elemen fokus terakhir di luar chart — dipakai Esc untuk mengembalikan fokus (docs/06 §6.1).
+  useEffect(() => {
+    const remember = (event: FocusEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target && !rootRef.current?.contains(target)) lastExternal.current = target;
+    };
+    document.addEventListener("focusin", remember);
+    return () => document.removeEventListener("focusin", remember);
+  }, []);
+
+  // Hover menang atas pin (titik lain tetap bisa di-hover), pin menang atas fokus keyboard.
+  const keyboardRefId = chartFocused && keyboardIndex !== null ? shown[keyboardIndex]?.ref_id : null;
+  const activeRefId = hovered ?? selectedRefId ?? keyboardRefId ?? null;
+  const dimmed = activeRefId !== null;
+  const activeItem = shown.find((item) => item.ref_id === activeRefId) ?? null;
+
+  const points = useMemo(
+    () =>
+      shown.map((item) => ({
+        refId: item.ref_id,
+        x: xScale(item.rs_ratio),
+        y: yScale(item.rs_momentum),
+      })),
+    [shown, xScale, yScale],
+  );
+  const labels = useMemo(
+    () => (dimmed ? new Set(activeRefId ? [activeRefId] : []) : labelledRefIds(points)),
+    [dimmed, activeRefId, points],
+  );
+
+  // Urutan gambar ekor: yang aktif terakhir supaya tidak tertutup (ekor tidak interaktif).
+  const tailOrder = useMemo(() => {
+    const others = shown.filter((item) => item.ref_id !== activeRefId);
+    const active = shown.find((item) => item.ref_id === activeRefId);
+    return active ? [...others, active] : others;
+  }, [shown, activeRefId]);
+
+  const centerX = xScale(AXIS_CENTER);
+  const centerY = yScale(AXIS_CENTER);
+  const zones: { quadrant: Quadrant; x: number; y: number; w: number; h: number; lx: number; ly: number; anchor: "start" | "end" }[] = [
+    { quadrant: "improving", x: PAD, y: PAD, w: centerX - PAD, h: centerY - PAD, lx: PAD + 6, ly: PAD + 12, anchor: "start" },
+    { quadrant: "leading", x: centerX, y: PAD, w: VIEW_W - PAD - centerX, h: centerY - PAD, lx: VIEW_W - PAD - 6, ly: PAD + 12, anchor: "end" },
+    { quadrant: "lagging", x: PAD, y: centerY, w: centerX - PAD, h: VIEW_H - PAD - centerY, lx: PAD + 6, ly: VIEW_H - PAD - 6, anchor: "start" },
+    { quadrant: "weakening", x: centerX, y: centerY, w: VIEW_W - PAD - centerX, h: VIEW_H - PAD - centerY, lx: VIEW_W - PAD - 6, ly: VIEW_H - PAD - 6, anchor: "end" },
+  ];
+
+  const moveKeyboard = (delta: number) => {
+    setKeyboardIndex((prev) => {
+      const next = (prev ?? 0) + delta;
+      return Math.max(0, Math.min(shown.length - 1, next));
+    });
+  };
+
+  /** Fokus dari klik bukan fokus keyboard → mode fokus keyboard jangan ikut menyala. */
+  const focusIsKeyboard = (target: EventTarget | null): boolean => {
+    try {
+      return target instanceof Element ? target.matches(":focus-visible") : true;
+    } catch {
+      return true;
+    }
+  };
+
+  const onKeyDown = (event: ReactKeyboardEvent<SVGSVGElement>) => {
+    switch (event.key) {
+      case "ArrowRight":
+      case "ArrowDown":
+        event.preventDefault();
+        moveKeyboard(1);
+        break;
+      case "ArrowLeft":
+      case "ArrowUp":
+        event.preventDefault();
+        moveKeyboard(-1);
+        break;
+      case "Enter":
+      case " ":
+        event.preventDefault();
+        {
+          const item = shown[keyboardIndex ?? 0];
+          if (item) onSelect(selectedRefId === item.ref_id ? null : item.ref_id);
+        }
+        break;
+      case "Escape":
+        onSelect(null);
+        setHovered(null);
+        lastExternal.current?.focus();
+        break;
+      default:
+        break;
+    }
+  };
+
+  return (
+    <div
+      ref={rootRef}
+      className={cn("relative", className)}
+      onMouseLeave={() => setHovered(null)}
+      data-testid="rrg-chart-root"
+    >
+      <svg
+        viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
+        role="application"
+        tabIndex={0}
+        aria-label={`${label} — Tab untuk masuk, panah untuk pindah titik, Enter untuk pin`}
+        aria-activedescendant={activeRefId ? `rrg-point-${activeRefId}` : undefined}
+        className="h-auto w-full rounded-md border border-border bg-surface"
+        onKeyDown={onKeyDown}
+        onFocus={(event) => {
+          setChartFocused(focusIsKeyboard(event.target));
+          setKeyboardIndex((prev) => prev ?? 0);
+        }}
+        onBlur={() => setChartFocused(false)}
+        onClick={(event) => {
+          // klik di area kosong = lepas pin; klik titik sudah ditandai `data-point` (docs/06 §6.1)
+          const target = event.target as Element | null;
+          if (!target?.closest("[data-point]")) onSelect(null);
+        }}
+        data-testid="rrg-chart"
+        data-active={activeRefId ?? ""}
+        data-pinned={selectedRefId ?? ""}
+      >
+        {/* zona kuadran: tidak ikut meredup saat mode fokus (docs/06 §6.1) */}
+        <g data-testid="rrg-zones">
+          {zones.map((zone) => (
+            <g key={zone.quadrant}>
+              <rect
+                data-testid={`zone-${zone.quadrant}`}
+                x={zone.x}
+                y={zone.y}
+                width={zone.w}
+                height={zone.h}
+                opacity={1}
+                style={{ fill: QUADRANT_BG[zone.quadrant] }}
+              />
+              <text
+                x={zone.lx}
+                y={zone.ly}
+                textAnchor={zone.anchor}
+                fontSize={10}
+                letterSpacing="0.04em"
+                opacity={0.55}
+                className="fill-fg-muted uppercase"
+              >
+                {zone.quadrant}
+              </text>
+            </g>
+          ))}
+        </g>
+
+        {/* grid + garis 100: juga tidak meredup */}
+        <g data-testid="rrg-grid">
+          {[axisTicks(pad)[0], axisTicks(pad)[2]].map((tick) => (
+            <g key={tick}>
+              <line x1={xScale(tick)} y1={PAD} x2={xScale(tick)} y2={VIEW_H - PAD} strokeWidth={1} opacity={1} style={{ stroke: "var(--border)" }} />
+              <line x1={PAD} y1={yScale(tick)} x2={VIEW_W - PAD} y2={yScale(tick)} strokeWidth={1} opacity={1} style={{ stroke: "var(--border)" }} />
+              <text x={xScale(tick)} y={VIEW_H - PAD + 14} textAnchor="middle" fontSize={10} className="fill-fg-faint">
+                {tickLabel(tick)}
+              </text>
+              <text x={PAD - 6} y={yScale(tick) + 3} textAnchor="end" fontSize={10} className="fill-fg-faint">
+                {tickLabel(tick)}
+              </text>
+            </g>
+          ))}
+          <line data-testid="axis-100-x" x1={centerX} y1={PAD} x2={centerX} y2={VIEW_H - PAD} strokeWidth={1.5} opacity={1} style={{ stroke: "var(--border-strong)" }} />
+          <line data-testid="axis-100-y" x1={PAD} y1={centerY} x2={VIEW_W - PAD} y2={centerY} strokeWidth={1.5} opacity={1} style={{ stroke: "var(--border-strong)" }} />
+          <text x={VIEW_W - PAD} y={centerY - 6} textAnchor="end" fontSize={10} letterSpacing="0.04em" className="fill-fg-muted uppercase">
+            RS-Ratio →
+          </text>
+          <text x={centerX + 6} y={PAD + 12} fontSize={10} letterSpacing="0.04em" className="fill-fg-muted uppercase">
+            RS-Momentum ↑
+          </text>
+        </g>
+
+        {/* ekor digambar sebelum titik: titik aktif paling atas (docs/06 §6.1) */}
+        <g data-testid="rrg-tails">
+          {tailOrder.map((item) =>
+            hasTail(item)
+              ? item.tail.slice(0, -1).map((point, index) => {
+                  const next = item.tail[index + 1];
+                  const isActive = item.ref_id === activeRefId;
+                  return (
+                    <line
+                      key={`${item.ref_id}-${index}`}
+                      data-testid={`tail-${item.ref_id}-${index}`}
+                      x1={xScale(point.rs_ratio)}
+                      y1={yScale(point.rs_momentum)}
+                      x2={xScale(next.rs_ratio)}
+                      y2={yScale(next.rs_momentum)}
+                      strokeWidth={1.5}
+                      strokeLinecap="round"
+                      opacity={isActive ? 1 : dimmed ? DIM_TAIL_OPACITY : tailSegmentOpacity(index, item.tail.length)}
+                      style={{ stroke: item.color_hex }}
+                      className="transition-opacity duration-[var(--motion-hover)] ease-out motion-reduce:transition-none"
+                    />
+                  );
+                })
+              : null,
+          )}
+        </g>
+
+        {/* titik interaktif: urutan DOM tetap (rank) supaya hover tidak mematikan klik */}
+        <g data-testid="rrg-points">
+          {shown.map((item) => {
+          const px = xScale(item.rs_ratio);
+          const py = yScale(item.rs_momentum);
+          const isActive = item.ref_id === activeRefId;
+          const isPinned = item.ref_id === selectedRefId;
+          const previous = hasTail(item) ? item.tail[item.tail.length - 2] : null;
+          const fromX = previous ? xScale(previous.rs_ratio) : centerX;
+          const fromY = previous ? yScale(previous.rs_momentum) : centerY;
+          const transition = "transition-all duration-[var(--motion-panel)] ease-out motion-reduce:transition-none";
+
+          return (
+            <g
+              key={item.ref_id}
+              id={`rrg-point-${item.ref_id}`}
+              data-point={item.ref_id}
+              aria-label={describePoint(item)}
+              data-testid={`point-group-${item.ref_id}`}
+              transform={`translate(${mounted ? px : fromX}, ${mounted ? py : fromY})`}
+              className={transition}
+              onMouseEnter={() => setHovered(item.ref_id)}
+              onClick={(event) => {
+                // klik titik tidak boleh ikut melepas pin lewat handler area kosong
+                event.stopPropagation();
+                onSelect(isPinned ? null : item.ref_id);
+                setKeyboardIndex(shown.indexOf(item));
+              }}
+            >
+              {/* titik dasar tidak pernah berpindah urutan DOM — hover tidak boleh mematikan klik */}
+              <circle
+                data-testid={`point-${item.ref_id}`}
+                r={POINT_RADIUS}
+                opacity={isActive ? 1 : dimmed ? DIM_POINT_OPACITY : 1}
+                fill={item.color_hex}
+                strokeWidth={2}
+                style={{ stroke: "var(--surface)" }}
+                className={cn("cursor-pointer", transition)}
+              />
+              {!isActive && labels.has(item.ref_id) && (
+                <text
+                  data-testid={`label-${item.ref_id}`}
+                  x={11}
+                  y={4}
+                  fontSize={11}
+                  className="pointer-events-none fill-fg"
+                >
+                  {item.name}
+                </text>
+              )}
+            </g>
+          );
+        })}
+        </g>
+
+        {/* lapisan fokus digambar paling akhir (z-order, docs/06 §6.1) dan tidak menangkap pointer,
+            supaya titik interaktif di grup sebelumnya tidak ikut berpindah saat hover */}
+        <g data-testid="rrg-focused" pointerEvents="none">
+          {activeItem && (
+            <g transform={`translate(${xScale(activeItem.rs_ratio)}, ${yScale(activeItem.rs_momentum)})`}>
+              <circle
+                data-testid={`point-focus-${activeItem.ref_id}`}
+                r={FOCUS_RADIUS}
+                opacity={1}
+                fill={activeItem.color_hex}
+                strokeWidth={2}
+                style={{ stroke: "var(--surface)" }}
+              />
+              {chartFocused && (
+                <circle
+                  data-testid="focus-ring"
+                  r={FOCUS_RADIUS + 3}
+                  fill="none"
+                  strokeWidth={FOCUS_RING_WIDTH}
+                  style={{ stroke: "var(--focus)" }}
+                />
+              )}
+              <text
+                data-testid={`label-${activeItem.ref_id}`}
+                x={12}
+                y={4}
+                fontSize={11}
+                className="fill-fg"
+              >
+                {activeItem.name}
+              </text>
+            </g>
+          )}
+        </g>
+
+      </svg>
+
+      {hiddenCount > 0 && (
+        <p className="mt-1 text-sm text-fg-muted" data-testid="rrg-cap-note">
+          Menampilkan {shown.length} dari {shown.length + hiddenCount} titik (skor tertinggi).{" "}
+          <Link to={showAllHref} className="text-accent underline underline-offset-2">
+            Lihat semua di tabel
+          </Link>
+        </p>
+      )}
+
+      {activeItem && (
+        <div
+          data-testid="point-card"
+          className="pointer-events-none absolute z-10"
+          style={{
+            left: `${(xScale(activeItem.rs_ratio) / VIEW_W) * 100}%`,
+            top: `${(yScale(activeItem.rs_momentum) / VIEW_H) * 100}%`,
+            transform: `translate(${xScale(activeItem.rs_ratio) > VIEW_W * 0.68 ? "calc(-100% - 12px)" : "12px"}, -50%)`,
+          }}
+        >
+          <div className="pointer-events-auto">
+            <PointCard item={activeItem} />
+          </div>
+        </div>
+      )}
+
+      <p aria-live="polite" data-testid="rrg-live" className="sr-only">
+        {activeItem ? describePoint(activeItem) : ""}
+      </p>
+    </div>
+  );
+}

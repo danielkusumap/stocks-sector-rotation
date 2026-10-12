@@ -1,12 +1,19 @@
 import type { Quadrant } from "../../lib/api";
+import { cn } from "../../lib/cn";
 import { QUADRANT_BG, QUADRANT_COLOR, QUADRANT_LABEL } from "../../lib/quadrant";
 
 /** Badge 20px: dot warna kuadran + label Indonesia (warna dari token, ADR-010). */
-export function QuadrantBadge({ quadrant }: { quadrant: Quadrant | null | undefined }) {
-  if (!quadrant) return <span className="text-fg-faint">—</span>;
+export function QuadrantBadge({
+  quadrant,
+  className,
+}: {
+  quadrant: Quadrant | null | undefined;
+  className?: string;
+}) {
+  if (!quadrant) return <span className={cn("text-fg-faint", className)}>—</span>;
   return (
     <span
-      className="inline-flex h-5 items-center gap-1.5 rounded-sm px-1.5"
+      className={cn("inline-flex h-5 items-center gap-1.5 rounded-sm px-1.5", className)}
       style={{ backgroundColor: QUADRANT_BG[quadrant] }}
       title={QUADRANT_LABEL[quadrant]}
     >

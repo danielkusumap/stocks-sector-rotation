@@ -1,4 +1,5 @@
 import { formatDelta, formatPct } from "../../lib/format";
+import { cn } from "../../lib/cn";
 
 /**
  * Angka perubahan dengan tanda eksplisit + warna arah (docs/06 §4: tanda selalu ada,
@@ -8,11 +9,13 @@ export function Delta({
   value,
   unit = "pct",
   decimals,
+  className,
 }: {
   value: number | null | undefined;
   /** "pct" → "+1,81%" · "plain" → "+0,42" (dipakai kolom Δ RS). */
   unit?: "pct" | "plain";
   decimals?: number;
+  className?: string;
 }) {
   const text = unit === "pct" ? formatPct(value, decimals) : formatDelta(value, decimals);
   const tone =
@@ -21,5 +24,5 @@ export function Delta({
       : value > 0
         ? "text-up"
         : "text-down";
-  return <span className={`font-mono ${tone}`}>{text}</span>;
+  return <span className={cn("font-mono", tone, className)}>{text}</span>;
 }

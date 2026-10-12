@@ -176,6 +176,48 @@ const notFound = (code: string, message: string) =>
     { status: 404 },
   );
 
+/**
+ * Mock: satu sektor bisa punya 60+ saham (AC F4 #6), sedangkan fixture hanya 30 saham
+ * total. Titik tambahan ini sintetis (`FIX***`) — kuadran hanya ditempel dari daftar,
+ * bukan dihitung dari RS.
+ */
+const QUADRANT_RANGE: Record<Quadrant, [number, number, number, number]> = {
+  leading: [100.4, 101.8, 100.2, 101.6],
+  improving: [98.2, 99.8, 100.2, 101.4],
+  weakening: [100.3, 101.9, 98.2, 99.8],
+  lagging: [97.8, 99.9, 97.6, 99.9],
+};
+const QUADRANT_CYCLE: Quadrant[] = ["leading", "improving", "weakening", "lagging"];
+
+function padStockItems(items: RrgItem[], sectorCode: string | null, upto = 60): RrgItem[] {
+  if (sectorCode === null || items.length >= upto) return items;
+  const color = sectors.find((s) => s.code === sectorCode)?.color_hex ?? "#888888";
+  const padded = [...items];
+  for (let i = padded.length; i < upto; i += 1) {
+    const quadrant = QUADRANT_CYCLE[i % QUADRANT_CYCLE.length];
+    const [rsMin, rsMax, momMin, momMax] = QUADRANT_RANGE[quadrant];
+    const rs = Math.round((rsMin + ((rsMax - rsMin) * (i % 7)) / 6) * 100) / 100;
+    const mom = Math.round((momMin + ((momMax - momMin) * ((i * 3) % 7)) / 6) * 100) / 100;
+    padded.push({
+      ref_id: `FIX${String(i).padStart(3, "0")}`,
+      name: `Emiten Uji ${i}`,
+      color_hex: color,
+      rs_ratio: rs,
+      rs_momentum: mom,
+      quadrant,
+      quadrant_prev: null,
+      transition: null,
+      quadrant_age_periods: 1,
+      score: Math.round((80 - i * 0.6) * 10) / 10,
+      rank_score: null,
+      ret_1w: Math.round((0.03 - i * 0.001) * 10_000) / 10_000,
+      median_turnover_20d_idr: Math.max(1_000_000_000, 300_000_000_000 - i * 4_000_000_000),
+      tail: tailFor(rs, mom),
+    });
+  }
+  return padded;
+}
+
 export const handlers = [
   http.get(`${API}/meta/sectors`, () => {
     const body: MetaSectorsResponse = {
@@ -261,27 +303,30 @@ export const handlers = [
             median_turnover_20d_idr: s.median_turnover_20d_idr,
             tail: s.tail.slice(-tailPoints),
           }))
-        : stocks
-            .filter((s) => wanted.length === 0 || wanted.includes(s.sector_code))
-            .map((s) => {
-              const sector = sectors.find((x) => x.code === s.sector_code);
-              return {
-                ref_id: s.ticker,
-                name: s.name,
-                color_hex: sector?.color_hex ?? "#888888",
-                rs_ratio: s.rs_ratio ?? 100,
-                rs_momentum: s.rs_momentum ?? 100,
-                quadrant: (s.quadrant ?? "lagging") as Quadrant,
-                quadrant_prev: null,
-                transition: null,
-                quadrant_age_periods: 1,
-                score: s.stock_score,
-                rank_score: null,
-                ret_1w: s.ret_1w,
-                median_turnover_20d_idr: s.median_turnover_20d_idr,
-                tail: tailFor(s.rs_ratio ?? 100, s.rs_momentum ?? 100).slice(-tailPoints),
-              };
-            });
+        : padStockItems(
+            stocks
+              .filter((s) => wanted.length === 0 || wanted.includes(s.sector_code))
+              .map((s) => {
+                const sector = sectors.find((x) => x.code === s.sector_code);
+                return {
+                  ref_id: s.ticker,
+                  name: s.name,
+                  color_hex: sector?.color_hex ?? "#888888",
+                  rs_ratio: s.rs_ratio ?? 100,
+                  rs_momentum: s.rs_momentum ?? 100,
+                  quadrant: (s.quadrant ?? "lagging") as Quadrant,
+                  quadrant_prev: null,
+                  transition: null,
+                  quadrant_age_periods: 1,
+                  score: s.stock_score,
+                  rank_score: null,
+                  ret_1w: s.ret_1w,
+                  median_turnover_20d_idr: s.median_turnover_20d_idr,
+                  tail: tailFor(s.rs_ratio ?? 100, s.rs_momentum ?? 100).slice(-tailPoints),
+                };
+              }),
+            wanted.length === 1 ? wanted[0] : null,
+          );
 
     const quadrants = { leading: 0, weakening: 0, lagging: 0, improving: 0 } as RrgResponse["quadrants"];
     for (const item of items) quadrants[item.quadrant] += 1;

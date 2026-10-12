@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { QuadrantChart } from "../components/charts/QuadrantChart";
 import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
@@ -21,6 +22,7 @@ import { Table, Td, Th } from "../components/ui/Table";
 import { ToastStack, useToasts } from "../components/ui/Toast";
 import { Tooltip } from "../components/ui/Tooltip";
 import { useTheme, type Theme } from "../hooks/useTheme";
+import { useRrg } from "../hooks/useApiQuery";
 import { ApiError, type DataStatus, type Dir } from "../lib/api";
 import { formatPct, formatRp, formatRpCompact } from "../lib/format";
 import { QUADRANTS } from "../lib/api";
@@ -207,6 +209,30 @@ export default function PlaygroundPage() {
           </div>
         </Panel>
 
+        <Panel title="QuadrantChart (RRG) — 3 variasi" className="lg:col-span-2">
+          <div className="flex flex-col gap-4 p-3">
+            <ChartDemo
+              title="Sektor (11 titik, ekor 3)"
+              testId="chart-demo-sector"
+              params={{ scope: "sector" }}
+              note="normal → hover → pin"
+            />
+            <ChartDemo
+              title="Saham satu sektor (60 titik → dipotong 25)"
+              testId="chart-demo-stocks"
+              params={{ scope: "stock", sector: ["IDXFINANCE"] }}
+              showAllHref="/stocks?sector=IDXFINANCE"
+              note="AC F4 #6"
+            />
+            <ChartDemo
+              title="Tanpa ekor (tail_points=1)"
+              testId="chart-demo-notail"
+              params={{ scope: "sector", tail_points: 1 }}
+              note="AC F4 #5 — hanya titik, tanpa error"
+            />
+          </div>
+        </Panel>
+
         <Panel title="Tabel (header sortable)">
           <Table caption="Contoh tabel sektor dengan header yang bisa diurutkan">
             <thead>
@@ -285,5 +311,49 @@ export default function PlaygroundPage() {
 
       <ToastStack items={toasts} onDismiss={dismiss} />
     </>
+  );
+}
+
+/** Contoh chart untuk playground: sektor, saham (dipotong 25), dan tanpa ekor. */
+function ChartDemo({
+  title,
+  testId,
+  params,
+  note,
+  showAllHref,
+}: {
+  title: string;
+  testId: string;
+  params: Parameters<typeof useRrg>[0];
+  note?: string;
+  showAllHref?: string;
+}) {
+  const [selected, setSelected] = useState<string | null>(null);
+  const rrg = useRrg(params);
+
+  return (
+    <div className="flex flex-col gap-2" data-testid={testId}>
+      <div className="flex flex-wrap items-baseline gap-2">
+        <p className="font-medium">{title}</p>
+        {note && <p className="text-sm text-fg-muted">— {note}</p>}
+        <p className="ml-auto text-sm text-fg-muted">
+          titik: {rrg.data?.items.length ?? "…"} · pin: {selected ?? "—"}
+        </p>
+      </div>
+      {rrg.isError ? (
+        <ErrorState error={rrg.error} onRetry={() => void rrg.refetch()} />
+      ) : rrg.isPending ? (
+        <TableSkeleton rows={6} cols={4} />
+      ) : (
+        <QuadrantChart
+          items={rrg.data.items}
+          scope={params.scope ?? "sector"}
+          selectedRefId={selected}
+          onSelect={setSelected}
+          label={title}
+          showAllHref={showAllHref}
+        />
+      )}
+    </div>
   );
 }
