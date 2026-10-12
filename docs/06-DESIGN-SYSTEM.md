@@ -127,7 +127,7 @@ Hue berbeda, lightness seragam per tema supaya tidak ada sektor yang "terlihat l
 | `WindowSelect` | Pilih `1B/1M/3M/6M/1T/YTD` (default 3M) untuk panjang ekor & kolom return. Ada catatan kecil "tidak mengubah kuadran". |
 | `AsOfPicker` | Tanggal acuan; hari tanpa data ditandai & tidak bisa dipilih. |
 | `FreshnessPill` | `ok` (dot hijau + "data 12 Okt 16:10") / `stale` (dot amber + "delay") / `partial` (dot merah + "n sektor tipis"). Klik → popover detail `data_status`. |
-| `QuadrantChart` (RRG) | SVG buatan sendiri (lihat §6). Ekor, crosshair di 100/100, zona kuadran berwarna 4%, hover menampilkan `PointCard`, klik → pilih sektor (sinkron dengan tabel: baris ter-highlight). |
+| `QuadrantChart` (RRG) | SVG buatan sendiri (lihat §6 & §6.1). Ekor, crosshair di 100/100, zona kuadran berwarna 4%, hover menampilkan `PointCard`, klik = pin sektor (sinkron dua arah dengan tabel). **Mode fokus:** titik terfokus terang, sisanya meredup 0,22. Keyboard penuh. |
 | `PointCard` | Popover: nama, kuadran + umur, RS-Ratio/RS-Momentum + perubahan, return, turnover, streak, tombol "Lihat saham sektor ini". |
 | `SectorTable` | Kolom: Sektor, Kuadran, Umur, RS-Ratio, RS-Mom, Δ1p, 1H, 1B, 3B, Turnover, Streak, Skor. Sortable semua kolom angka; baris klik → `SectorDrawer`. |
 | `FilterBar` | Chip filter aktif (bisa dihapus satu-satu), tombol "Filter" (popover), "Reset". Semua nilai tercermin di URL. |
@@ -149,8 +149,37 @@ Hue berbeda, lightness seragam per tema supaya tidak ada sektor yang "terlihat l
 - Grid: 1px `--border`, garis 100/100 `--border-strong` lebih tebal.
 - Ekor: polyline 1.5px dengan opasitas bertingkat 0.25 → 1.0 ke arah titik terakhir; titik akhir r=7 dengan ring `--surface` 2px; titik `leading` diberi dot kecil di ujung ekor sebagai penanda arah. Tanpa gradien. Animasi masuk: titik bergerak dari posisi sebelumnya 180ms.
 - Label: tampilkan nama sektor di sebelah titik; bila titik berdekatan (< 24px), hanya yang terpilih/hover yang berlabel (label lain jadi dot polos) — hindari label bertumpuk (penyakit utama UI RRG buatan AI).
-- Interaksi: hover → `PointCard`; klik → filter tabel ke sektor itu; tombol kecil "Semua"/"Hanya kuadran" di pojok chart.
+- Interaksi dasar: hover → `PointCard`; klik → **pin** pilihan (tabel ikut terfilter); tombol kecil "Semua"/"Hanya kuadran" di pojok chart.
 - Plot pakai `d3-scale` + `d3-shape` saja. **Tidak ada** chart library (Recharts/Chart.js/nivo) — hindari bloat & gaya default yang sulit dikalahkan.
+
+### 6.1 Mode fokus — hover/klik satu titik, sisanya meredup (WAJIB)
+
+Berlaku sama untuk `scope=sector` **dan** `scope=stock` (mini-RRG di drawer sektor).
+
+| State | Titik terfokus | Titik lain | Ekor terfokus | Ekor lain | Label | Garis 100 & zona kuadran |
+|---|---|---|---|---|---|---|
+| normal | opacity 1 | opacity 1 | 0.25 → 1.0 (bertingkat) | sama | semua tampil (anti-tumpuk §6) | tampil |
+| hover | 1, r naik ke 8, dirender paling atas | **0.22** | full | **0.18** | hanya label terfokus | **tidak ikut meredup** |
+| dipin (setelah klik) | sama seperti hover, tetap | 0.22 | full | 0.18 | hanya label terfokus | tetap |
+
+Aturan teknis:
+- Transisi opacity 120 ms `ease-out`; `prefers-reduced-motion` → 0 ms.
+- Titik lain **tetap ada** (bukan dihapus) dan masih bisa di-hover — hover pindah ke titik itu, fokus ikut pindah (bukan terkunci oleh posisi mouse sebelumnya).
+- Mouse keluar dari chart → kembali normal, **kecuali** ada titik yang dipin: pin bertahan sampai diklik ulang, klik area kosong, atau `Esc`.
+- Pin tidak boleh mematikan filter tabel: `selectedRefId` di-share satu arah — klik chart memfilter tabel; klik baris tabel **memindahkan** pin ke sektor itu (dua arah, satu state).
+- Titik terfokus dirender terakhir di SVG (z-order) supaya garis ekornya tidak tertutup titik lain.
+- Angka di `PointCard` selalu identik dengan baris tabel untuk `ref_id` yang sama.
+
+**Keyboard (wajib, bukan opsional):**
+- `Tab` masuk ke chart → titik pertama (urutan = `rank_score` sektor, atau `stock_score` untuk saham) menerima fokus, mode fokus aktif.
+- `←`/`→` (atau `↑`/`↓`) pindah antar titik dengan mode fokus ikut berpindah.
+- `Enter`/`Space` = pin (sama seperti klik); `Esc` = lepas pin dan kembalikan fokus ke elemen sebelum chart.
+- Focus ring 2 px `--focus` mengelilingi titik terfokus — jangan hanya mengandalkan warna titik.
+- Karena isi SVG tidak terbaca pembaca layar, kirim satu baris `aria-live="polite"`: `"Keuangan — Memimpin, RS-Ratio 102,31, RS-Momentum 100,84"`. Tabel di bawah chart tetap alternatif utama (docs/06 §9).
+
+**Kalau data ekor tidak ada:** `tail` kosong atau < 2 titik (warmup belum cukup) → gambar titiknya saja tanpa polyline, tanpa error dan tanpa placeholder aneh. Tooltip boleh menambahkan "ekor belum tersedia (data < n periode)".
+
+**Batasan jumlah titik:** untuk `scope=stock`, satu sektor bisa 160+ saham → titik & label jadi tak terbaca. Default tampilkan **maks 25 saham** dengan `stock_score` tertinggi (slider/pilihan "semua" tersedia), dan selalu sediakan tautan "lihat semua di tabel".
 
 ## 7. Daftar filter (jawaban pertanyaan "filternya apa saja")
 

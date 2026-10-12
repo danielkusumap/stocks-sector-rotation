@@ -29,9 +29,15 @@ Kamu mengerjakan folder `frontend/`. Baca dulu: `docs/05-API-CONTRACT.md` (bentu
 **Bukti:** output vitest.
 
 ## F4 — QuadrantChart (RRG)
-**Deliverable:** `components/charts/QuadrantChart.tsx` sesuai dokumen 06 §6: zona kuadran 4%, grid, garis 100, ekor bertingkat, titik terakhir + ring, label anti-tumpuk, hover `PointCard`, klik → memilih sektor (mengangkat state ke halaman), animasi masuk 180ms (dimatikan pada `prefers-reduced-motion`), `aria-label` + daftar tersembunyi berisi angka (untuk screen reader).
-**AC:** dengan fixture 11 sektor: tidak ada label bertumpuk; ekor 3 titik tampil dengan opasitas bertingkat; rentang sumbu selalu memuat 100 dan simetris; hover menampilkan angka yang sama dengan tabel.
-**Bukti:** screenshot + 1 test yang membandingkan jumlah `<circle>` dengan jumlah sektor.
+**Deliverable:** `components/charts/QuadrantChart.tsx` sesuai dokumen 06 §6 + **§6.1 mode fokus**: zona kuadran 4%, grid, garis 100, ekor bertingkat, titik terakhir + ring, label anti-tumpuk, hover `PointCard`, **hover/klik → titik terfokus terang + semua titik & ekor lain meredup (0,22 / 0,18)**, klik = pin, navigasi keyboard (`Tab`/`←`/`→`/`Enter`/`Esc`) + `aria-live` satu baris, animasi masuk 180ms (dimatikan pada `prefers-reduced-motion`), kalau `tail` kosong cukup titik tanpa ekor.
+**AC:**
+1. Fixture 11 sektor: tidak ada label bertumpuk; ekor 3 titik tampil dengan opasitas bertingkat; rentang sumbu selalu memuat 100 dan simetris; angka di hover identik dengan baris tabel.
+2. Mode fokus (`docs/06 §6.1`): hover satu titik → titik itu opacity 1 + r membesar + dirender paling atas, **titik lain opacity 0,22** dan ekor lain 0,18, label lain hilang, sedangkan garis 100 & zona kuadran tidak meredup. Dibuktikan dengan mengukur atribut `opacity` di DOM, bukan hanya screenshot.
+3. Pin: klik titik → fokus bertahan walau mouse keluar chart; klik area kosong / `Esc` → lepas; klik baris tabel → pin pindah (dua arah, satu state).
+4. Keyboard: `Tab` masuk → titik pertama fokus; `←`/`→` pindah titik (fokus ikut berpindah); `Enter` pin; `Esc` lepas + fokus kembali ke elemen sebelumnya; `aria-live` berisi nama + kuadran + RS-Ratio + RS-Momentum.
+5. `tail: []` → hanya titik, tanpa error.
+6. Scope saham: fixture 1 sektor 60 saham → default 25 titik (skor tertinggi) + tautan "lihat semua di tabel", tanpa label bertumpuk.
+**Bukti:** screenshot normal / hover / pin / tanpa-ekor + test yang mengukur `opacity` dan urutan `Tab`.
 
 ## F5 — Tabel & filter
 **Deliverable:** `SectorTable` (11 kolom dokumen 06 §5, sortable, header sticky, highlight baris sektor terpilih), `FilterBar` (semua filter dokumen 06 §7 + preset cepat + chip aktif + reset), sinkron dengan URL.
