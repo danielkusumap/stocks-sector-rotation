@@ -6,13 +6,16 @@ job dijalankan sinkron dan hasilnya dikembalikan (dipakai CLI/curl).
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
+from pathlib import Path
+import sqlite3
+import tempfile
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 
-from .. import db, jobs
+from .. import db, jobs, maintenance
 from ..compute import signals
 from ..config import get_settings
 from ..ingest import excel, prices
@@ -163,13 +166,38 @@ def midday(async_: bool = Query(False, alias="async")):
 
 @router.get("/runs")
 def list_runs(limit: int = Query(20, ge=1, le=200)) -> dict:
-    """Riwayat run terbaru (docs/05 §4.3) — untuk panel riwayat di halaman Data."""
+    """Riwayat run terbaru (docs/05 §4.6: kunci `runs`, bukan `items`)."""
     conn = db.connect()
     try:
         items = runs.list_recent(conn, limit)
     finally:
         conn.close()
-    return {"api_version": _API_VERSION, "total": len(items), "items": items}
+    return {"api_version": "1.1", "total": len(items), "runs": items}
+
+
+@router.get("/export/backup")
+def export_backup() -> FileResponse:
+    """Unduhan `rotation.db` (streaming, docs/05 §4.5) — pakai API backup SQLite (aman saat WAL)."""
+    cfg = get_settings()
+    if not cfg.api.backup_enabled:
+        raise _error(403, "backup_disabled", "backup dimatikan di config (api.backup_enabled=false)")
+    dest = Path(tempfile.gettempdir()) / f"rotation-backup-{datetime.now():%Y%m%d-%H%M%S}.db"
+    source = db.connect()
+    try:
+        target = sqlite3.connect(dest)
+        try:
+            source.backup(target)
+        finally:
+            target.close()
+    finally:
+        source.close()
+    return FileResponse(dest, media_type="application/octet-stream", filename=dest.name)
+
+
+@router.post("/retention")
+def run_retention() -> dict:
+    """Perawatan DB (docs/07 B10). Tidak mencatat `ingest_run`: daftar kind baku tertutup (ADR-026)."""
+    return {"api_version": _API_VERSION, **maintenance.retention()}
 
 
 @router.get("/runs/{run_id}")

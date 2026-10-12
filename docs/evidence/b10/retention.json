@@ -1,0 +1,10 @@
+{
+  "api_version": "1.0",
+  "intraday_deleted": 0,
+  "midday_rrg_deleted": 0,
+  "midday_metrics_deleted": 0,
+  "intraday_cutoff": "2026-09-13",
+  "midday_cutoff": "2026-08-14",
+  "size_mb": 43.6,
+  "vacuumed": false
+}

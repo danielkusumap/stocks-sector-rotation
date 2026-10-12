@@ -63,6 +63,20 @@ Semua ambang batas yang **dipakai** server, supaya UI bisa menampilkan ("filter 
                    "signals_weekly": "2026-10-09T17:02:11+07:00" } }
 ```
 
+### `GET /api/v1/meta/dates`
+Tanggal yang **benar-benar punya hasil hitung** — dipakai `AsOfPicker` untuk menandai & menonaktifkan hari tanpa data (libur bursa). Sumber: `SELECT DISTINCT as_of_date FROM rrg_daily WHERE timeframe = ?` (fallback ke `sector_metrics` bila `rrg_daily` kosong).
+Query: `timeframe` (default `d1`), `limit` (default 120, maks 400).
+```json
+{ "api_version": "1.1",
+  "timeframe": "d1",
+  "latest": "2026-10-12",
+  "dates": ["2026-10-12", "2026-10-09", "2026-10-08", "2026-10-07"] }
+```
+Aturan:
+- Urut **menurun** (terbaru dulu). Tanggal yang tidak ada di daftar = hari tanpa data (libur/suspend pasar) → UI menonaktifkannya, tidak mengirim request.
+- Daftar kosong bukan error: `{"dates": [], "latest": null}` → UI memakai `<input type="date">` biasa dan membiarkan backend memilih tanggal terakhir (`data_status.as_of`) — jangan blokir user.
+- Cache 60 s seperti endpoint berat lain; kolom `as_of_date` sudah terindeks lewat `idx_rrg_lookup`.
+
 ### `GET /api/v1/freshness`
 ```json
 { "api_version": "1.0",

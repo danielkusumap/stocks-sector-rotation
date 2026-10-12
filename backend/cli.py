@@ -37,6 +37,7 @@ def main(argv: list[str] | None = None) -> int:
     p_compute.add_argument("--stage", choices=["index", "rrg", "signals", "all"], default="index", help="stage hitung")
     p_compute.add_argument("--timeframe", default="d1", help="timeframe (d1 | w1 | w1_fri | midday)")
     sub.add_parser("midday", help="cek gate kesegaran sesi 1 lalu ingest intraday (kalau lolos)")
+    sub.add_parser("retention", help="pangkas bar intraday & baris midday lama, VACUUM bila perlu")
     sub.add_parser("serve", help="jalankan API di host:port dari config")
     args = parser.parse_args(argv)
 
@@ -49,6 +50,14 @@ def main(argv: list[str] | None = None) -> int:
         info = db.init_db()
         info["api_version"] = api_version
         print(json.dumps(info, ensure_ascii=False))
+        return 0
+
+    if args.command == "retention":
+        from .app.maintenance import retention
+
+        result = retention()
+        result["api_version"] = api_version
+        print(json.dumps(result, ensure_ascii=False))
         return 0
 
     if args.command == "import-excel":

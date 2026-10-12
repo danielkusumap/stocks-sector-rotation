@@ -20,6 +20,26 @@ from .repo import run as runs
 # fn(params, report) -> dict hasil. `report(rows=…, rows_total=…, message=…, phase=…)` menulis progres.
 JobFn = Callable[[dict, Callable[..., None]], dict]
 
+# docs/05 §4.6: `ingest_run.kind` hanya enam nilai ini (chip status & prasyarat tombol di UI
+# bergantung pada nama persisnya). `compute_index`/`compute_rrg` bukan kind berdiri sendiri.
+KIND_ALIASES = {"excel": "import_excel", "compute_index": "compute_all", "compute_rrg": "compute_all"}
+
+
+def kind_of(raw: str) -> str:
+    """Nama kind baku (docs/05 §4.6)."""
+    return KIND_ALIASES.get(raw, raw)
+
+
+def _universe_counts() -> tuple[int, int]:
+    """(jumlah sektor aktif, jumlah emiten aktif) untuk bentuk `result_json` compute_all."""
+    conn = db.connect()
+    try:
+        sectors = conn.execute("SELECT COUNT(*) FROM sector WHERE is_active = 1").fetchone()[0]
+        tickers = conn.execute("SELECT COUNT(*) FROM stock WHERE is_active = 1").fetchone()[0]
+    finally:
+        conn.close()
+    return sectors, tickers
+
 
 def midday(params: dict, report: Callable[..., None]) -> dict:
     """Job tengah hari (docs/02 §5): cek gate → kalau lolos, ingest intraday hari berjalan.
@@ -60,6 +80,7 @@ def compute(params: dict, report: Callable[..., None]) -> dict:
     timeframe = params.get("timeframe", "d1")
     result: dict = {"stage": stage, "timeframe": timeframe}
     rows = 0
+    result["sectors"], result["tickers"] = _universe_counts()
 
     if stage in ("index", "all"):
         index_result = index.compute_index(report=report)
@@ -95,6 +116,9 @@ def compute(params: dict, report: Callable[..., None]) -> dict:
         rows += signals_result["rows"]
         result["signal_weeks"] = signals_result["weeks"]
         result["signal_rows"] = signals_result["rows"]
+        if stage == "signals":  # bentuk result_json compute_signals (docs/05 §4.6)
+            result["sectors"], result["stocks"] = signals_result["sectors"], signals_result["stocks"]
+            result["week_end"] = signals_result["week_end"]
 
     result["rows"] = rows
     result["duration_s"] = round(time.monotonic() - started, 2)
@@ -110,6 +134,7 @@ def execute(
     triggered_by: str = "cli",
 ) -> tuple[int, dict | None]:
     """Catat run di `ingest_run`, jalankan `fn`. Hasil `None` berarti job masih jalan (async)."""
+    kind = kind_of(kind)
     conn = db.connect()
     try:
         run_id = runs.start(conn, kind, params, triggered_by)

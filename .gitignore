@@ -24,6 +24,8 @@ data/*.db-shm
 
 # Evidence & OS
 docs/evidence/*.png
+docs/evidence/*.db
+docs/evidence/*/*.db
 docs/WATCH-LOG.md
 Thumbs.db
 .DS_Store

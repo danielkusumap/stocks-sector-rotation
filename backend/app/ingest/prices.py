@@ -242,6 +242,7 @@ def ingest_intraday(*, tickers=None, sectors=None, db_path=None, report=None) ->
 
         return {
             "rows": stored,
+            "batches": len(batches),
             "intervals": intervals,
             "sessions": sessions,
             "tickers_ok": len(ingested),
@@ -365,6 +366,7 @@ def ingest_daily(
 
         return {
             "rows": rows_done,
+            "batches": len(batches),
             "tickers_ok": len(ingested),
             "tickers_total": len(universe),
             "failed_tickers": failed,

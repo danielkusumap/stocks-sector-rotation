@@ -1,0 +1,5 @@
+Backup nyata: GET /api/v1/admin/export/backup -> 200 application/octet-stream
+ukuran: 43585536 byte (43,6 MB)
+sha256: dc5b67c3f42440400998cb959a9df36c13eb20b76b635aaf72fc7e403397ca99
+PRAGMA integrity_check = ok, 13 tabel, 962 emiten
+(berkas .db tidak di-commit — 43 MB; bukti angka di sini + DIGEST.txt)

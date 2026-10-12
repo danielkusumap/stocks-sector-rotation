@@ -152,9 +152,10 @@ def test_sync_import_records_run(tmp_db, fixture_xlsx, monkeypatch):
     assert r.json()["inserted"] == 5
 
     listed = client.get("/api/v1/admin/runs?limit=20").json()
+    assert listed["api_version"] == "1.1"  # docs/05 §4.6
     assert listed["total"] == 1
-    run = listed["items"][0]
-    assert run["kind"] == "excel"
+    run = listed["runs"][0]
+    assert run["kind"] == "import_excel"  # nama kind baku (docs/05 §4.6)
     assert run["status"] == "ok"
     assert run["rows"] == 5
     assert run["triggered_by"] == "api"
@@ -222,7 +223,7 @@ def test_cli_import_records_run(tmp_config, tmp_path, capsys):
     finally:
         conn.close()
     assert len(rows) == 1
-    assert (rows[0]["kind"], rows[0]["status"], rows[0]["rows"], rows[0]["triggered_by"]) == ("excel", "ok", 5, "cli")
+    assert (rows[0]["kind"], rows[0]["status"], rows[0]["rows"], rows[0]["triggered_by"]) == ("import_excel", "ok", 5, "cli")
     assert json.loads(rows[0]["result_json"])["inserted"] == 5
 
 

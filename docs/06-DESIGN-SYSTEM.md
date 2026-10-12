@@ -129,7 +129,7 @@ Hue berbeda, lightness seragam per tema supaya tidak ada sektor yang "terlihat l
 | `FreshnessPill` | `ok` (dot hijau + "data 12 Okt 16:10") / `stale` (dot amber + "delay") / `partial` (dot merah + "n sektor tipis"). Klik → popover detail `data_status`. |
 | `QuadrantChart` (RRG) | SVG buatan sendiri (lihat §6 & §6.1). Ekor, crosshair di 100/100, zona kuadran berwarna 4%, hover menampilkan `PointCard`, klik = pin sektor (sinkron dua arah dengan tabel). **Mode fokus:** titik terfokus terang, sisanya meredup 0,22. Keyboard penuh. |
 | `PointCard` | Popover: nama, kuadran + umur, RS-Ratio/RS-Momentum + perubahan, return, turnover, streak, tombol "Lihat saham sektor ini". |
-| `SectorTable` | Kolom: Sektor, Kuadran, Umur, RS-Ratio, RS-Mom, Δ1p, 1H, 1B, 3B, Turnover, Streak, Skor. Sortable semua kolom angka; baris klik → `SectorDrawer`. |
+| `SectorTable` | Kolom: Sektor, Kuadran, Umur, RS-Ratio, RS-Mom, Δ1p, 1H, 1B, 3B, **Turnover hr ini**, Streak, Skor. Sortable semua kolom angka; baris klik → `SectorDrawer`. |
 | `FilterBar` | Chip filter aktif (bisa dihapus satu-satu), tombol "Filter" (popover), "Reset". Semua nilai tercermin di URL. |
 | `Sparkline` | 80×24 SVG dari seri 30 bar terakhir, tanpa axis, warna `--up/--down` sesuai perubahan total. |
 | `QuadrantBadge` | Badge kecil 20px: dot warna kuadran + label Indonesia. |
@@ -141,6 +141,12 @@ Hue berbeda, lightness seragam per tema supaya tidak ada sektor yang "terlihat l
 | `HeatmapGrid` | 11 baris × 4 kolom (1H/1B/1M/3B), intensitas warna dari `--up/--down` dengan alpha 0.08–0.55, angka selalu tampil. |
 | `StatCard` | Angka besar 24px monospace + label 11px uppercase + delta kecil. Tanpa ikon dekoratif. |
 | `EmptyState`, `Skeleton`, `ErrorState`, `Toast` | Skeleton meniru bentuk tabel (bukan spinner penuh layar). ErrorState menampilkan pesan API apa adanya + tombol "Coba lagi". |
+
+**Aturan tanda & satuan di tabel (final, hasil keputusan F5):**
+- **Level** (`RS-Ratio`, `RS-Momentum`) ditampilkan **tanpa tanda**: `102,31`, bukan `+102,31`. Tanda `+`/`−` hanya untuk **perubahan/delta** (`Δ1p`, kolom return, delta harga). RS 102,31 adalah posisi relatif terhadap 100, bukan kenaikan — memberi tanda `+` membuat user mengira itu perubahan sesi. Wireframe §8 sudah dikoreksi mengikuti aturan ini.
+- Kolom **`Turnover hr ini`** = `turnover_idr` (nilai transaksi hari itu, mis. `1,18 T`). Ini **berbeda** dari filter likuiditas yang memakai `median_turnover_20d_idr` — bedanya wajib ada di tooltip header, dan header menyebut "hr ini" supaya tidak ada baris yang tampak "lolos filter padahal turnover kecil" tanpa penjelasan.
+- Kartu hover (`PointCard`) memakai angka & format yang **sama persis** dengan baris tabel untuk `ref_id` sama.
+- `AsOfPicker` memakai `GET /api/v1/meta/dates` (`docs/05` §1) untuk menonaktifkan hari tanpa data; kalau daftar kosong → jatuh ke `<input type="date">` biasa, jangan memblokir user.
 
 ## 6. RRG chart — spesifikasi teknis
 
@@ -228,10 +234,10 @@ Halaman Overview, dark mode, lebar 1440px:
 │      ├──────────────────────────────────────────────────────────┤  2. IDXHEALTH   1w             │
 │      │ Filter: [Kuadran ▾] [Sektor ▾] [Streak ≥ 1 ▾] [Likuiditas Rp 1 M ▾]  Reset │ 3 filter │  3. IDXTRANS    1w             │
 │      ├──────────────────────────────────────────────────────────┴────────────────────────────────┤
-│      │ Sektor         Kuadran      Umur  RS-Ratio  RS-Mom   Δ1p    1H      1B      3B    Turnover  │
-│      │ Keuangan       ● Memimpin    2    +102,31  +100,84  +0,42  +1,81%  +4,12%  +9,03%  1,18 T   │
-│      │ Kesehatan      ● Memimpin    1    +101,06  +100,41  +0,11  +0,92%  +2,44%  +5,10%  412 M    │
-│      │ Infrastruktur  ● Membaik     1     +98,74   +99,88  +0,31  +0,44%  −0,80%  +1,20%  245 M    │
+│      │ Sektor         Kuadran      Umur  RS-Ratio  RS-Mom   Δ1p    1H      1B      3B    Turnover hr ini │
+│      │ Keuangan       ● Memimpin    2    102,31    100,84   +0,42  +1,81%  +4,12%  +9,03%  1,18 T  │
+│      │ Kesehatan      ● Memimpin    1    101,06    100,41   +0,11  +0,92%  +2,44%  +5,10%  412 M    │
+│      │ Infrastruktur  ● Membaik     1     98,74     99,88   +0,31  +0,44%  −0,80%  +1,20%  245 M    │
 │      │ ...                                                                                        │
 └──────┴────────────────────────────────────────────────────────────────────────────────────────────┘
 ```

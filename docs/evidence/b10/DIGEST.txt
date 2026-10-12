@@ -1,0 +1,36 @@
+GET /api/v1/admin/runs?limit=20 → api_version 1.1, kunci runs, total 20
+  contoh: {"run_id": 28, "kind": "midday", "status": "ok", "phase": null, "started_at": "2026-10-13T02:13:03+07:00", "finished_at": "2026-10-13T02:13:04+07:00", "rows": 0, "rows_total": null, "percent": 100.0, "message": null, "tr…
+GET /api/v1/admin/export/backup → 200, content-type application/octet-stream, 43585536 byte, attachment; filename="rotation-backup-20261013-021526.db"
+  PRAGMA integrity_check = ok | 13 tabel | 962 emiten (backup identik isinya)
+POST /api/v1/admin/retention → {"api_version": "1.0", "intraday_deleted": 0, "midday_rrg_deleted": 0, "midday_metrics_deleted": 0, "intraday_cutoff": "2026-09-13", "midday_cutoff": "2026-08-14", "size_mb": 43.6, "vacuumed": false}
+ingest_run status='running' = 0 (tidak ada job menggantung)
+kind tersimpan: [('compute_all', 13), ('import_excel', 3), ('midday', 4), ('prices_daily', 7), ('prices_intraday', 1)]
+20 run terakhir (id, kind, status, rows, percent):
+  (1, 'import_excel', 'ok', 0, 100.0)
+  (2, 'import_excel', 'ok', 962, 100.0)
+  (3, 'import_excel', 'ok', 962, 100.0)
+  (4, 'prices_daily', 'partial', 2832, 100.0)
+  (5, 'prices_daily', 'failed', 69549, 13.8)
+  (6, 'prices_daily', 'partial', 2832, 100.0)
+  (7, 'prices_daily', 'ok', 18581, 100.0)
+  (8, 'prices_daily', 'ok', 18581, 100.0)
+  (9, 'prices_daily', 'ok', 21, 100.0)
+  (10, 'prices_daily', 'ok', 21, 100.0)
+  (11, 'prices_intraday', 'ok', 217, 100.0)
+  (12, 'midday', 'ok', 0, 100.0)
+  (13, 'midday', 'ok', 0, 100.0)
+  (14, 'compute_all', 'ok', 15576, 100.0)
+  (15, 'compute_all', 'ok', 15576, 100.0)
+  (16, 'compute_all', 'ok', 15576, 100.0)
+  (17, 'compute_all', 'ok', 15576, 100.0)
+  (18, 'compute_all', 'ok', 88240, 100.0)
+  (19, 'compute_all', 'ok', 15775, 100.0)
+  (20, 'compute_all', 'ok', 88240, 100.0)
+  (21, 'compute_all', 'ok', 15775, 100.0)
+  (22, 'compute_all', 'ok', 104001, 100.0)
+  (23, 'compute_all', 'ok', 31536, 100.0)
+  (24, 'compute_all', 'ok', 19359, 100.0)
+  (25, 'compute_all', 'ok', 104219, 100.0)
+  (26, 'compute_all', 'ok', 19577, 100.0)
+  (27, 'midday', 'ok', 0, 100.0)
+  (28, 'midday', 'ok', 0, 100.0)

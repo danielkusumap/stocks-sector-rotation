@@ -335,12 +335,21 @@ def compute_signals(*, weighting: str | None = None, db_path=None, report=None) 
 
         total = upsert(conn, final_rows, now_iso())
         conn.commit()
+        week = weeks[-1] if weeks else None
+        picks = {"sector": 0, "stock": 0}
+        if week:
+            for row in conn.execute("SELECT scope, COUNT(*) FROM signal_weekly WHERE week_end = ? GROUP BY scope", (week,)):
+                picks[row[0]] = row[1]
         return {
             "rows": total,
             "weeks": len(weeks),
             "sector_rows": len(sector_rows),
             "stock_rows": len(stock_rows),
             "weighting": weighting,
+            # bentuk result_json compute_signals (docs/05 §4.6)
+            "week_end": week,
+            "sectors": picks["sector"],
+            "stocks": picks["stock"],
         }
     finally:
         conn.close()
