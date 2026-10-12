@@ -11,9 +11,13 @@ from fastapi.testclient import TestClient
 
 from backend import cli
 from backend.app import db, jobs
+from backend.app.db import MIGRATIONS_DIR
 from backend.app.ingest import excel
 from backend.app.repo import run as runs
 from backend.tests.fixtures import FIXTURE_SHEETS, write_xlsx
+
+# semua migrasi dijalankan dari db lama → user_version sama dengan nomor migrasi terakhir
+LATEST_VERSION = max(int(p.name.split("_", 1)[0]) for p in MIGRATIONS_DIR.glob("[0-9]*_*.sql"))
 
 OLD_INGEST_RUN = """
 CREATE TABLE ingest_run (
@@ -57,21 +61,23 @@ def test_migration_adds_progress_columns_to_old_db(tmp_path):
     conn.close()
 
     info = db.init_db(p)  # migrasi 001 jalan: kolom baru ditambahkan ke tabel lama
-    assert info["user_version"] == 1
+    assert info["user_version"] == LATEST_VERSION
 
     conn = db.connect(p)
     try:
         assert NEW_COLUMNS <= _cols(conn)
+        stock_cols = {r["name"] for r in conn.execute("PRAGMA table_info(stock)")}
+        assert "yahoo_sector_at" in stock_cols
     finally:
         conn.close()
-    assert db.init_db(p)["user_version"] == 1  # idempoten
+    assert db.init_db(p)["user_version"] == LATEST_VERSION  # idempoten
 
 
 def test_fresh_db_already_has_progress_columns(tmp_path):
     p = tmp_path / "fresh.db"
-    info = db.init_db(p)  # schema.sql sudah memuat kolomnya → migrasi 001 dilewati tanpa error
+    info = db.init_db(p)  # schema.sql sudah memuat kolomnya → migrasi dilewati tanpa error
     assert info["tables"] == 13
-    assert info["user_version"] == 1
+    assert info["user_version"] == LATEST_VERSION
 
     conn = db.connect(p)
     try:
