@@ -13,7 +13,7 @@ import time
 from typing import Callable
 
 from . import db
-from .compute import index
+from .compute import index, metrics, rrg
 from .ingest import freshness, prices
 from .repo import run as runs
 
@@ -50,10 +50,30 @@ def midday(params: dict, report: Callable[..., None]) -> dict:
 
 
 def compute(params: dict, report: Callable[..., None]) -> dict:
-    """Stage hitung pipa (docs/05 §4.1 tombol 4/5). Sekarang: `index`; `rrg`/`signals` menyusul (B5/B7)."""
+    """Stage hitung pipa (docs/05 §4.1): `index` → `rrg`; metrik & sinyal menyusul (B6/B7)."""
     started = time.monotonic()
-    result = index.compute_index(report=report)
-    return {**result, "duration_s": round(time.monotonic() - started, 2)}
+    stage = params.get("stage", "index")
+    timeframe = params.get("timeframe", "d1")
+    result: dict = {"stage": stage, "timeframe": timeframe}
+    rows = 0
+
+    if stage in ("index", "all"):
+        index_result = index.compute_index(report=report)
+        rows += index_result["rows"]
+        result["sectors"] = index_result["sectors"]
+        result["weightings"] = index_result["weightings"]
+    if stage in ("rrg", "all"):
+        timeframes_list = ["d1", "w1"] if stage == "all" else [timeframe]
+        rrg_result = rrg.compute_rrg(timeframes=timeframes_list, report=report)
+        rows += rrg_result["rows"]
+        result["timeframes"] = rrg_result["timeframes"]
+        metrics_result = metrics.compute_metrics(timeframes=timeframes_list, report=report)
+        rows += metrics_result["rows"]
+        result["metrics_rows"] = metrics_result["rows"]
+
+    result["rows"] = rows
+    result["duration_s"] = round(time.monotonic() - started, 2)
+    return result
 
 
 def execute(

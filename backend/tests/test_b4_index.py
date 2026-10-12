@@ -250,4 +250,7 @@ def test_compute_endpoint_rejects_unknown_stage(three_stocks, monkeypatch):
     client = TestClient(app)
     assert client.post("/api/v1/admin/compute", json={"stage": "xyz"}).status_code == 400
     assert client.post("/api/v1/admin/compute", json={"stage": "index", "timeframe": "x1"}).status_code == 400
-    assert client.post("/api/v1/admin/compute", json={"stage": "rrg"}).status_code == 400
+    signals = client.post("/api/v1/admin/compute", json={"stage": "signals"})
+    assert signals.status_code == 400
+    assert signals.json()["error"]["code"] == "not_implemented"  # B7
+    assert client.post("/api/v1/admin/compute", json={"stage": "rrg", "timeframe": "d1"}).status_code == 200

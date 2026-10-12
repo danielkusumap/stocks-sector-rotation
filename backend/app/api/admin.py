@@ -124,8 +124,8 @@ def compute(body: ComputeBody, async_: bool = Query(False, alias="async")):
             f"timeframe harus salah satu dari: {', '.join(cfg.timeframes['allowed'])}",
             {"received": body.timeframe},
         )
-    if body.stage in ("rrg", "signals"):
-        raise _error(400, "not_implemented", f"stage {body.stage} menyusul di B5/B7")
+    if body.stage == "signals":
+        raise _error(400, "not_implemented", "stage signals menyusul di B7")
 
     conn = db.connect()
     try:

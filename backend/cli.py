@@ -33,7 +33,7 @@ def main(argv: list[str] | None = None) -> int:
     p_prices.add_argument("--tickers", help="subset emiten, mis. BBCA,BBRI,ANTM (default: seluruh universe aktif)")
     p_prices.add_argument("--sectors", help="batasi ke kode sektor, mis. IDXFINANCE,IDXENERGY")
     p_prices.add_argument("--refresh-info", action="store_true", help="sekali pakai: ambil yahoo_sector lewat .info")
-    p_compute = sub.add_parser("compute", help="hitung turunan (index; rrg/signals menyusul)")
+    p_compute = sub.add_parser("compute", help="hitung turunan (index, rrg; signals menyusul)")
     p_compute.add_argument("--stage", choices=["index", "rrg", "signals", "all"], default="index", help="stage hitung")
     p_compute.add_argument("--timeframe", default="d1", help="timeframe (d1 | w1 | w1_fri | midday)")
     sub.add_parser("midday", help="cek gate kesegaran sesi 1 lalu ingest intraday (kalau lolos)")
@@ -117,8 +117,8 @@ def main(argv: list[str] | None = None) -> int:
         from .app.repo import stock as stocks
 
         cfg = get_settings()
-        if args.stage in ("rrg", "signals"):
-            err = {"code": "not_implemented", "message": f"stage {args.stage} menyusul di B5/B7"}
+        if args.stage == "signals":
+            err = {"code": "not_implemented", "message": "stage signals menyusul di B7"}
             print(json.dumps({"api_version": api_version, "error": err}, ensure_ascii=False), file=sys.stderr)
             return 1
 
