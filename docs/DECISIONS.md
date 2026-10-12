@@ -80,6 +80,14 @@ Format:
 - alternatif: (a) API memanggil CLI via subprocess → dilarang `docs/07` B12; (b) `BackgroundTasks` FastAPI → tidak bisa dipakai dari CLI, dan statusnya hilang setelah respons; (c) menyimpan progres per baris → dilarang `docs/07` B12 #5 (SQLite jadi sibuk); (d) membuang db lama lalu `db-init` ulang → ditolak: user akan punya data harga saat B2/B3 jalan, tidak boleh hilang.
 - dampak: job baru (`prices`, `compute`, `midday`) wajib lewat `jobs.execute` dan mengisi `rows`; kalau perlu progres di UI, panggil `report(...)` tiap batch. Migrasi berikutnya ditulis dengan pola yang sama (ALTER yang tahan db baru + catat di DECISIONS). Satu risiko yang diketahui: kalau proses mati saat job async jalan, baris `ingest_run` tetap `running` (belum ada pembersih otomatis) — terlihat di panel riwayat sebagai run menggantung.
 
+## ADR-017 — `yahoo_sector` opt-in, dan bar harian hari berjalan belum punya `Close`
+- tanggal: 2026-10-13
+- status: diterima
+- konteks: `docs/07` B2 minta `.info` dipakai **hanya** untuk `yahoo_sector` sebagai cross-check, maks sekali per 7 hari per emiten — tetapi skema `stock` tidak punya penanda kapan `.info` diambil, dan 962 `.info` di dalam satu klik UI berarti beberapa menit ekstra plus risiko 429 di tengah ingest harga. Temuan nyata saat uji (2026-10-13): bar harian hari berjalan (`2026-10-12` BBCA) datang dengan `Open/High/Low/Volume` terisi tetapi **`Close = NaN`**.
+- keputusan: (a) kolom `stock.yahoo_sector_at` lewat migrasi `002` sebagai penanda; refresh `.info` **opt-in** (`?refresh_info=true` pada endpoint, `--refresh-info` di CLI), tetap dibatasi `config.ingest.refresh_market_cap_days`. (b) Bar tanpa `Close` dilewati (bukan error, bukan harga 0) — bar yang sama akan masuk sendiri setelah harinya final, karena upsert. (c) `market_cap_idr`/`last_bar_date` diperbarui **per batch**, bukan hanya di akhir run, supaya run yang mati di tengah tetap meninggalkan data turunan yang konsisten.
+- alternatif: `.info` otomatis setiap ingest (ditolak: klik pertama user jadi ~5–10 menit dan bisa gagal 429 di tengah ingest harga); menyimpan penanda waktu di `stock.notes` (ditolak: menyalahgunakan kolom teks); memakai bar `Close = NaN` sebagai harga terakhir (ditolak: menulis harga kosong ke `market_cap_idr`).
+- dampak: `yahoo_sector` tetap `NULL` sampai user memilih refresh — kolom ini murni cross-check, tidak dipakai perhitungan apa pun. Untuk B3 perlu diperhatikan: **bar harian hari berjalan tidak bisa dipakai** untuk gate/perhitungan tengah hari; jalur intraday (`price_intraday`) yang harus dipakai, dan `price_daily` hari berjalan baru terisi setelah sesi tutup.
+
 ## ADR-005 — Git: satu task = satu commit, repo lokal dulu
 - tanggal: 2026-10-12
 - status: diterima

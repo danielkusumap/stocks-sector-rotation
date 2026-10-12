@@ -6,16 +6,29 @@ job dijalankan sinkron dan hasilnya dikembalikan (dipakai CLI/curl).
 
 from __future__ import annotations
 
+from datetime import date
+
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field
 
 from .. import db, jobs
 from ..config import get_settings
-from ..ingest import excel
+from ..ingest import excel, prices
 from ..repo import run as runs
+from ..repo import stock as stocks
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 _API_VERSION = get_settings().app.api_version
+
+
+class PricesBody(BaseModel):
+    mode: str = "daily"
+    from_: date | None = Field(None, alias="from")
+    to: date | None = None
+    sectors: list[str] | None = None
+    tickers: list[str] | None = None
+    refresh_info: bool = False  # `.info` per emiten (cross-check yahoo_sector) — mahal, default mati
 
 
 def _error(status: int, code: str, message: str, detail: dict | None = None) -> HTTPException:
@@ -50,6 +63,45 @@ async def import_excel(
     except excel.NoValidRows as exc:
         raise _error(400, "no_valid_rows", str(exc)) from exc
 
+    return _queued(run_id) if result is None else result
+
+
+@router.post("/ingest/prices")
+def ingest_prices(body: PricesBody, async_: bool = Query(False, alias="async")):
+    """Unduh bar harian (`mode=daily`) untuk seluruh/ sebagian universe. Butuh tabel `stock` terisi."""
+    if body.mode not in ("daily", "intraday"):
+        raise _error(400, "invalid_mode", "mode harus 'daily' atau 'intraday'", {"received": body.mode})
+    if body.mode == "intraday":
+        raise _error(400, "not_implemented", "mode intraday menyusul di task B3")
+
+    conn = db.connect()
+    try:
+        has_universe = stocks.active_count(conn) > 0
+    finally:
+        conn.close()
+    if not has_universe:
+        raise _error(409, "prereq_no_universe", "tabel stock kosong — jalankan 'Import sektor' dulu")
+
+    params = {
+        "mode": body.mode,
+        "from": body.from_.isoformat() if body.from_ else None,
+        "to": body.to.isoformat() if body.to else None,
+        "sectors": body.sectors,
+        "tickers": body.tickers,
+        "refresh_info": body.refresh_info,
+    }
+
+    def job(p: dict, report) -> dict:
+        return prices.ingest_daily(
+            from_date=p["from"],
+            to_date=p["to"],
+            sectors=p["sectors"],
+            tickers=p["tickers"],
+            refresh_info=p["refresh_info"],
+            report=report,
+        )
+
+    run_id, result = jobs.execute(f"prices_{body.mode}", params, job, async_=async_, triggered_by="api")
     return _queued(run_id) if result is None else result
 
 

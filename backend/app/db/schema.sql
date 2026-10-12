@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS stock (
   notes          TEXT,
   market_cap_idr INTEGER,                   -- dihitung: shares_outstanding * close (atau dari .info)
   yahoo_sector   TEXT,                      -- cross-check klasifikasi Yahoo
+  yahoo_sector_at TEXT,                     -- kapan yahoo_sector diambil (jeda refresh .info)
   is_active      INTEGER NOT NULL DEFAULT 1,
   last_bar_date  TEXT,
   updated_at     TEXT NOT NULL
