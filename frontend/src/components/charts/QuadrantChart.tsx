@@ -423,7 +423,9 @@ export function QuadrantChart({
             transform: `translate(${xScale(activeItem.rs_ratio) > VIEW_W * 0.68 ? "calc(-100% - 12px)" : "12px"}, -50%)`,
           }}
         >
-          <div className="pointer-events-auto">
+          {/* kartu tidak boleh menangkap pointer: titik di baliknya harus tetap bisa di-hover/klik
+              (yang tetap bisa diklik hanya tautan di dalamnya — lihat PointCard) */}
+          <div className="pointer-events-none">
             <PointCard item={activeItem} />
           </div>
         </div>

@@ -29,6 +29,7 @@ export function Th({
   active = false,
   dir = "desc",
   onSort,
+  title,
 }: {
   children?: ReactNode;
   className?: string;
@@ -38,6 +39,7 @@ export function Th({
   active?: boolean;
   dir?: Dir;
   onSort?: (next: Dir) => void;
+  title?: string;
 }) {
   const ariaSort = sortable ? (active ? (dir === "asc" ? "ascending" : "descending") : "none") : undefined;
   return (
@@ -53,6 +55,7 @@ export function Th({
       {sortable && onSort ? (
         <button
           type="button"
+          title={title}
           onClick={() => onSort(active && dir === "asc" ? "desc" : "asc")}
           className={cn(
             "inline-flex items-center gap-1 uppercase hover:text-fg",

@@ -70,10 +70,11 @@ test.describe("QuadrantChart RRG", () => {
 
     await expect(page.getByTestId("rrg-live")).toHaveText("");
 
-    // Urutan tab dari elemen sebelum chart: toggle tema → pill kesegaran → chart
+    // Urutan tab dari elemen sebelum chart: toggle tema → pill kesegaran (panel RRG, panel pertama) → chart
+    const freshnessPill = page.getByRole("button", { name: /sektor tipis|delay|data \d/ }).first();
     await themeToggle.focus();
     await page.keyboard.press("Tab");
-    await expect(page.getByRole("button", { name: /sektor tipis|delay|data \d/ })).toBeFocused();
+    await expect(freshnessPill).toBeFocused();
     await page.keyboard.press("Tab");
     await expect(chart).toBeFocused();
     await expect(chart).toHaveAttribute("aria-activedescendant", "rrg-point-IDXFINANCE");
@@ -105,10 +106,10 @@ test.describe("QuadrantChart RRG", () => {
     await page.keyboard.press("Enter");
     await expect(chart).toHaveAttribute("data-pinned", "IDXHEALTH");
 
-    // Esc = lepas pin + fokus kembali ke elemen sebelum chart (pill kesegaran)
+    // Esc = lepas pin + fokus kembali ke elemen sebelum chart (pill kesegaran panel RRG)
     await page.keyboard.press("Escape");
     await expect(chart).toHaveAttribute("data-pinned", "");
-    await expect(page.getByRole("button", { name: /sektor tipis|delay|data \d/ })).toBeFocused();
+    await expect(freshnessPill).toBeFocused();
   });
 
   test("tanpa ekor: hanya titik, tanpa error", async ({ page }) => {

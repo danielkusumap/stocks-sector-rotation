@@ -53,7 +53,7 @@ export function PointCard({ item }: { item: RrgItem }) {
       <div className="mt-2 flex justify-end">
         <Link
           to={`/stocks?sector=${item.ref_id}`}
-          className="text-sm text-accent underline underline-offset-2"
+          className="pointer-events-auto text-sm text-accent underline underline-offset-2"
         >
           Lihat saham sektor ini
         </Link>
