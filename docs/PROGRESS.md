@@ -20,6 +20,7 @@ Legenda status: `todo` · `wip` · `blocked` · `done`
 | B9 | Briefing & weekly | todo | |
 | B10 | Admin runs, backup, retention | todo | |
 | B11 | Test & dokumentasi | todo | |
+| B12 | Pipeline API (async, progres, prasyarat 409) | todo | dibutuhkan F12 |
 
 ## Frontend
 
@@ -37,6 +38,7 @@ Legenda status: `todo` · `wip` · `blocked` · `done`
 | F9 | Halaman Weekly | todo | |
 | F10 | Halaman Status | todo | |
 | F11 | A11y, performa, finishing | todo | |
+| F12 | Halaman Data / Pipeline (tombol end-to-end) | todo | **pintu masuk utama user** — `/data` stepper 6 tombol pipeline (`docs/05 §4.1`) + panel riwayat run (`docs/05 §4.3`). Butuh tipe + `startRun`/`useRun` (polling 1 s) untuk `docs/05` §4 di `lib/api.ts` — belum ada di F1, sengaja tidak ditambah diam-diam. |
 
 ## Blocker & pertanyaan terbuka
 
@@ -47,7 +49,7 @@ Legenda status: `todo` · `wip` · `blocked` · `done`
 | 3 | ~~Isi `data/idx_sector_master.xlsx`~~ → `saham_sektoral.xlsx` sudah ada di root repo & sudah diverifikasi (962 emiten, 11 sheet) | user | **selesai** |
 | 4 | Bobot indeks default: `equal` (sekarang) vs `captier` — putuskan setelah lihat selisih arah keduanya | user | terbuka |
 | 5 | Apakah papan `Pemantauan Khusus` (69 emiten) tetap ditampilkan di tabel (badge PK) atau disembunyikan total | user | terbuka |
-| 6 | Halaman Status (F10) perlu daftar `ingest_run` + tombol `POST /admin/midday`, tapi `docs/05` §5.1 melarang frontend memanggil `/admin/*` dan bentuk `GET /admin/runs` tidak ditulis di `docs/05` §4 → lihat ADR-013 | user | terbuka |
+| 6 | ~~Halaman Status perlu `/admin/*` padahal `docs/05` §5.1 melarang~~ → **selesai**: docs/05 §4 & §5.1 direvisi, UI boleh memicu pipeline (ADR-013 digantikan). Tipe/hook admin dikerjakan di F12 | user + backend | **selesai** |
 | 7 | Filter `ret_positive_only` ada di `docs/06` §7 tapi tidak ada query param-nya di `docs/05` mana pun → lihat ADR-014 | user + backend | terbuka |
 | 8 | `GET /api/v1/meta/config` `rrg.min_points`: contoh `docs/05` = angka (60), `config/default.yaml` = per-timeframe → mana yang dipakai backend? | backend | terbuka |
 | 9 | `sector`/`quadrant` diterima sebagai **satu nilai koma-separated** (ADR-015) — backend perlu split koma sebelum B8, kalau tidak filter multi selalu 0 baris | backend | terbuka |

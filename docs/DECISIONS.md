@@ -114,11 +114,11 @@ Format:
 
 ## ADR-013 — Halaman Status butuh `/admin/*`, padahal `docs/05` §5.1 melarangnya
 - tanggal: 2026-10-13
-- status: usul (butuh keputusan user sebelum F10)
+- status: **digantikan** — `docs/05` §4 & §5.1 direvisi (endpoint admin kini resmi dipanggil UI untuk halaman Data/F12), jadi larangan yang jadi dasar ADR ini sudah hilang
 - konteks: `docs/08` F10 meminta halaman `/status` menampilkan **daftar `ingest_run`** dan tombol **"Jalankan midday sekarang"** (`POST /api/v1/admin/midday` bila `api_key` kosong). `docs/05` §5.1 menulis tegas: "Frontend hanya memanggil endpoint §1–§3. Tidak ada `/admin/*`", dan §4 hanya menyebut `GET /api/v1/admin/runs` **tanpa bentuk field**-nya. F1 tidak menambah tipe admin sama sekali — menebak bentuk field akan melanggar aturan "jangan mengarang bentuk baru".
-- keputusan: belum diputuskan; F1 lanjut tanpa endpoint admin.
-- alternatif: (a) backend menambah `GET /api/v1/status` (read-only, §1-style) yang membungkus `ingest_run` + `meta/config` untuk halaman Status, dan `POST /admin/midday` tetap dipanggil lewat CLI/curl oleh user — halaman jadi murni baca (§5.1 utuh); (b) `docs/05` §5.1 dilonggarkan khusus halaman Status lokal (single-user) dan bentuk `ingest_run` ditulis di `docs/05` §4; (c) tombol midday dihapus dari UI.
-- dampak: F10 terblokir sampai ini diputuskan. Rekomendasi: (a) — paling kecil, tidak menyentuh kontrak v1, dan halaman Status memang cuma alat lihat.
+- keputusan (historis, F1): lanjut tanpa tipe/hook admin.
+- resolusi: revisi dokumen memilih arah (b) — §5.1 sekarang berbunyi "Frontend memanggil §1–§3 untuk **membaca**, dan §4 untuk **memicu pipeline** (halaman Data)", bentuk `ingest_run` ditulis di `docs/05` §4.3 (`run_id, kind, status, phase, rows, rows_total, percent, message, failed_tickers`), plus aturan async `?async=true` → `202 {run_id}` → poll `GET /admin/runs/{run_id}` tiap 1 s, dan `403`/`409` dengan kode prasyarat (`prereq_no_universe`, `prereq_no_prices`, `gate_weekly_not_final`, `gate_midday_stale`).
+- dampak: tipe + `startRun` + `useRun` (polling) untuk §4 **belum ada** di F1 — itu masuk task **F12** (`docs/08`), bukan ditambahkan diam-diam ke F1 yang sudah di-commit. Halaman Status (F10) tinggal memakai `GET /admin/runs?limit=20` yang bentuknya kini resmi.
 
 ## ADR-014 — `ret_positive_only`: filter ada di `docs/06` §7, param-nya tidak ada di `docs/05`
 - tanggal: 2026-10-13
