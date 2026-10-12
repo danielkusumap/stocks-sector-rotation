@@ -44,3 +44,56 @@ export function formatDuration(seconds: number | null | undefined): string {
   const minutes = Math.floor(seconds / 60);
   return `${minutes} mnt ${Math.round(seconds % 60)} s`;
 }
+
+// ── Angka (docs/03 §8) ───────────────────────────────────────────────────────
+// Satuan ringkas: T = triliun, M = miliar, jt = juta. Nilai null → "—" (bukan 0).
+
+/** Angka bi-asa: `1234.5 → "1.234,5"`. `decimals` = jumlah angka di belakang koma. */
+export function formatNum(value: number | null | undefined, decimals = 0): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+  return idNumber(value, decimals);
+}
+
+/**
+ * Harga rupiah: `4250 → "4.250"` (tanpa awalan "Rp" — satuannya ada di label kolom,
+ * lihat mock docs/06 §8 "entry 4.250").
+ */
+export function formatRp(value: number | null | undefined): string {
+  return formatNum(value, 0);
+}
+
+/** Nilai rupiah ringkas: `1180000000000 → "1,18 T"`, `980000000 → "980,0 jt"`. */
+export function formatRpCompact(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+  const abs = Math.abs(value);
+  if (abs >= 1e12) return `${idNumber(value / 1e12, 2)} T`;
+  if (abs >= 1e9) return `${idNumber(value / 1e9, 1)} M`;
+  if (abs >= 1e6) return `${idNumber(value / 1e6, 1)} jt`;
+  return idNumber(value, 0);
+}
+
+/** Persen dengan tanda eksplisit: `0.0181 → "+1,81%"`, `-0.0045 → "−0,45%"`. */
+export function formatPct(value: number | null | undefined, decimals = 2): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+  return `${sign(value)}${idNumber(Math.abs(value) * 100, decimals)}%`;
+}
+
+/** Perubahan (Δ) tanpa satuan: `0.42 → "+0,42"`, `-0.31 → "−0,31"`. */
+export function formatDelta(value: number | null | undefined, decimals = 2): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+  return `${sign(value)}${idNumber(Math.abs(value), decimals)}`;
+}
+
+/** Tanda arah selalu ada (docs/06 §4: warna saja tidak cukup); nol tanpa tanda. */
+function sign(value: number): string {
+  if (value > 0) return "+";
+  if (value < 0) return "−"; // U+2212, bukan hyphen
+  return "";
+}
+
+function idNumber(value: number, decimals: number): string {
+  return new Intl.NumberFormat("id-ID", {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).format(value);
+}
