@@ -2,15 +2,20 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
-from .. import db
+from .. import cache, db
 from ..config import get_settings
 from ..ingest import freshness
-from .schemas import MetaConfigResponse, MetaSectorsResponse
+from .rrg import _check
+from .schemas import MetaConfigResponse, MetaDatesResponse, MetaSectorsResponse
 
 router = APIRouter(prefix="/api/v1", tags=["meta"])
 _API_VERSION = get_settings().app.api_version
+
+# `GET /meta/dates` (docs/05 §1: api_version 1.1) — tanggal yang benar-benar punya hasil hitung.
+DATES_SQL = "SELECT DISTINCT as_of_date FROM rrg_daily WHERE timeframe = ? ORDER BY as_of_date DESC LIMIT ?"
+DATES_FALLBACK_SQL = "SELECT DISTINCT as_of_date FROM sector_metrics WHERE timeframe = ? ORDER BY as_of_date DESC LIMIT ?"
 
 SECTORS_SQL = """
     SELECT s.code, s.name_id, s.name_en, s.color_hex, s.sort_order,
@@ -46,6 +51,28 @@ def meta_sectors() -> dict:
     finally:
         conn.close()
     return {"api_version": _API_VERSION, "items": items}
+
+
+@router.get("/meta/dates", response_model=MetaDatesResponse)
+def meta_dates(timeframe: str = "d1", limit: int = Query(120, ge=1, le=400)) -> dict:
+    """Tanggal yang punya hasil hitung untuk `AsOfPicker` (docs/05 §1). Daftar kosong bukan error."""
+    cfg = get_settings()
+    _check(timeframe, cfg.universe["weighting"], cfg)
+    params = {"timeframe": timeframe, "limit": limit}
+    cached = cache.get("meta/dates", params, None)
+    if cached is not None:
+        return cached
+
+    conn = db.connect()
+    try:
+        dates = [row[0] for row in conn.execute(DATES_SQL, (timeframe, limit))]
+        if not dates:  # fallback: hasil hitung sektor tanpa RRG (docs/05 §1)
+            dates = [row[0] for row in conn.execute(DATES_FALLBACK_SQL, (timeframe, limit))]
+    finally:
+        conn.close()
+    body = {"api_version": "1.1", "timeframe": timeframe, "latest": dates[0] if dates else None, "dates": dates}
+    cache.put("meta/dates", params, None, body)
+    return body
 
 
 @router.get("/meta/config", response_model=MetaConfigResponse)

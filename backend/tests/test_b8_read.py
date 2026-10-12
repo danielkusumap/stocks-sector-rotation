@@ -187,6 +187,43 @@ def test_sector_detail(client):
     assert client.get("/api/v1/sectors/IDXZZZ").status_code == 404
 
 
+def test_meta_dates(client):
+    body = client.get("/api/v1/meta/dates").json()
+    assert body["api_version"] == "1.1"  # docs/05 §1
+    assert set(body) == {"api_version", "timeframe", "latest", "dates"}
+    assert body["timeframe"] == "d1"
+    assert body["dates"] and body["dates"] == sorted(body["dates"], reverse=True)  # urut menurun
+    assert body["latest"] == body["dates"][0]
+    assert client.get("/api/v1/meta/dates?limit=1").json()["dates"] == [body["latest"]]
+    assert client.get("/api/v1/meta/dates?limit=999").status_code == 422  # maks 400
+
+    invalid = client.get("/api/v1/meta/dates?timeframe=x1")
+    assert invalid.status_code == 400
+    assert invalid.json()["error"]["code"] == "invalid_timeframe"
+
+
+def test_meta_dates_fallback_dan_kosong(client, read_db, tmp_path, monkeypatch):
+    """`rrg_daily` kosong → fallback `sector_metrics`; keduanya kosong → daftar kosong (bukan error)."""
+    conn = db.connect(read_db)
+    try:
+        conn.execute("DELETE FROM rrg_daily")
+        conn.commit()
+    finally:
+        conn.close()
+    cache.clear()
+    fallback = client.get("/api/v1/meta/dates").json()
+    assert fallback["dates"] and fallback["latest"] == fallback["dates"][0]
+
+    empty_path = tmp_path / "kosong.db"  # DB lain yang benar-benar belum dihitung
+    db.init_db(empty_path)
+    monkeypatch.setattr(db, "db_path", lambda: empty_path)
+    cache.clear()
+    from backend.app.main import app
+
+    empty = TestClient(app).get("/api/v1/meta/dates").json()
+    assert empty == {"api_version": "1.1", "timeframe": "d1", "latest": None, "dates": []}
+
+
 # --- §2 /stocks & /stocks/{ticker} -------------------------------------------
 
 

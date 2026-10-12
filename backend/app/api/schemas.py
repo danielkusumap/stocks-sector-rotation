@@ -52,6 +52,12 @@ class MetaConfigResponse(Envelope):
     last_ingest: LastIngest
 
 
+class MetaDatesResponse(Envelope):
+    timeframe: str
+    latest: str | None
+    dates: list[str]
+
+
 # --- §2 diagram & tabel ------------------------------------------------------
 
 

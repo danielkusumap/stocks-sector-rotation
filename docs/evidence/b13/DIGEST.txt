@@ -1,0 +1,17 @@
+Bukti GET /api/v1/meta/dates (docs/05 §1, api_version 1.1) — data nyata data/rotation.db, 2026-10-13
+Dipakai `AsOfPicker` (docs/06 §5, F5): hari tanpa data → UI menonaktifkan, tidak mengirim request.
+
+{}                     -> {"api_version":"1.1","timeframe":"d1","latest":"2026-10-09","dates":["2026-10-09","2026-10-08","2026-10-07", …]}  (120 tanggal, maks default)
+{"timeframe":"w1"}     -> {"timeframe":"w1","latest":"2026-10-09","dates":["2026-10-09","2026-10-02","2026-09-25", …]}                    (74 tanggal mingguan)
+{"limit":5}            -> {"timeframe":"d1","latest":"2026-10-09","dates":["2026-10-09","2026-10-08","2026-10-07","2026-10-06","2026-10-05"]} (limit dihormati)
+{"timeframe":"midday"} -> {"timeframe":"midday","latest":null,"dates":[]}   (belum ada hasil hitung tengah hari → UI pakai input date biasa)
+
+Aturan yang diuji (backend/tests/test_b8_read.py::test_meta_dates & ::test_meta_dates_fallback_dan_kosong):
+- urut menurun, `latest` = elemen pertama; `limit` maks 400 (di luar itu → 422 envelope kontrak)
+- `timeframe` tidak dikenal → 400 invalid_timeframe
+- `rrg_daily` kosong → fallback `sector_metrics`; keduanya kosong → {"latest": null, "dates": []} (bukan error)
+- cache 60 detik (kunci: timeframe + limit)
+
+Catatan: endpoint ini masuk kontrak lewat revisi docs/05 §1 (blocker 15 di docs/PROGRESS.md) setelah
+task B0–B12 selesai; dicatat sebagai B13 di docs/PROGRESS.md supaya tidak tertukar dengan B0–B12.
+Sebelum commit ini panggilan nyata mengembalikan 404 (frontend hanya hijau karena MSW).
