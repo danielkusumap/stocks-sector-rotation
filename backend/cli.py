@@ -117,10 +117,18 @@ def main(argv: list[str] | None = None) -> int:
         from .app.repo import stock as stocks
 
         cfg = get_settings()
-        if args.stage == "signals":
-            err = {"code": "not_implemented", "message": "stage signals menyusul di B7"}
-            print(json.dumps({"api_version": api_version, "error": err}, ensure_ascii=False), file=sys.stderr)
-            return 1
+        if args.stage == "signals" or args.timeframe == "w1_fri":
+            from .app.compute import signals
+
+            gate = signals.gate_final_week(cfg)
+            if gate["gate"] != "ok":
+                err = {
+                    "code": "gate_weekly_not_final",
+                    "message": "sinyal mingguan (w1_fri) dihitung setelah penutupan Jumat",
+                    "detail": gate,
+                }
+                print(json.dumps({"api_version": api_version, "error": err}, ensure_ascii=False), file=sys.stderr)
+                return 1
 
         conn = db.connect()
         try:

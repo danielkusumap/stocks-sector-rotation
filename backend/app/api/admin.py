@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from .. import db, jobs
+from ..compute import signals
 from ..config import get_settings
 from ..ingest import excel, prices
 from ..repo import run as runs
@@ -124,8 +125,15 @@ def compute(body: ComputeBody, async_: bool = Query(False, alias="async")):
             f"timeframe harus salah satu dari: {', '.join(cfg.timeframes['allowed'])}",
             {"received": body.timeframe},
         )
-    if body.stage == "signals":
-        raise _error(400, "not_implemented", "stage signals menyusul di B7")
+    if body.stage == "signals" or body.timeframe == "w1_fri":
+        gate = signals.gate_final_week(cfg)
+        if gate["gate"] != "ok":
+            raise _error(
+                409,
+                "gate_weekly_not_final",
+                "sinyal mingguan (w1_fri) dihitung setelah penutupan Jumat (Sabtu/Minggu juga boleh)",
+                gate,
+            )
 
     conn = db.connect()
     try:

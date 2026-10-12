@@ -119,6 +119,9 @@ weekly:
   min_quadrant_age_periods: 2
   atr_stop_mult: 1.5
   rr_target: 2.0
+  # Sinyal akhir minggu (`w1_fri`) hanya boleh dihitung setelah penutupan Jumat.
+  # Sebelum jam ini di hari Jumat → 409 gate_weekly_not_final; Sabtu/Minggu selalu boleh.
+  final_after_time: "16:15"
   # Risiko per posisi untuk saran jumlah lot (lot = 100 lembar).
   risk_per_trade_idr: 2000000
   require_sektor_kandidat: true     # saham hanya dipilih dari sektor kandidat

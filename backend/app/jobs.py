@@ -13,7 +13,7 @@ import time
 from typing import Callable
 
 from . import db
-from .compute import index, metrics, rrg
+from .compute import index, metrics, rrg, signals
 from .ingest import freshness, prices
 from .repo import run as runs
 
@@ -50,7 +50,7 @@ def midday(params: dict, report: Callable[..., None]) -> dict:
 
 
 def compute(params: dict, report: Callable[..., None]) -> dict:
-    """Stage hitung pipa (docs/05 §4.1): `index` → `rrg`; metrik & sinyal menyusul (B6/B7)."""
+    """Stage hitung pipa (docs/05 §4.1): `index` → `rrg` (+ metrik & skor) → `signals` (mingguan)."""
     started = time.monotonic()
     stage = params.get("stage", "index")
     timeframe = params.get("timeframe", "d1")
@@ -62,9 +62,21 @@ def compute(params: dict, report: Callable[..., None]) -> dict:
         rows += index_result["rows"]
         result["sectors"] = index_result["sectors"]
         result["weightings"] = index_result["weightings"]
-    if stage in ("rrg", "all"):
-        timeframes_list = ["d1", "w1"] if stage == "all" else [timeframe]
-        rrg_result = rrg.compute_rrg(timeframes=timeframes_list, report=report)
+    if stage in ("rrg", "all", "signals"):
+        if stage == "signals":
+            # Tombol 5 bisa ditekan sebelum tombol 4: sinyal saham butuh indikator & RS harian.
+            conn = db.connect()
+            try:
+                needs_daily = conn.execute("SELECT COUNT(*) FROM stock_metrics WHERE timeframe = 'd1'").fetchone()[0] == 0
+            finally:
+                conn.close()
+            if needs_daily:
+                rows += rrg.compute_rrg(timeframes=["d1"], report=report)["rows"]
+                rows += metrics.compute_metrics(timeframes=["d1"], report=report)["rows"]
+                rows += metrics.compute_scores(timeframes=["d1"])["rows"]
+        timeframes_list = ["d1", "w1"] if stage == "all" else (["w1_fri"] if stage == "signals" else [timeframe])
+        scopes = ("sector",) if stage == "signals" else ("sector", "stock")
+        rrg_result = rrg.compute_rrg(timeframes=timeframes_list, scopes=scopes, report=report)
         rows += rrg_result["rows"]
         result["timeframes"] = rrg_result["timeframes"]
         metrics_result = metrics.compute_metrics(timeframes=timeframes_list, report=report)
@@ -73,6 +85,12 @@ def compute(params: dict, report: Callable[..., None]) -> dict:
         scores_result = metrics.compute_scores(timeframes=timeframes_list)
         rows += scores_result["rows"]
         result["score_rows"] = scores_result["rows"]
+
+    if stage in ("signals", "all"):
+        signals_result = signals.compute_signals(report=report)
+        rows += signals_result["rows"]
+        result["signal_weeks"] = signals_result["weeks"]
+        result["signal_rows"] = signals_result["rows"]
 
     result["rows"] = rows
     result["duration_s"] = round(time.monotonic() - started, 2)

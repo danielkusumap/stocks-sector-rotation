@@ -123,8 +123,15 @@ def load_price_series(conn, ticker: str) -> pd.Series:
     return pd.Series({r[0]: r[1] for r in rows}, dtype=float)
 
 
-def compute_rrg(*, timeframes: list[str] | None = None, weightings: list[str] | None = None, db_path=None, report=None) -> dict:
-    """Hitung `rrg_daily` untuk 11 sektor (semua bobot) dan semua saham aktif (bobot default)."""
+def compute_rrg(
+    *,
+    timeframes: list[str] | None = None,
+    weightings: list[str] | None = None,
+    scopes: tuple[str, ...] = ("sector", "stock"),
+    db_path=None,
+    report=None,
+) -> dict:
+    """`rrg_daily` untuk 11 sektor (semua bobot) dan saham aktif (bobot default universe)."""
     cfg = get_settings()
     timeframes = timeframes or ["d1", "w1"]
     sector_weightings = weightings or ["equal", "turnover", "captier"]
@@ -172,6 +179,8 @@ def compute_rrg(*, timeframes: list[str] | None = None, weightings: list[str] | 
                     report(rows=total, phase="compute_rrg", message=f"sektor {timeframe}/{weighting} selesai")
 
             for i, stock in enumerate(stocks, start=1):
+                if "stock" not in scopes:
+                    break
                 bench_sector = load_index_series(conn, stock["sector_id"], stock_weighting)
                 if bench_sector.empty:
                     continue

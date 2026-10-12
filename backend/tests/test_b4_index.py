@@ -250,7 +250,11 @@ def test_compute_endpoint_rejects_unknown_stage(three_stocks, monkeypatch):
     client = TestClient(app)
     assert client.post("/api/v1/admin/compute", json={"stage": "xyz"}).status_code == 400
     assert client.post("/api/v1/admin/compute", json={"stage": "index", "timeframe": "x1"}).status_code == 400
-    signals = client.post("/api/v1/admin/compute", json={"stage": "signals"})
-    assert signals.status_code == 400
-    assert signals.json()["error"]["code"] == "not_implemented"  # B7
+    # B7: `signals` sudah jalan; yang menahan sekarang gate minggu final, bukan "not_implemented".
+    from backend.app.compute import signals as signals_module
+
+    monkeypatch.setattr(signals_module, "gate_final_week", lambda *a, **k: {"gate": "not_final", "weekday": "Tuesday"})
+    gated = client.post("/api/v1/admin/compute", json={"stage": "signals"})
+    assert gated.status_code == 409
+    assert gated.json()["error"]["code"] == "gate_weekly_not_final"
     assert client.post("/api/v1/admin/compute", json={"stage": "rrg", "timeframe": "d1"}).status_code == 200
