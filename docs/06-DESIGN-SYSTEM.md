@@ -221,11 +221,14 @@ Legenda **bukan hiasan** — dia jalur interaksi kedua ke titik yang sama, dan j
 
 Kartu `PointCard` saat hover **tidak boleh** menutupi ekor titik yang sedang dibaca, titik tetangga, atau arah pergerakannya. Offset tetap `+12px` / `-50%` (seperti sebelumnya) selalu melakukan itu di salah satu sisi chart — jadi posisinya dihitung:
 
+**Definisi "tidak menutupi" (dikoreksi F15b):** yang wajib bersih adalah **(a) titik aktif**, **(b) ekor titik aktif**, dan **(c) label titik aktif**. Irisan dengan **ekor titik lain** boleh: mode fokus §6.1 sudah meredupkannya (0,18) dan tanpa itu tidak ada penempatan yang muat untuk kartu selebar ini di chart 760 px. Angka yang dilaporkan karena itu dua: irisan ekor sendiri vs irisan ekor titik lain (per titik).
+
 - Arah gerak titik = vektor `tail[-2] → tail[-1]` (periode terakhir vs sebelumnya). Kartu diletakkan di sisi **berlawanan ekor** — yaitu searah gerak, ruang yang baru ditinggalkan titik — sehingga ekor tetap terlihat utuh.
 - Titik tanpa ekor (`tail < 2`, warmup) → fallback: sisi menjauhi pusat chart (titik di kanan-atas → kartu ke kanan-atas), bukan menimpa kuadran tempat titik itu ada.
-- Kartu tidak boleh keluar kotak chart: jarak tepi minimal 8px; kalau sisi pilihan tidak cukup ruang, `flip` ke sisi seberang pada sumbu itu. Ukuran kartu tetap `w-60`; tinggi tidak perlu diukur kalau penempatan memakai anchor tepi (`translateY(-100%)` saat di atas titik).
+- Kartu tidak boleh keluar kotak chart: jarak tepi minimal 8px; kalau sisi pilihan tidak cukup ruang, `flip` ke sisi seberang pada sumbu itu. Ukuran kartu **`w-50` (200 px)** — diturunkan dari 240 px di F15b setelah pengukuran; tinggi diukur dari DOM kalau penempatan butuh angka tepi.
+- Sisi kanan kartu diberi jarak tambahan sepanjang perkiraan lebar **label titik** (label digambar di kanan titik) supaya kartu tidak menutupi label yang sedang dibaca.
 - Kartu tetap `pointer-events: none` (titik di baliknya tetap bisa di-hover/klik) dan tetap muncul saat hover entri legenda (§6.2).
-- Rumusnya **fungsi murni** (`lib/rrgChart.ts`: `cardPlacement()`) yang diuji unit tanpa DOM; komponen hanya memakainya. Ini yang membuat "tidak menutupi" bisa dibuktikan angka (irisan kotak kartu dengan segmen ekor = 0), bukan penilaian mata.
+- Rumusnya **fungsi murni** (`lib/rrgChart.ts`: `cardPlacement()`) yang diuji unit tanpa DOM; komponen hanya memakainya. Ini yang membuat "tidak menutupi" bisa dibuktikan angka, bukan penilaian mata.
 
 ### 6.4 Chip filter kuadran saham di `SectorDrawer`
 

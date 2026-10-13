@@ -187,6 +187,7 @@ export function QuadrantChart({
       gap: CARD_GAP_PX / scale,
       margin: CARD_MARGIN_PX / scale,
       pointRadius: POINT_RADIUS + FOCUS_RING_WIDTH,
+      label: pointLabel(activeItem, scope),
       // ekor tanpa titik terakhir (titiknya sendiri) — kartu tidak boleh menutupinya
       tail: tail.slice(0, -1).map((point) => ({
         x: xScale(point.rs_ratio),

@@ -146,7 +146,7 @@ Referensi: `docs/06` §5 (`SectorDrawer`), §6.4 (aturan chip), `docs/05` §2 (`
 **AC:**
 1. Unit test 8 arah gerak + kasus tanpa ekor → anchor yang diharapkan, dan tidak ada kasus yang menaruh kartu searah ekor.
 2. Titik di 4 sudut chart → kartu tetap di dalam kotak (uji DOM: `getBoundingClientRect(kartu)` ⊆ kotak chart, toleransi 1px).
-3. Anti-tumpang diukur, bukan dilihat: irisan kotak kartu dengan segmen ekor titik itu = 0 (angka dilaporkan di PROGRESS).
+3. Anti-tumpang diukur, bukan dilihat — definisi F15b: irisan kotak kartu dengan segmen ekor **titik aktif** = 0 dan **label titik aktif** tidak tertutup; irisan dengan ekor **titik lain** boleh (diredupkan 0,18 oleh mode fokus §6.1). Kalau masih ada titik dengan irisan ekor sendiri > 0 → kartu dikecilkan ke 200 px (`w-50`), lalu ukur lagi. Dua angka per titik dilaporkan di PROGRESS.
 4. Hover lewat legenda → kartu tetap di posisi titiknya (regresi §6.2).
 5. `prefers-reduced-motion` tetap 0 ms; titik di balik kartu tetap bisa di-hover/klik.
 

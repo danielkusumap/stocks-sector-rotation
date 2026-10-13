@@ -23,7 +23,7 @@ export function PointCard({
   onOpenDetail?: () => void;
 }) {
   return (
-    <div className="w-60 rounded-md border border-border bg-surface p-3 text-left shadow-float">
+    <div className="w-50 rounded-md border border-border bg-surface p-3 text-left shadow-float">
       <div className="flex items-center gap-2">
         <span
           aria-hidden="true"

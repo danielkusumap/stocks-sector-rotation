@@ -159,10 +159,10 @@ export function legendEntries(items: RrgItem[], query = ""): RrgItem[] {
 // datanya sendiri: arah gerak = vektor `tail[-2] → tail[-1]`, kartu diletakkan **searah
 // gerak** (sisi yang baru ditinggalkan titik, jadi berlawanan dengan ekor).
 // Semua satuan viewBox; pemanggil mengonversi px → viewBox (`/scale`) dan ukuran kartu
-// diukur dari DOM (lebar `w-60` = 240 px, tinggi tergantung isi).
+// diukur dari DOM (lebar `w-50` = 200 px, tinggi tergantung isi).
 
-/** Lebar kartu (`w-60`) — dipakai sebelum kartu sempat diukur. */
-export const CARD_WIDTH_PX = 240;
+/** Lebar kartu (`w-50`) — dipakai sebelum kartu sempat diukur. */
+export const CARD_WIDTH_PX = 200;
 /** Perkiraan tinggi kartu sebelum diukur (7 baris metrik + 2 tautan). */
 export const CARD_HEIGHT_PX = 196;
 /** Jarak kartu dari titik & tepi minimum ke kotak chart (docs/06 §6.3). */
@@ -201,6 +201,8 @@ export interface CardPlacementInput {
   margin?: number;
   /** jari-jari titik + ring (viewBox) — kartu tidak boleh menutupi titiknya sendiri */
   pointRadius?: number;
+  /** label titik aktif (teks) — kartu tidak boleh menutupinya (digambar di kanan titik) */
+  label?: string;
   /** titik ekor (viewBox, tanpa titik terakhir) yang tidak boleh tertutup kartu */
   tail?: readonly { x: number; y: number }[];
 }
@@ -265,6 +267,7 @@ export function cardPlacement({
   gap = CARD_GAP_PX,
   margin = CARD_MARGIN_PX,
   pointRadius = POINT_RADIUS + FOCUS_RING_WIDTH,
+  label = "",
   tail = [],
 }: CardPlacementInput): CardPlacement {
   const dx = previous ? point.x - previous.x : 0;
@@ -272,6 +275,9 @@ export function cardPlacement({
   const sx = Math.abs(dx) > 0.001 ? Math.sign(dx) : 0;
   const sy = Math.abs(dy) > 0.001 ? Math.sign(dy) : 0;
   const preferred = cardSideOf(sx, sy, box, point);
+  // label titik digambar di kanan titik (dx 11–12, fontSize 11) → sisi kanan kartu
+  // diberi jarak ekstra sepanjang perkiraan lebar label supaya label tetap terbaca
+  const labelGap = label ? LABEL_DX + label.length * LABEL_CHAR_W + 4 : 0;
 
   const minX = box.x0 + margin;
   const minY = box.y0 + margin;
@@ -291,7 +297,7 @@ export function cardPlacement({
   );
 
   const at = (side: CardSide): { x: number; y: number } => {
-    if (side === "right") return { x: point.x + gap, y: point.y - card.h / 2 };
+    if (side === "right") return { x: point.x + gap + labelGap, y: point.y - card.h / 2 };
     if (side === "left") return { x: point.x - gap - card.w, y: point.y - card.h / 2 };
     if (side === "bottom") return { x: point.x - card.w / 2, y: point.y + gap };
     return { x: point.x - card.w / 2, y: point.y - gap - card.h };
