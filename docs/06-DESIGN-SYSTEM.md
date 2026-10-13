@@ -124,12 +124,12 @@ Hue berbeda, lightness seragam per tema supaya tidak ada sektor yang "terlihat l
 |---|---|
 | `AppShell` | Sidebar kiri (Overview, Sektor, Saham, Weekly, Status), topbar dengan judul halaman + `AsOfPicker` + `FreshnessPill` + toggle tema. |
 | `TimeframeSegmented` | Segmented control: `Harian` / `Mingguan` / `Mingguan (Sen–Jum)` / `Tengah Hari`. Opsi `Mingguan (Sen–Jum)` menampilkan ikon gembok + tooltip "tersedia setelah penutupan Jumat" bila hasil final belum ada. Nilainya masuk URL. |
-| `WindowSelect` | Pilih `1B/1M/3M/6M/1T/YTD` (default 3M) untuk panjang ekor & kolom return. Ada catatan kecil "tidak mengubah kuadran". |
+| `WindowSelect` | Pilih `1 mgg / 1 bln / 3 bln / 6 bln / 1 thn / YTD` (default **3 bln**) untuk panjang ekor & kolom return. Ada catatan kecil "tidak mengubah kuadran". Kode di URL tetap Inggris: `1w,1m,3m,6m,1y,ytd` — **label UI Bahasa Indonesia** (`mgg`, `bln`, `thn`), jangan campur. |
 | `AsOfPicker` | Tanggal acuan; hari tanpa data ditandai & tidak bisa dipilih. |
 | `FreshnessPill` | `ok` (dot hijau + "data 12 Okt 16:10") / `stale` (dot amber + "delay") / `partial` (dot merah + "n sektor tipis"). Klik → popover detail `data_status`. |
 | `QuadrantChart` (RRG) | SVG buatan sendiri (lihat §6 & §6.1). Ekor, crosshair di 100/100, zona kuadran berwarna 4%, hover menampilkan `PointCard`, klik = pin sektor (sinkron dua arah dengan tabel). **Mode fokus:** titik terfokus terang, sisanya meredup 0,22. Keyboard penuh. |
 | `PointCard` | Popover: nama, kuadran + umur, RS-Ratio/RS-Momentum + perubahan, return, turnover, streak, tombol "Lihat saham sektor ini". |
-| `SectorTable` | Kolom: Sektor, Kuadran, Umur, RS-Ratio, RS-Mom, Δ1p, 1H, 1B, 3B, **Turnover hr ini**, Streak, Skor. Sortable semua kolom angka; baris klik → `SectorDrawer`. |
+| `SectorTable` | Kolom: Sektor, Kuadran, Umur, RS-Ratio, RS-Mom, Δ1p, **1 hr**, **1 mgg**, **1 bln**, **3 bln**, **Turnover hr ini**, Streak, Skor. Sortable semua kolom angka; baris klik → `SectorDrawer`. |
 | `FilterBar` | Chip filter aktif (bisa dihapus satu-satu), tombol "Filter" (popover), "Reset". Semua nilai tercermin di URL. |
 | `Sparkline` | 80×24 SVG dari seri 30 bar terakhir, tanpa axis, warna `--up/--down` sesuai perubahan total. |
 | `QuadrantBadge` | Badge kecil 20px: dot warna kuadran + label Indonesia. |
@@ -138,7 +138,7 @@ Hue berbeda, lightness seragam per tema supaya tidak ada sektor yang "terlihat l
 | `StockTable` | Kolom seperti `SectorTable` + Ticker, Nama, Harga, RSI, ATR, Skor. Baris klik → halaman `/stocks/{ticker}`. |
 | `WeeklyPicksPanel` | Dua blok (Sektor / Saham), tiap baris: rank, nama, streak badge, `entry_ref/stop/target` (monospace), `rationale`, expander "kenapa?" → `rule_hits` sebagai daftar centang. |
 | `RotationMatrix` | Matriks 4×4 count transisi + daftar perubahan. |
-| `HeatmapGrid` | 11 baris × 4 kolom (1H/1B/1M/3B), intensitas warna dari `--up/--down` dengan alpha 0.08–0.55, angka selalu tampil. |
+| `HeatmapGrid` | 11 baris × 4 kolom (`1 hr` / `1 mgg` / `1 bln` / `3 bln`), intensitas warna dari `--up/--down` dengan alpha 0.08–0.55, angka selalu tampil. |
 | `StatCard` | Angka besar 24px monospace + label 11px uppercase + delta kecil. Tanpa ikon dekoratif. |
 | `EmptyState`, `Skeleton`, `ErrorState`, `Toast` | Skeleton meniru bentuk tabel (bukan spinner penuh layar). ErrorState menampilkan pesan API apa adanya + tombol "Coba lagi". |
 
@@ -234,7 +234,7 @@ Halaman Overview, dark mode, lebar 1440px:
 │      ├──────────────────────────────────────────────────────────┤  2. IDXHEALTH   1w             │
 │      │ Filter: [Kuadran ▾] [Sektor ▾] [Streak ≥ 1 ▾] [Likuiditas Rp 1 M ▾]  Reset │ 3 filter │  3. IDXTRANS    1w             │
 │      ├──────────────────────────────────────────────────────────┴────────────────────────────────┤
-│      │ Sektor         Kuadran      Umur  RS-Ratio  RS-Mom   Δ1p    1H      1B      3B    Turnover hr ini │
+│      │ Sektor         Kuadran      Umur  RS-Ratio  RS-Mom   Δ1p   1 hr    1 mgg   1 bln   3 bln  Turnover hr ini │
 │      │ Keuangan       ● Memimpin    2    102,31    100,84   +0,42  +1,81%  +4,12%  +9,03%  1,18 T  │
 │      │ Kesehatan      ● Memimpin    1    101,06    100,41   +0,11  +0,92%  +2,44%  +5,10%  412 M    │
 │      │ Infrastruktur  ● Membaik     1     98,74     99,88   +0,31  +0,44%  −0,80%  +1,20%  245 M    │
@@ -247,7 +247,7 @@ Mock data yang wajib dipakai saat frontend dibangun tanpa backend (MSW/fixture):
 Halaman `/weekly`:
 
 ```
-┌ Fokus Mingguan — pekan 6–10 Okt 2026 (final, Jumat 9 Okt) ───────────────────────────────────────┐
+┌ Fokus Mingguan — pekan 5–9 Okt 2026 (final, Jumat 9 Okt) ───────────────────────────────────────┐
 │  SEKTOR                                                                                          │
 │  1  Keuangan        2w  skor 87,4   "Masuk Memimpin 2 periode berturut-turut, momentum naik."  ▾ │
 │  2  Kesehatan       1w  skor 71,2   "Membaik dengan RS-Momentum di atas 100."                  ▾ │

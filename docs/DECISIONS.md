@@ -200,6 +200,14 @@ Format:
 - alternatif: (a) menaikkan `busy_timeout_ms` → ditolak: tidak menolong `SQLITE_BUSY_SNAPSHOT` (tidak menunggu, langsung gagal); (b) satu koneksi untuk seluruh job (worker meminjamkan koneksinya) → ditolak: diff besar dan mengubah tanda tangan semua fungsi compute; (c) membungkam semua error di `report` → ditolak: error skema nyata harus terlihat.
 - dampak: `stage=all`/`stage=signals` tahan terhadap pemantauan UI dan job lain yang menulis. Dijaga test `test_week_picks_tidak_menahan_transaksi` + `test_report_best_effort_saat_database_locked`.
 
+## ADR-033 — Kepemilikan param URL dibagi per modul (`week_end`/`scope` di `weeklyPicks.ts`)
+- tanggal: 2026-10-13
+- status: diterima
+- konteks: halaman Weekly butuh param `week_end` (dan `scope`), tapi `FilterState` di `lib/urlFilters.ts` tidak memuatnya dan modul itu dipakai tabel Sektor/Saham. Sesi F9 menyimpannya di `lib/weeklyPicks.ts` dan melaporkannya sebagai penyimpangan yang belum tercatat.
+- keputusan: URL tetap **satu-satunya** sumber state filter, tapi kepemilikan param dibagi per modul: `lib/urlFilters.ts` = param tabel (`timeframe, window, sector, quadrant, transition, min_streak, min_turnover_idr, min_price_idr, ret_positive_only, only_partial, sort, dir, q, limit, offset, as_of`); `lib/weeklyPicks.ts` = param halaman Weekly (`week_end`, `scope`). Tidak ada `useState` filter di komponen mana pun. Aturan turunannya: **satu param = tepat satu modul penulis** (satu modul boleh menulis beberapa param, satu param tidak boleh ditulis dua modul).
+- alternatif: (a) menambahkan `week_end`/`scope` ke `FilterState` → ditolak: memaksa setiap halaman tabel membawa dua param yang tidak dipakainya, dan `FilterState` jadi tempat sampah param lintas halaman; (b) state lokal di komponen Weekly → ditolak: melanggar invariant "filter hidup di URL" (tidak shareable, hilang saat reload).
+- dampak: kalau nanti ada modul ketiga yang butuh param yang sama, **konsolidasikan** (pindahkan ke satu modul) dan ganti ADR ini. `docs/06` §5/§7 tetap berlaku: nilai filter wajib tercermin di URL.
+
 ## ADR-032 — `data_status.status = stale` bila belum ada hasil hitung
 - tanggal: 2026-10-13
 - status: diterima (temuan gladi bersih)
