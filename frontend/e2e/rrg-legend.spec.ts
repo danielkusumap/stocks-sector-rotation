@@ -42,9 +42,11 @@ test("klik entri = pin; klik baris tabel memindahkan pin; klik ulang melepas", a
   await expect(finance).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByTestId("rrg-chart")).toHaveAttribute("data-pinned", "IDXFINANCE");
 
-  // klik baris tabel → pin pindah (satu keadaan, docs/06 §6.1)
+  // klik baris tabel → pin pindah (satu keadaan, docs/06 §6.1) + drawer detail sektor terbuka (F7)
   await page.getByTestId("sector-row-IDXENERGY").click();
-  await page.keyboard.press("Escape"); // tutup drawer detail sektor (F7) supaya legenda bisa diklik
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await page.keyboard.press("Escape"); // tutup drawer supaya legenda bisa diklik (overlay modal)
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByTestId("rrg-chart")).toHaveAttribute("data-pinned", "IDXENERGY");
   await expect(legend(page, "IDXENERGY")).toHaveAttribute("aria-pressed", "true");
   await expect(finance).toHaveAttribute("aria-pressed", "false");

@@ -8,7 +8,7 @@ import { expect, test, type Page } from "@playwright/test";
 const panel = (page: Page, title: string) =>
   page.locator("section").filter({ has: page.getByRole("heading", { name: title, exact: true }) });
 
-test("gate ok: pill, syarat, waktu bar per probe, dan config aktif", async ({ page }) => {
+test("@slow gate ok: pill, syarat, waktu bar per probe, dan config aktif", async ({ page }) => {
   await page.goto("/status?mock=ok");
 
   const gate = panel(page, "Gate tengah hari");
@@ -36,7 +36,7 @@ test("gate ok: pill, syarat, waktu bar per probe, dan config aktif", async ({ pa
   await expect(page).toHaveURL(/\/data$/);
 });
 
-test("gate stale: kalimat tindakan, bukan hanya warna", async ({ page }) => {
+test("@slow gate stale: kalimat tindakan, bukan hanya warna", async ({ page }) => {
   await page.goto("/status?mock=stale");
 
   const gate = panel(page, "Gate tengah hari");
@@ -47,14 +47,14 @@ test("gate stale: kalimat tindakan, bukan hanya warna", async ({ page }) => {
   await expect(gate.getByRole("row").nth(1)).toContainText("13 Okt 2026 11:05");
 });
 
-test("riwayat kosong: halaman tetap tampil tanpa error", async ({ page }) => {
+test("@slow riwayat kosong: halaman tetap tampil tanpa error", async ({ page }) => {
   await page.goto("/status");
   const history = panel(page, "Riwayat run");
   await expect(history).toContainText("Belum ada run.");
   await expect(page.locator("vite-error-overlay")).toHaveCount(0);
 });
 
-test("riwayat run sama di /data dan /status; klik baris membuka detail", async ({ page }) => {
+test("@slow riwayat run sama di /data dan /status; klik baris membuka detail", async ({ page }) => {
   test.setTimeout(60_000);
   await page.goto("/data");
 

@@ -6,7 +6,7 @@ import { expect, test } from "@playwright/test";
  * Dev server + MSW.
  */
 
-test("kartu IHSG: angka, waktu bar, kata delay, dan penanda live", async ({ page }) => {
+test("@slow kartu IHSG: angka, waktu bar, kata delay, dan penanda live", async ({ page }) => {
   await page.goto("/");
   const card = page.getByTestId("ihsg-card");
   await expect(card).toBeVisible();
@@ -22,7 +22,7 @@ test("kartu IHSG: angka, waktu bar, kata delay, dan penanda live", async ({ page
   await expect(page.getByTestId("ihsg-card")).toHaveCount(1);
 });
 
-test("kutipan jatuh ke data tersimpan: penanda amber + kalimat jujur, tanpa baris intraday", async ({
+test("@slow kutipan jatuh ke data tersimpan: penanda amber + kalimat jujur, tanpa baris intraday", async ({
   page,
 }) => {
   await page.goto("/?mock=stale");
@@ -36,7 +36,7 @@ test("kutipan jatuh ke data tersimpan: penanda amber + kalimat jujur, tanpa bari
   await expect(page.getByTestId("ihsg-intraday")).toHaveCount(0);
 });
 
-test("poll berjalan: label 'per …' bergerak dan angka tidak menggeser kartu", async ({ page }) => {
+test("@slow poll berjalan: label 'per …' bergerak dan angka tidak menggeser kartu", async ({ page }) => {
   await page.goto("/?mock=fast");
   const meta = page.getByTestId("ihsg-meta");
   await expect(meta).toBeVisible();
@@ -53,7 +53,7 @@ test("poll berjalan: label 'per …' bergerak dan angka tidak menggeser kartu", 
   await expect(page.getByTestId("ihsg-close")).toHaveText("5.936,15");
 });
 
-test("fetch gagal tidak mengosongkan kartu (angka terakhir bertahan + penanda tersimpan)", async ({
+test("@slow fetch gagal tidak mengosongkan kartu (angka terakhir bertahan + penanda tersimpan)", async ({
   page,
 }) => {
   // `?mock=down`: poll pertama ok, poll berikutnya 500 → kartu memakai data terakhir

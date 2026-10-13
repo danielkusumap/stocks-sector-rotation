@@ -19,7 +19,7 @@ function summarize(violations: Awaited<ReturnType<AxeBuilder["analyze"]>>["viola
 
 for (const theme of THEMES) {
   for (const path of PAGES) {
-    test(`axe bersih (WCAG2AA) — ${theme} ${path}`, async ({ page }) => {
+    test(`@a11y axe bersih (WCAG2AA) — ${theme} ${path}`, async ({ page }) => {
       // tema dipasang sebelum paint supaya tidak ada kedip + axe mengukur tema yang benar
       await page.addInitScript((value) => localStorage.setItem("theme", value), theme);
       await page.goto(path);
@@ -36,7 +36,7 @@ for (const theme of THEMES) {
   }
 }
 
-test("tidak ada CLS saat skeleton berganti data (jaringan diperlambat)", async ({ page }) => {
+test("@a11y tidak ada CLS saat skeleton berganti data (jaringan diperlambat)", async ({ page }) => {
   // catat pergeseran tata letak sejak sebelum React mount
   await page.addInitScript(() => {
     (window as unknown as { __cls: number }).__cls = 0;
@@ -53,7 +53,8 @@ test("tidak ada CLS saat skeleton berganti data (jaringan diperlambat)", async (
   });
 
   await page.goto("/");
-  await expect(page.locator("[data-testid^=sector-row-]")).toHaveCount(11);
+  // tunggu data (bukan asersi ketepatan): dengan 6 worker + delay 400 ms, 10 s bawaan terlalu ketat
+  await expect(page.locator("[data-testid^=sector-row-]")).toHaveCount(11, { timeout: 30_000 });
   await page.waitForTimeout(1200);
 
   const cls = await page.evaluate(() => (window as unknown as { __cls: number }).__cls);

@@ -31,11 +31,12 @@ test.describe("halaman Weekly", () => {
     await expect(kesehatan.getByTestId("pick-streak")).toBeEmpty();
     await expect(kesehatan.getByTestId("pick-streak")).toHaveAttribute("data-weeks", "1");
 
-    // entry/stop/target: angka format Indonesia + font monospace (docs/06 §4/§5)
+    // entry/stop/target: angka format Indonesia + font monospace (docs/06 §4/§5).
+    // Sejak F18 baris pick memakai ringkasan plan (`planSummary`), bukan lagi `entry … target …`.
     const bbri = page.getByTestId("pick-stock-BBRI");
     await expect(bbri).toContainText("BBRI");
     await expect(bbri.getByTestId("pick-figures")).toHaveText(
-      "entry 4.250 · stop 4.132 · target 4.486 · 12 lot · skor 92,1",
+      "zona 4.210–4.290 · SL 4.132 (−2,78%) · TP1 4.370 (+2,82%) · TP2 4.486 (+5,55%) · R:R 1,62:1 · 12 lot · skor 92,1",
     );
     await expect(bbri.getByTestId("pick-figures").locator(".font-mono")).toHaveCSS(
       "font-family",
@@ -53,7 +54,8 @@ test.describe("halaman Weekly", () => {
     const bbri = page.getByTestId("pick-stock-BBRI");
     const stockRules = bbri.getByTestId("rule-hits");
     await expect(stockRules).toBeHidden();
-    await bbri.locator("summary").click();
+    // expander pick = yang pertama; sejak F18 ada expander kedua (`plan`) di baris yang sama
+    await bbri.locator("summary").first().click();
     await expect(stockRules).toBeVisible();
 
     // 7 aturan docs/03 §6.2 — tidak ada yang disembunyikan
@@ -77,12 +79,12 @@ test.describe("halaman Weekly", () => {
     await expect(stockRules.locator("li[data-rule=rsi_ok]")).toContainText("lolos");
 
     // keyboard: Enter pada summary menutup lagi (details native, tanpa handler sendiri)
-    await bbri.locator("summary").press("Enter");
+    await bbri.locator("summary").first().press("Enter");
     await expect(stockRules).toBeHidden();
 
     // sektor: kuadran = baris info, sisanya 4 aturan docs/03 §6.1
     const keuangan = page.getByTestId("pick-sector-IDXFINANCE");
-    await keuangan.locator("summary").click();
+    await keuangan.locator("summary").first().click();
     await expect(keuangan.getByTestId("rule-hits").locator("li")).toHaveCount(5);
     await expect(keuangan.locator("li[data-rule=quadrant]")).toContainText("kuadran Memimpin");
     await expect(keuangan.locator("li[data-ok=info]")).toHaveCount(1);

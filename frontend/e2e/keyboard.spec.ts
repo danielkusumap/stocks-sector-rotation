@@ -72,7 +72,7 @@ for (const theme of ["dark", "light"] as const) {
   });
 }
 
-test("tabel: Enter di header mengurutkan dan menulis URL (juga saat ditekan cepat dua kali)", async ({
+test("@slow tabel: Enter di header mengurutkan dan menulis URL (juga saat ditekan cepat dua kali)", async ({
   page,
 }) => {
   await page.goto("/");
@@ -91,7 +91,7 @@ test("tabel: Enter di header mengurutkan dan menulis URL (juga saat ditekan cepa
   );
 });
 
-test("popover Filter: Enter membuka, Esc menutup dan fokus kembali ke tombolnya", async ({ page }) => {
+test("@slow popover Filter: Enter membuka, Esc menutup dan fokus kembali ke tombolnya", async ({ page }) => {
   await page.goto("/");
   await ready(page);
 
@@ -107,7 +107,7 @@ test("popover Filter: Enter membuka, Esc menutup dan fokus kembali ke tombolnya"
   await expect(page.getByRole("button", { name: /^Filter/ })).toBeFocused();
 });
 
-test("/data: stepper terjangkau Tab, Enter di tombol 1 membuka pemilih berkas", async ({ page }) => {
+test("@slow /data: stepper terjangkau Tab, Enter di tombol 1 membuka pemilih berkas", async ({ page }) => {
   await page.goto("/data");
   // 8 langkah sejak F17 (analisa teknikal + refresh tampilan)
   await expect(page.locator("ol > li")).toHaveCount(8);
@@ -123,7 +123,7 @@ test("/data: stepper terjangkau Tab, Enter di tombol 1 membuka pemilih berkas", 
   expect(chooser.isMultiple()).toBe(false);
 });
 
-test("/weekly: pemilih pekan bisa dibuka & dipilih dengan keyboard", async ({ page }) => {
+test("@slow /weekly: pemilih pekan bisa dibuka & dipilih dengan keyboard", async ({ page }) => {
   await page.goto("/weekly");
   await expect(page.getByTestId("weekly-picks")).toBeVisible();
 

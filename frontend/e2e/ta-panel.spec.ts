@@ -17,7 +17,7 @@ async function taSummary(page: Page, scope: "sector" | "stock") {
   }, scope);
 }
 
-test("panel TA di drawer sektor: 4 angka, baris terakhir breakout, perbandingan filter, tabel event, cakupan", async ({
+test("@slow panel TA di drawer sektor: 4 angka, baris terakhir breakout, perbandingan filter, tabel event, cakupan", async ({
   page,
 }) => {
   await page.goto("/sectors?sector=IDXFINANCE");
@@ -61,7 +61,7 @@ test("panel TA di drawer sektor: 4 angka, baris terakhir breakout, perbandingan 
   await expect(page.getByTestId("ta-coverage")).toContainText("data 14 Okt 2024 – 13 Okt 2026 · harga penyesuaian");
 });
 
-test("ganti MA & toggle filter tren → panel berubah tanpa reload, state bertahan selama drawer terbuka", async ({
+test("@slow ganti MA & toggle filter tren → panel berubah tanpa reload, state bertahan selama drawer terbuka", async ({
   page,
 }) => {
   await page.goto("/sectors?sector=IDXFINANCE");
@@ -80,7 +80,7 @@ test("ganti MA & toggle filter tren → panel berubah tanpa reload, state bertah
   await expect(page.locator("vite-error-overlay")).toHaveCount(0);
 });
 
-test("uji silang: angka panel = /ta/summary = sel kolom tabel (3 ticker)", async ({ page }) => {
+test("@slow uji silang: angka panel = /ta/summary = sel kolom tabel (3 ticker)", async ({ page }) => {
   for (const ticker of ["BBRI", "BBCA", "TLKM"]) {
     // 1) angka backend (default MA & filter dari config) — tunggu tabel dulu supaya MSW aktif
     await page.goto("/stocks");
@@ -104,7 +104,7 @@ test("uji silang: angka panel = /ta/summary = sel kolom tabel (3 ticker)", async
   }
 });
 
-test("kolom insight = satu permintaan /ta/summary per halaman, bukan per baris", async ({ page }) => {
+test("@slow kolom insight = satu permintaan /ta/summary per halaman, bukan per baris", async ({ page }) => {
   const calls: string[] = [];
   page.on("request", (request) => {
     if (request.url().includes("/api/v1/ta/")) calls.push(new URL(request.url()).pathname + new URL(request.url()).search);
@@ -131,7 +131,7 @@ test("kolom insight = satu permintaan /ta/summary per halaman, bukan per baris",
   expect([...new Set(calls)]).toEqual(["/api/v1/ta/summary?scope=stock&limit=500"]);
 });
 
-test("entitas tanpa event: EmptyState + angka `—` (bukan `0%`), halaman tetap jalan", async ({ page }) => {
+test("@slow entitas tanpa event: EmptyState + angka `—` (bukan `0%`), halaman tetap jalan", async ({ page }) => {
   // ANTM ada di fixture tanpa satu pun event backtest → kasus "belum ada breakout"
   await page.goto("/stocks/ANTM");
   const panel = page.getByTestId("ta-panel-ANTM");
@@ -145,7 +145,7 @@ test("entitas tanpa event: EmptyState + angka `—` (bukan `0%`), halaman tetap 
   await expect(page.locator("vite-error-overlay")).toHaveCount(0);
 });
 
-test("/data: tombol 7 hitung analisa teknikal — terkunci, jalan, selesai dengan ringkasan hasil", async ({
+test("@slow /data: tombol 7 hitung analisa teknikal — terkunci, jalan, selesai dengan ringkasan hasil", async ({
   page,
 }) => {
   test.setTimeout(120_000);

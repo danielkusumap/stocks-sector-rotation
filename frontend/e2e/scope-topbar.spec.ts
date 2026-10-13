@@ -5,7 +5,7 @@ import { expect, test } from "@playwright/test";
  * berasal dari `data_status` (bukan dihitung frontend). Dev server + MSW.
  */
 
-test("label periode ikut berubah untuk 4 timeframe (nilainya dari API)", async ({ page }) => {
+test("@slow label periode ikut berubah untuk 4 timeframe (nilainya dari API)", async ({ page }) => {
   await page.goto("/");
   const label = page.getByTestId("periode-label");
   await expect(label).toContainText("Harian · 12 Okt 2026 · jendela 3 bln");
@@ -24,7 +24,7 @@ test("label periode ikut berubah untuk 4 timeframe (nilainya dari API)", async (
   await expect(label).toContainText("Tengah Hari · 13 Okt 2026");
 });
 
-test("mengganti Jendela mengubah bagian jendela di label", async ({ page }) => {
+test("@slow mengganti Jendela mengubah bagian jendela di label", async ({ page }) => {
   await page.goto("/");
   const label = page.getByTestId("periode-label");
   await page.getByRole("combobox", { name: "Jendela" }).click();
@@ -33,13 +33,13 @@ test("mengganti Jendela mengubah bagian jendela di label", async ({ page }) => {
   await expect(page).toHaveURL(/window=6m/);
 });
 
-test("range_label null → 'belum ada data', halaman tetap tampil", async ({ page }) => {
+test("@slow range_label null → 'belum ada data', halaman tetap tampil", async ({ page }) => {
   await page.goto("/?mock=empty");
   await expect(page.getByTestId("periode-label")).toContainText("belum ada data");
   await expect(page.locator("vite-error-overlay")).toHaveCount(0);
 });
 
-test("kontrol Timeframe/Jendela tidak diduplikasi di FilterBar", async ({ page }) => {
+test("@slow kontrol Timeframe/Jendela tidak diduplikasi di FilterBar", async ({ page }) => {
   await page.goto("/");
   // hanya satu grup Timeframe (topbar) dan satu select Jendela (topbar)
   await expect(page.getByRole("group", { name: "Timeframe" })).toHaveCount(1);
@@ -50,7 +50,7 @@ test("kontrol Timeframe/Jendela tidak diduplikasi di FilterBar", async ({ page }
   await expect(page.getByRole("combobox", { name: "Jendela" })).toHaveCount(1);
 });
 
-test("chip timeframe tetap bisa dihapus dari FilterBar", async ({ page }) => {
+test("@slow chip timeframe tetap bisa dihapus dari FilterBar", async ({ page }) => {
   await page.goto("/?timeframe=w1_fri&window=6m");
   await expect(page.getByTestId("chip-timeframe")).toContainText("Mingguan (Sen–Jum)");
   await page.getByRole("button", { name: /Hapus filter Mingguan/ }).click();
@@ -58,7 +58,7 @@ test("chip timeframe tetap bisa dihapus dari FilterBar", async ({ page }) => {
   await expect(page.getByTestId("periode-label")).toContainText("Harian");
 });
 
-test("prasyarat tombol /data dibaca dari DATA, bukan riwayat run", async ({ page }) => {
+test("@slow prasyarat tombol /data dibaca dari DATA, bukan riwayat run", async ({ page }) => {
   // mock: riwayat run kosong, tapi `last_ingest.prices_daily` + universe terisi → tombol aktif
   await page.goto("/data");
   const steps = page.locator("ol > li");
@@ -80,7 +80,7 @@ test("prasyarat tombol /data dibaca dari DATA, bukan riwayat run", async ({ page
   }
 });
 
-test("impor file yang sama dua kali → 409, tombol 2 tetap aktif", async ({ page }) => {
+test("@slow impor file yang sama dua kali → 409, tombol 2 tetap aktif", async ({ page }) => {
   test.setTimeout(60_000);
   await page.goto("/data");
   const file = {
