@@ -278,6 +278,14 @@ let marketCalls = 0;
 /** Waktu panggilan pertama `?mock=down` — burst mount (StrictMode) harus lolos dulu. */
 let marketFirstAt = 0;
 
+/** Regime seperti backend (docs/05 §3): turun ≥ ambang → risk_off, naik ≥ ambang → risk_on, sisanya mixed. */
+function regimeOf(up: number, total: number, threshold = 7): string {
+  const down = total - up;
+  if (down >= threshold) return "risk_off";
+  if (up >= threshold) return "risk_on";
+  return "mixed";
+}
+
 function marketHandler(request: Request) {
   const sp = new URL(request.url).searchParams;
   marketCalls += 1;
@@ -787,9 +795,41 @@ export const handlers = [
         sectors_up: up,
         sectors_down: sectors.length - up,
         breadth: { advancers: sum("advancers"), decliners: sum("decliners"), unchanged: sum("unchanged") },
-        regime: up > sectors.length - up ? "risk_on" : up === sectors.length - up ? "netral" : "risk_off",
+        regime: sp.get("mock") === "mixed" ? "mixed" : regimeOf(up, sectors.length),
         regime_note: `${up} dari ${sectors.length} sektor naik; kekuatan terkumpul di ${byScore[0]?.name_id ?? "-"} dan ${byScore[1]?.name_id ?? "-"}.`,
       },
+      // `summary_lines` + `watchlist` (docs/05 §3, docs/08 F13d) — mock berperan backend:
+      // kalimatnya template dari angka fixture, frontend hanya menampilkan.
+      summary_lines:
+        sp.get("mock") === "empty"
+          ? []
+          : [
+              `${up} dari ${sectors.length} sektor naik hari ini; kekuatan terkumpul di ${byScore[0]?.name_id ?? "-"} dan ${byScore[1]?.name_id ?? "-"}.`,
+              `${byScore[0]?.name_id ?? "-"} naik 1,81% dalam sebulan; ${byScore[byScore.length - 1]?.name_id ?? "-"} turun 4,30% — paling dalam.`,
+              "Berpindah kuadran: Infrastruktur dari Tertinggal ke Membaik.",
+              `Yang dipantau minggu ini: ${weekly.sectors[0]?.name ?? "-"} (Memimpin ${weekly.sectors[0]?.streak_weeks ?? 0} minggu berturut-turut).`,
+            ],
+      watchlist:
+        sp.get("mock") === "empty"
+          ? []
+          : [
+              {
+                kind: "sector",
+                ref_id: weekly.sectors[0].ref_id,
+                name: weekly.sectors[0].name,
+                quadrant: "leading",
+                streak_weeks: weekly.sectors[0].streak_weeks,
+                reason: `Memimpin ${weekly.sectors[0].streak_weeks} minggu berturut-turut, kekuatan relatif masih naik.`,
+              },
+              {
+                kind: "stock",
+                ref_id: weekly.stocks[0].ticker,
+                name: weekly.stocks[0].name,
+                quadrant: "leading",
+                streak_weeks: weekly.stocks[0].streak_weeks,
+                reason: `${weekly.stocks[0].streak_weeks} minggu berturut-turut masuk daftar; entry ${weekly.stocks[0].entry_ref}, stop ${weekly.stocks[0].stop}.`,
+              },
+            ],
       leaders: ranked(byScore.slice(0, topN)),
       laggards: ranked(byScore.slice(-topN).reverse()),
       changes: sectors

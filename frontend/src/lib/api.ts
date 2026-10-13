@@ -512,10 +512,24 @@ export interface BriefingParams {
   top_n?: number;
 }
 
+/** Satu item "Perlu dipantau" (`docs/05` §3) — sektor (`name`) atau saham (`ref_id` = ticker). */
+export interface WatchItem {
+  kind: "sector" | "stock";
+  ref_id: string;
+  name: string;
+  quadrant: Quadrant | null;
+  streak_weeks: number;
+  reason: string;
+}
+
 export interface BriefingResponse {
   api_version: string;
   generated_at: string;
   data_status: DataStatus;
+  /** 3–6 kalimat ringkas dari backend (`docs/05` §3); `[]` = belum ada hasil hitung. */
+  summary_lines: string[];
+  /** Maks 3 item; `[]` → blok "Perlu dipantau" disembunyikan. */
+  watchlist: WatchItem[];
   market: {
     ihsg_close: number;
     ihsg_ret_1d: number | null;
