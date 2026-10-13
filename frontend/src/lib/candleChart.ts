@@ -472,3 +472,75 @@ export function elliottShapes(elliott: ElliottLayers | undefined, scale: ShapeSc
 
   return shapes;
 }
+
+// ── F23: zoom & pan (docs/06 §6.8) ──────────────────────────────────────────
+
+/** Rentang bar yang terlihat: `[start, end)` dalam indeks `candles`. */
+export interface ViewRange {
+  start: number;
+  end: number;
+}
+
+/** Minimal 20 bar terlihat (docs/06 §6.8); data < 20 bar tidak bisa di-zoom. */
+export const MIN_ZOOM_BARS = 20;
+
+/** Zoom dianggap "dalam" saat ≤ 2/3 data terlihat — pan vertikal baru berguna (docs/06 §6.8). */
+export const DEEP_ZOOM_RATIO = 2 / 3;
+
+export function clampRange(range: ViewRange, total: number): ViewRange {
+  if (total <= MIN_ZOOM_BARS) return { start: 0, end: total };
+  const width = Math.min(Math.max(MIN_ZOOM_BARS, Math.round(range.end - range.start)), total);
+  const start = Math.max(0, Math.min(total - width, Math.round(range.start)));
+  return { start, end: start + width };
+}
+
+/** `null` = seluruh data (keadaan awal). */
+export function visibleRange(state: ViewRange | null, total: number): ViewRange {
+  return state === null ? { start: 0, end: total } : clampRange(state, total);
+}
+
+/**
+ * Zoom dengan **titik jangkar di kursor** (docs/06 §6.8): `factor < 1` = memperbesar, dan bar di
+ * bawah kursor tetap di posisi yang sama. Selalu dijepit ke `MIN_ZOOM_BARS` & tepi data.
+ */
+export function zoomAt(state: ViewRange | null, total: number, factor: number, anchorIndex: number): ViewRange {
+  const current = visibleRange(state, total);
+  const width = current.end - current.start;
+  const nextWidth = Math.min(Math.max(MIN_ZOOM_BARS, Math.round(width * factor)), total);
+  const anchor = Math.max(current.start, Math.min(current.end - 1, anchorIndex));
+  const ratio = width <= 1 ? 0.5 : (anchor - current.start) / width;
+  const start = Math.round(anchor - ratio * nextWidth);
+  return clampRange({ start, end: start + nextWidth }, total);
+}
+
+/** Geser rentang sejumlah bar; dijepit ke tepi data (docs/06 §6.8). */
+export function panBy(state: ViewRange | null, total: number, deltaBars: number): ViewRange {
+  const current = visibleRange(state, total);
+  return clampRange({ start: current.start + deltaBars, end: current.end + deltaBars }, total);
+}
+
+/** Benar saat rentang terlihat cukup sempit untuk pan vertikal (> 1,5×, docs/06 §6.8). */
+export function deepZoom(state: ViewRange | null, total: number): boolean {
+  const current = visibleRange(state, total);
+  return total > MIN_ZOOM_BARS && current.end - current.start <= total * DEEP_ZOOM_RATIO;
+}
+
+/** Sumbu harga digeser sesuai pan vertikal: `fraction` negatif = domain naik (harga tampak turun). */
+export function shiftDomain(domain: { min: number; max: number }, fraction: number): { min: number; max: number } {
+  if (fraction === 0) return domain;
+  const span = domain.max - domain.min;
+  const delta = span * Math.max(-1, Math.min(1, fraction));
+  return { min: domain.min + delta, max: domain.max + delta };
+}
+
+/** Teks `aria-live` rentang terlihat (docs/08 F23): `12 Agu – 9 Okt, 40 bar`. */
+export function visibleLabel(dates: string[]): string {
+  if (dates.length === 0) return "tidak ada bar terlihat";
+  const short = (date: string) => {
+    const parsed = new Date(`${date}T00:00:00+07:00`);
+    return Number.isNaN(parsed.getTime())
+      ? date
+      : new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short", timeZone: "Asia/Jakarta" }).format(parsed);
+  };
+  return `${short(dates[0])} – ${short(dates[dates.length - 1])}, ${formatNum(dates.length, 0)} bar`;
+}

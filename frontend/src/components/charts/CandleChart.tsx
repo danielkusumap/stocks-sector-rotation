@@ -3,6 +3,7 @@ import type { StockSeriesResponse } from "../../lib/api";
 import {
   bandWidth,
   chartAriaLabel,
+  deepZoom,
   eventToken,
   hoverSummary,
   indexAtX,
@@ -10,20 +11,26 @@ import {
   levelLabel,
   needsBorder,
   overlayVisibility,
+  panBy,
   pocLabel,
   elliottShapes,
   layerNotice,
   smcShapes,
   priceDomain,
   scaleY,
+  shiftDomain,
   ursiGuides,
   ursiRangeNote,
   ursiTitle,
   ursiY,
+  visibleLabel,
+  visibleRange,
   vwapAnchorLabel,
   vwapWarning,
   volumeHeight,
   xOfIndex,
+  zoomAt,
+  type ViewRange,
 } from "../../lib/candleChart";
 import { formatNum, formatRp } from "../../lib/format";
 import { REGIME_LABEL, TOOL_LABEL, regimeTone } from "../../lib/weeklyPicks";
@@ -52,7 +59,11 @@ const VOL_PLOT = { width: PLOT.width, height: VOL_H };
 export function CandleChart({ data }: { data: StockSeriesResponse }) {
   const [hover, setHover] = useState<number | null>(null);
   const [pickedEvent, setPickedEvent] = useState<number | null>(null);
+  // zoom & pan (F23): rentang bar terlihat + geseran sumbu harga (fraksi domain)
+  const [view, setView] = useState<ViewRange | null>(null);
+  const [shift, setShift] = useState(0);
   const svgRef = useRef<SVGSVGElement>(null);
+  const dragRef = useRef<{ x: number; y: number; start: number; shift: number } | null>(null);
 
   if (data.candles.length === 0) {
     return (
@@ -74,31 +85,39 @@ export function CandleChart({ data }: { data: StockSeriesResponse }) {
   const showUrsI = ursi !== null && data.regime !== "range";
   const ursiTop = volTop + VOL_H + GAP;
   const VB_H = (showUrsI ? ursiTop + URSI_H : volTop + VOL_H) + 18;
-  const count = candles.length;
+  const total = candles.length;
+  const span = visibleRange(view, total);
+  // zoom/pan (F23): hanya bar di rentang terlihat yang digambar — skala ikut rentang itu
+  const bars = span.start === 0 && span.end === total ? candles : candles.slice(span.start, span.end);
+  const count = bars.length;
+  const dateIndex = new Map(bars.map((candle, index) => [candle.date, index]));
   const overlays = data.overlays;
   const levels = data.levels;
   const visibility = overlayVisibility(data.regime);
+  // titik overlay di luar rentang dibuang supaya domain tidak melebar (docs/06 §6.8)
+  const inView = (points: { date: string; value: number }[]) => points.filter((point) => dateIndex.has(point.date));
 
-  const maValues = Object.values(overlays.ma).flatMap((points) => points.map((p) => p.value));
+  const maValues = Object.values(overlays.ma).flatMap((points) => inView(points).map((p) => p.value));
+  const donchianValues = [
+    overlays.donchian.fast.high,
+    overlays.donchian.fast.low,
+    overlays.donchian.slow.high,
+    overlays.donchian.slow.low,
+  ].flatMap((points) => inView(points).map((p) => p.value));
   const channelValues = visibility.channel ? overlays.channels.flatMap((c) => [c.low, c.high]) : [];
+  const barsLow = Math.min(...bars.map((bar) => bar.low));
+  const barsHigh = Math.max(...bars.map((bar) => bar.high));
+  // garis level/VWAP/POC hanya digambar bila harganya ada di rentang terlihat (docs/06 §6.8b)
+  const inRange = (value: number) => value >= barsLow && value <= barsHigh;
   const levelValues = levels
-    ? [levels.entry_zone.low, levels.entry_zone.high, levels.stop, levels.tp1, levels.tp2]
+    ? [levels.entry_zone.low, levels.entry_zone.high, levels.stop, levels.tp1, levels.tp2].filter(inRange)
     : [];
-  const domain = priceDomain(candles, [
-    ...maValues,
-    ...overlays.donchian.fast.high.map((p) => p.value),
-    ...overlays.donchian.fast.low.map((p) => p.value),
-    ...overlays.donchian.slow.high.map((p) => p.value),
-    ...overlays.donchian.slow.low.map((p) => p.value),
-    ...channelValues,
-    ...levelValues,
-  ]);
+  const domain = shiftDomain(priceDomain(bars, [...maValues, ...donchianValues, ...channelValues, ...levelValues]), shift);
 
-  const layout = layoutCandles(candles, domain, PLOT);
+  const layout = layoutCandles(bars, domain, PLOT);
   const band = bandWidth(PLOT, count);
   const bodyWidth = Math.max(1, Math.min(9, band * 0.62));
-  const maxVolume = Math.max(...candles.map((c) => c.volume), 1);
-  const dateIndex = new Map(candles.map((candle, index) => [candle.date, index]));
+  const maxVolume = Math.max(...bars.map((c) => c.volume), 1);
   const xOfDate = (date: string | null | undefined): number | null => {
     if (!date) return null;
     const index = dateIndex.get(date);
@@ -120,17 +139,83 @@ export function CandleChart({ data }: { data: StockSeriesResponse }) {
   const smcFigure = data.layers.includes("smc") && data.smc ? smcShapes(data.smc, shapeScale) : [];
   const elliottFigure = data.layers.includes("elliott") && data.elliott ? elliottShapes(data.elliott, shapeScale) : [];
 
-  const hovered = hover === null ? null : candles[hover];
+  const hovered = hover === null ? null : bars[hover];
   // Kotak angka tidak menutupi 20 bar terakhir (docs/06 §6.3): hover di area itu → kotak ke kiri
   const boxLeft = hover === null ? 0 : hover >= count - 20;
   const hoverX = hover === null ? 0 : xOfIndex(hover, count, PLOT) + PAD_LEFT;
 
   const onMove = (event: React.MouseEvent<SVGSVGElement>) => {
+    if (dragRef.current) return; // saat men-drag, hover tidak dihitung ulang
     const svg = svgRef.current;
     if (!svg) return;
     const rect = svg.getBoundingClientRect();
     const viewX = ((event.clientX - rect.left) / rect.width) * VB_W;
     setHover(indexAtX(viewX - PAD_LEFT, count, PLOT));
+  };
+
+  /** Indeks bar di bawah posisi x layar — dipakai roda mouse sebagai titik jangkar zoom. */
+  const indexAtClientX = (clientX: number): number => {
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (!rect) return span.start + Math.floor(count / 2);
+    const viewX = ((clientX - rect.left) / rect.width) * VB_W;
+    return (indexAtX(viewX - PAD_LEFT, count, PLOT) ?? Math.floor(count / 2)) + span.start;
+  };
+
+  const zoomBy = (factor: number, anchorIndex: number) => setView(zoomAt(view, total, factor, anchorIndex));
+  const resetView = () => {
+    setView(null);
+    setShift(0);
+    setHover(null);
+  };
+
+  // roda mouse: zoom di posisi kursor (docs/06 §6.8)
+  const onWheel = (event: React.WheelEvent<SVGSVGElement>) => {
+    event.preventDefault();
+    zoomBy(event.deltaY > 0 ? 1.25 : 0.8, indexAtClientX(event.clientX));
+  };
+
+  // keyboard: `+` / `-` / `0` (reset) + pan dengan panah (geser = 20 bar)
+  const onKeyDown = (event: React.KeyboardEvent<SVGSVGElement>) => {
+    const step = event.shiftKey ? 20 : 5;
+    const middle = span.start + Math.floor(count / 2);
+    if (event.key === "+" || event.key === "=") {
+      event.preventDefault();
+      zoomBy(0.8, middle);
+    } else if (event.key === "-") {
+      event.preventDefault();
+      zoomBy(1.25, middle);
+    } else if (event.key === "0") {
+      event.preventDefault();
+      resetView();
+    } else if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      setView(panBy(view, total, -step));
+    } else if (event.key === "ArrowRight") {
+      event.preventDefault();
+      setView(panBy(view, total, step));
+    }
+  };
+
+  // drag horizontal = pan; vertikal aktif saat zoom dalam (docs/06 §6.8)
+  const onPointerDown = (event: React.PointerEvent<SVGSVGElement>) => {
+    dragRef.current = { x: event.clientX, y: event.clientY, start: span.start, shift };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const onPointerMove = (event: React.PointerEvent<SVGSVGElement>) => {
+    const drag = dragRef.current;
+    const rect = svgRef.current?.getBoundingClientRect();
+    if (!drag || !rect) return;
+    const barsPerPx = count / Math.max(1, rect.width * (PLOT.width / VB_W));
+    const deltaBars = Math.round((drag.x - event.clientX) * barsPerPx);
+    const next = panBy({ start: drag.start, end: drag.start + count }, total, deltaBars);
+    const deltaFraction = deepZoom(next, total) ? (event.clientY - drag.y) / (PLOT.height * 0.1) : 0;
+    setView(next);
+    setShift(Math.max(-1, Math.min(1, drag.shift + deltaFraction)));
+  };
+
+  const onPointerUp = () => {
+    dragRef.current = null;
   };
 
   const priceTicks = [domain.max, (domain.max + domain.min) / 2, domain.min];
@@ -183,6 +268,24 @@ export function CandleChart({ data }: { data: StockSeriesResponse }) {
             {data.elliott.note}
           </span>
         )}
+        {/* zoom & pan (F23): `Reset`/klik ganda/`0`; rentang terlihat diumumkan aria-live */}
+        {view !== null && (
+          <button
+            type="button"
+            data-testid="candle-reset"
+            onClick={resetView}
+            className="inline-flex h-7 items-center rounded-sm border border-border px-2.5 text-fg-muted hover:text-fg"
+          >
+            Reset
+          </button>
+        )}
+        <span
+          aria-live="polite"
+          data-testid="candle-live"
+          className={view === null ? "sr-only" : "ml-auto font-mono text-fg-muted"}
+        >
+          {visibleLabel(bars.map((bar) => bar.date))}
+        </span>
       </div>
 
       <div className="relative">
@@ -192,9 +295,17 @@ export function CandleChart({ data }: { data: StockSeriesResponse }) {
         width="100%"
         role="img"
         aria-label={chartAriaLabel({ ticker: data.ticker, regime: data.regime, bars: count, hasLevels: levels !== null })}
-        className="block"
+        className="block cursor-grab touch-none select-none focus-visible:outline-2 focus-visible:outline-focus"
+        tabIndex={0}
         onMouseMove={onMove}
         onMouseLeave={() => setHover(null)}
+        onWheel={onWheel}
+        onKeyDown={onKeyDown}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        onDoubleClick={resetView}
       >
         {/* grid + label harga (padding kiri 32 px) */}
         {priceTicks.map((value) => (
@@ -266,8 +377,8 @@ export function CandleChart({ data }: { data: StockSeriesResponse }) {
           </g>
         )}
 
-        {/* POC + value area (lapisan `indicators`): label basis ada di legenda */}
-        {poc && (
+        {/* POC + value area (lapisan `indicators`): label basis ada di legenda; gambar hanya bila di rentang */}
+        {poc && inRange(poc.poc) && (
           <g data-overlay="poc" pointerEvents="none">
             <rect
               x={PAD_LEFT}
@@ -295,24 +406,28 @@ export function CandleChart({ data }: { data: StockSeriesResponse }) {
           ))}
         </g>
 
-        {/* zona entry + SL/TP (hanya bila plan ada) */}
-        {levels && (
+        {/* zona entry + SL/TP (hanya bila plan ada) — hanya yang di rentang terlihat */}
+        {levels && (levelValues.length > 0 || inRange(levels.entry_zone.low) || inRange(levels.entry_zone.high)) && (
           <g data-overlay="levels">
-            <rect
+            {(inRange(levels.entry_zone.low) || inRange(levels.entry_zone.high)) && (
+              <rect
               x={PAD_LEFT}
               y={scaleY(levels.entry_zone.high, domain, PLOT)}
               width={PLOT.width}
               height={Math.max(1, scaleY(levels.entry_zone.low, domain, PLOT) - scaleY(levels.entry_zone.high, domain, PLOT))}
               fill="var(--accent-subtle)"
               opacity={0.25}
-            />
+              />
+            )}
             {(
               [
                 ["SL", levels.stop, "var(--down)"],
                 ["TP1", levels.tp1, "var(--up)"],
                 ["TP2", levels.tp2, "var(--up)"],
               ] as const
-            ).map(([name, value, color]) => (
+            )
+              .filter(([, value]) => inRange(value))
+              .map(([name, value, color]) => (
               <g key={name} data-level={name}>
                 <line x1={PAD_LEFT} x2={VB_W - PAD_RIGHT} y1={scaleY(value, domain, PLOT)} y2={scaleY(value, domain, PLOT)} stroke={color} strokeWidth={1} strokeDasharray="4 3" />
                 <text x={VB_W - PAD_RIGHT + 4} y={scaleY(value, domain, PLOT) + 3} fontSize={10} fill={color} className="font-mono">
@@ -326,7 +441,7 @@ export function CandleChart({ data }: { data: StockSeriesResponse }) {
         {/* candle: body max(1px), wick 1 px, border --surface saat body tipis */}
         <g data-overlay="candles">
           {layout.map((bar) => {
-            const candle = candles[bar.index];
+            const candle = bars[bar.index];
             return (
               <g key={candle.date} data-candle={bar.up ? "up" : "down"}>
                 <line x1={bar.x + PAD_LEFT} x2={bar.x + PAD_LEFT} y1={bar.wickTop} y2={bar.wickBottom} stroke={bar.up ? "var(--up)" : "var(--down)"} strokeWidth={1} />
@@ -366,7 +481,7 @@ export function CandleChart({ data }: { data: StockSeriesResponse }) {
 
         {/* sub-panel volume + rata-rata 20 bar + ambang konfirmasi */}
         <g data-overlay="volume">
-          {candles.map((candle, index) => (
+          {bars.map((candle, index) => (
             <rect
               key={candle.date}
               x={xOfIndex(index, count, PLOT) + PAD_LEFT - bodyWidth / 2}
