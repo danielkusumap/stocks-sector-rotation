@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
 import pandas as pd
 import pytest
 from fastapi.testclient import TestClient
@@ -11,7 +14,9 @@ from backend.app.config import get_settings
 from backend.app.ingest import excel, freshness, prices
 from backend.tests.fixtures import FIXTURE_SHEETS, write_xlsx
 
-DAY = "2026-10-13"
+# Gate kesegaran selalu memeriksa bar **hari ini** (freshness.probe) → tanggal uji ikut tanggal berjalan,
+# bukan konstanta (suite pernah merah hanya karena lewat tengah malam).
+DAY = datetime.now(ZoneInfo("Asia/Jakarta")).date().isoformat()
 FIELDS = ["Open", "High", "Low", "Close", "Adj Close", "Volume"]
 ZERO_VOLUME = "11:00"  # bar tanpa transaksi → tidak dianggap sebagai bar terakhir
 

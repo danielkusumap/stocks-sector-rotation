@@ -1,0 +1,28 @@
+db-init: {"path": "E:\\rotation-b18-test\\rotation.db", "tables": 14, "user_version": 5}
+compute_ta: {"rows": 120614, "events": 120614, "refs": 932, "refs_skipped_short_history": 41, "ma_periods": [10, 20, 50], "variants": ["filter_off", "filter_on"], "win_rate": 0.4621}
+compute_signals: {"rows": 109, "weeks": 91, "sector_rows": 75, "stock_rows": 34, "weighting": "equal", "week_end": "2026-10-09", "sectors": 3, "stocks": 5}
+GET /weekly/picks -> api_version 1.2 · week_end 2026-10-09 (5–9 Okt 2026) · is_final True · sektor 3 · saham 5
+  AYLS rank 1 skor 40.0 · regime None · alat None + konfirmasi None · mode None · zona None–None · stop None (None) · tp1 None rr None · tp2 None rr None · hit_tp1 None hit_tp2 None · plan_ok None
+  MPXL rank 1 skor 85.0 · regime tren_naik · alat pullback_ma20 + konfirmasi volume · mode wait_pullback · zona 222.0194385813666–235.78056141863343 · stop 202.53239763561095 (struktur_swing_low) · tp1 332.0 rr 3.7453228046783273 · tp2 332.0 rr 3.7453228046783273 · hit_tp1 0.0 hit_tp2 0.0 · plan_ok False
+  MITI rank 2 skor 90.0 · regime None · alat None + konfirmasi None · mode None · zona None–None · stop None (None) · tp1 None rr None · tp2 None rr None · hit_tp1 None hit_tp2 None · plan_ok None
+  SMDR rank 2 skor 65.0 · regime tren_naik · alat pullback_ma20 + konfirmasi volume · mode pullback · zona 395.45953248603803–404.94046751396195 · stop 376.4976624301903 (volatilitas_atr) · tp1 434.0 rr 1.2725378388812274 · tp2 477.710212709429 rr 2.9999999999999987 · hit_tp1 0.08333333333333333 hit_tp2 0.0 · plan_ok True
+  SAPX rank 3 skor 35.0 · regime None · alat None + konfirmasi None · mode None · zona None–None · stop None (None) · tp1 None rr None · tp2 None rr None · hit_tp1 None hit_tp2 None · plan_ok None
+rezim yang muncul pada pick minggu itu: {"null": "AYLS", "tren_naik": "MPXL"}
+  tanpa plan: AYLS · atr14=22.410781416028083 · bar riwayat=472 (butuh ≥ 41) · turnover=2279138450
+  tanpa plan: MITI · atr14=34.370691838384964 · bar riwayat=472 (butuh ≥ 41) · turnover=3415009200
+  tanpa plan: SAPX · atr14=52.288562074043085 · bar riwayat=472 (butuh ≥ 41) · turnover=2451518400
+contoh sintetis rezim range (tanpa pick nyata): alat sr_channel + konfirmasi rsi_tepi_range · zona 98.9–100.1 · stop 97.5 · tp1 100.5 · tp2 107.092 · plan_ok True
+agregat SQL hit_tp1/hit_tp2 & RR (bareng plan, minggu terakhir):
+ref_id=AYLS  · regime=None  · entry_tool=None  · confirm_tool=None  · entry_mode=None  · rr1=None  · rr2=None  · hit1=None  · hit2=None  · hold_median_periods=None  · plan_ok=None  · target=256.1732938056292  · tp2=None  · stop=156.9133530971854
+ref_id=MITI  · regime=None  · entry_tool=None  · confirm_tool=None  · entry_mode=None  · rr1=None  · rr2=None  · hit1=None  · hit2=None  · hold_median_periods=None  · plan_ok=None  · target=455.3514659393976  · tp2=None  · stop=303.3242670303012
+ref_id=MPXL  · regime=tren_naik  · entry_tool=pullback_ma20  · confirm_tool=volume  · entry_mode=wait_pullback  · rr1=3.75  · rr2=3.75  · hit1=0.0  · hit2=0.0  · hold_median_periods=2  · plan_ok=0  · target=332.0  · tp2=332.0  · stop=202.53239763561095
+ref_id=SAPX  · regime=None  · entry_tool=None  · confirm_tool=None  · entry_mode=None  · rr1=None  · rr2=None  · hit1=None  · hit2=None  · hold_median_periods=None  · plan_ok=None  · target=560.9322774699854  · tp2=None  · stop=334.5338612650073
+ref_id=SMDR  · regime=tren_naik  · entry_tool=pullback_ma20  · confirm_tool=volume  · entry_mode=pullback  · rr1=1.27  · rr2=3.0  · hit1=0.08  · hit2=0.0  · hold_median_periods=5.5  · plan_ok=1  · target=477.710212709429  · tp2=477.710212709429  · stop=376.4976624301903
+store plan (semua minggu):
+  baris=50 · punya_plan=34 · tanpa_plan=16 · plan_tidak_ok=29
+hit rate nyata dari ta_breakout (mfe_pct) untuk pick teratas:
+  ref_id=TOOL · n_events=42 · hit_3pct=0.619 · hit_5pct=0.548 · mfe_max=0.2703 · mae_min=-0.1176
+  ref_id=TYRE · n_events=36 · hit_3pct=0.444 · hit_5pct=0.417 · mfe_max=0.0811 · mae_min=-0.084
+  ref_id=BACA · n_events=34 · hit_3pct=0.529 · hit_5pct=0.529 · mfe_max=0.2308 · mae_min=-0.0571
+  ref_id=GDYR · n_events=34 · hit_3pct=0.324 · hit_5pct=0.206 · mfe_max=0.0747 · mae_min=-0.0833
+  ref_id=KUAS · n_events=34 · hit_3pct=0.618 · hit_5pct=0.529 · mfe_max=0.36 · mae_min=-0.2121

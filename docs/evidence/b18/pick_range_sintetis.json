@@ -1,0 +1,45 @@
+{
+ "regime": "range",
+ "entry_tool": "sr_channel",
+ "confirm_tool": "rsi_tepi_range",
+ "entry_mode": "pullback",
+ "entry_zone": {
+  "low": 98.9,
+  "high": 100.1,
+  "reason": "Pantulan di batas bawah kanal: di pasar menyamping beli di tepi bawah lebih aman daripada mengejar penembusan batas atas."
+ },
+ "stop": {
+  "level": 97.5,
+  "basis": "lantai_atr",
+  "reason": "Batas rugi di bawah struktur terlalu ketat (kurang dari satu kali volatilitas harian) sehingga rawan kena gerak acak; dipakai lantai…",
+  "pct": -0.02010050251256279
+ },
+ "tp1": {
+  "level": 100.5,
+  "pct": 0.01005025125628145,
+  "rr": 0.25104253544620514,
+  "basis": "kanal_atas",
+  "reason": "Batas atas kanal bawah adalah tempat pembeli terakhir bertahan — ambil sebagian di tepi kanal."
+ },
+ "tp2": {
+  "level": 107.092,
+  "pct": 0.0763015075376885,
+  "rr": 2.9999999999999996,
+  "basis": "target_terukur_minimal",
+  "reason": "Target terukur dari level 107; imbal hasil terhadap risiko setelah biaya 0,40% masih 3,00:1."
+ },
+ "hold": {
+  "median_periods": null,
+  "n_events": 0,
+  "win_rate": null,
+  "hit_tp1": null,
+  "hit_tp2": null,
+  "reason": "Belum cukup riwayat (0 kejadian) untuk menilai peluang target ini."
+ },
+ "invalidation": "Batal bila tutup harian di bawah penyangga 20 hari (100) atau di bawah batas rugi (98).",
+ "plan_ok": true,
+ "notes": [],
+ "volume_ratio": 1.0,
+ "entry_tool_reason": "Pasar menyamping: level pantulan lebih andal daripada penembusan batas kanal.",
+ "confirm_reason": "Momentum harian 30 di tepi bawah (maksimal 35)."
+}

@@ -1,0 +1,77 @@
+{
+ "ticker": "MPXL",
+ "name": "MPX Logistics International Tb",
+ "sector_code": "IDXTRANS",
+ "rank": 1,
+ "score": 85.0,
+ "streak_weeks": 1,
+ "entry_ref": 290.0,
+ "stop": 202.53239763561095,
+ "target": 332.0,
+ "atr14": 22.9352047287781,
+ "lots_hint": 228,
+ "rule_hits": {
+  "liquidity_ok": true,
+  "price_ok": true,
+  "trend_ok": true,
+  "rs_ok": true,
+  "momentum_ok": true,
+  "rsi_ok": true,
+  "no_suspension": true,
+  "board_ok": true,
+  "close": 290.0,
+  "sma20": 228.9,
+  "median_turnover_20d_idr": 3845958500,
+  "rs_ratio": 118.96885053540451,
+  "ret_5d": 0.17886178861788626,
+  "rsi14": 69.81273145433812,
+  "last_bar_date": "2026-10-09"
+ },
+ "rationale": "Baru masuk daftar; harga 290 di atas SMA20 229 dan SMA50, RSI 70. Nilai transaksi harian rata-rata Rp 3,8 M.",
+ "plan": {
+  "regime": "tren_naik",
+  "entry_tool": "pullback_ma20",
+  "entry_tool_reason": "Harga dekat penyangga 20 hari saat tren masih naik — beli di penyangga membuat batas rugi lebih dekat.",
+  "confirm_tool": "volume",
+  "confirm_reason": "Volume bar terakhir 3,5 kali rata-rata 20 hari (minimal 1,5 kali).",
+  "entry_mode": "wait_pullback",
+  "entry_zone": {
+   "low": 222.0194385813666,
+   "high": 235.78056141863343,
+   "reason": "Harga sudah 2,7 kali volatilitas harian di atas penyangga 20 hari (229) — jangan chase; tunggu pullback ke penyangga."
+  },
+  "stop": {
+   "level": 202.53239763561095,
+   "pct": -0.11519267087981244,
+   "basis": "struktur_swing_low",
+   "reason": "Batas rugi di bawah titik terendah 10 hari (214) ditambah penyangga 0,5 kali volatilitas — di situ skenario naik batal."
+  },
+  "tp1": {
+   "level": 332.0,
+   "pct": 0.4504150283966797,
+   "rr": 3.7453228046783273,
+   "basis": "resistance_20",
+   "reason": "Puncak 20 hari terakhir adalah tempat penjual menumpuk — ambil sebagian di situ."
+  },
+  "tp2": {
+   "level": 332.0,
+   "pct": 0.4504150283966797,
+   "rr": 3.7453228046783273,
+   "basis": "puncak_40",
+   "reason": "Target terukur dari level 332; imbal hasil terhadap risiko setelah biaya 0,40% masih 3,75:1."
+  },
+  "hold": {
+   "median_periods": 2.0,
+   "n_events": 9,
+   "win_rate": 0.6667,
+   "hit_tp1": 0.0,
+   "hit_tp2": 0.0,
+   "reason": "Dari 9 penembusan terakhir: target pertama historis kena 0%, lama tahan median 2 hari."
+  },
+  "invalidation": "Batal bila tutup harian di bawah penyangga 20 hari (229) atau di bawah batas rugi (203); pasar: IHSG tutup di bawah 5.973 → tunda entry baru.",
+  "plan_ok": false,
+  "notes": [
+   "Batas rugi lebih lebar dari 8% — terlalu lebar untuk swing harian."
+  ]
+ }
+}

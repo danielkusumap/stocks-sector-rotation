@@ -282,7 +282,7 @@ def test_weekly_picks_endpoint(signal_inputs, monkeypatch):
     client = TestClient(app)
     body = client.get("/api/v1/weekly/picks").json()
 
-    assert body["api_version"] == "1.1"
+    assert body["api_version"] == "1.2"
     assert body["is_final"] is True
     assert pd.Timestamp(body["week_end"]).weekday() == 4
     assert body["sectors"] and body["stocks"]

@@ -18,6 +18,7 @@ from ..config import get_settings
 from ..db import connect, now_iso
 from ..labels import QUADRANT_LABEL, format_id_number
 from . import metrics as metrics_module
+from . import plan as plan_module
 from . import rrg as rrg_module
 
 SECTOR_ROWS_SQL = """
@@ -53,6 +54,8 @@ STOCK_ROWS_SQL = """
 """
 LAST_BAR_SQL = "SELECT MAX(date) FROM price_daily WHERE ticker = ? AND date <= ?"
 CLOSE_SQL = "SELECT close FROM price_daily WHERE ticker = ? AND date <= ? ORDER BY date DESC LIMIT 1"
+PLAN_COLUMNS = plan_module.plan_columns()  # kolom plan (docs/04 §4 migrasi 005) — urutan wajib sama
+PLAN_BLANKS = (None,) * len(PLAN_COLUMNS)
 
 
 def gate_final_week(cfg=None, now=None) -> dict:
@@ -128,8 +131,15 @@ def levels(entry_ref: float, atr14: float | None, cfg) -> tuple[float | None, fl
         return None, None, None
     stop = entry_ref - cfg.weekly["atr_stop_mult"] * atr14
     target = entry_ref + cfg.weekly["rr_target"] * (entry_ref - stop)
-    risk = (entry_ref - stop) * 100  # 1 lot = 100 lembar
-    return stop, target, int(cfg.weekly["risk_per_trade_idr"] // risk) if risk > 0 else None
+    return stop, target, lots_hint(entry_ref, stop, cfg)
+
+
+def lots_hint(entry_ref: float | None, stop: float | None, cfg) -> int | None:
+    """Saran jumlah lot dari jarak entry–stop (1 lot = 100 lembar, docs/03 §6.2)."""
+    if entry_ref is None or stop is None:
+        return None
+    risk = (entry_ref - stop) * 100
+    return int(cfg.weekly["risk_per_trade_idr"] // risk) if risk > 0 else None
 
 
 def rationale_sector(name: str, quadrant: str, age: int, momentum: float) -> str:
@@ -168,13 +178,23 @@ def upsert(conn, rows: list[tuple], computed_at: str) -> int:
     conn.executemany(
         """
         INSERT INTO signal_weekly (week_end, scope, ref_id, sector_id, timeframe, rank, score, streak_weeks,
-                                   rule_hits, entry_ref, stop, target, atr14, lots_hint, rationale, computed_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                   rule_hits, entry_ref, stop, target, atr14, lots_hint, rationale,
+                                   regime, entry_tool, confirm_tool, entry_mode, entry_zone_low, entry_zone_high,
+                                   stop_pct, stop_basis, tp1, tp2, rr_tp1, rr_tp2, volume_ratio,
+                                   hold_median_periods, hit_tp1, hit_tp2, invalidation, plan_ok, plan_json, computed_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(week_end, scope, ref_id) DO UPDATE SET
           sector_id = excluded.sector_id, timeframe = excluded.timeframe, rank = excluded.rank,
           score = excluded.score, streak_weeks = excluded.streak_weeks, rule_hits = excluded.rule_hits,
           entry_ref = excluded.entry_ref, stop = excluded.stop, target = excluded.target, atr14 = excluded.atr14,
-          lots_hint = excluded.lots_hint, rationale = excluded.rationale, computed_at = excluded.computed_at
+          lots_hint = excluded.lots_hint, rationale = excluded.rationale,
+          regime = excluded.regime, entry_tool = excluded.entry_tool, confirm_tool = excluded.confirm_tool,
+          entry_mode = excluded.entry_mode, entry_zone_low = excluded.entry_zone_low,
+          entry_zone_high = excluded.entry_zone_high, stop_pct = excluded.stop_pct, stop_basis = excluded.stop_basis,
+          tp1 = excluded.tp1, tp2 = excluded.tp2, rr_tp1 = excluded.rr_tp1, rr_tp2 = excluded.rr_tp2,
+          volume_ratio = excluded.volume_ratio, hold_median_periods = excluded.hold_median_periods,
+          hit_tp1 = excluded.hit_tp1, hit_tp2 = excluded.hit_tp2, invalidation = excluded.invalidation,
+          plan_ok = excluded.plan_ok, plan_json = excluded.plan_json, computed_at = excluded.computed_at
         """,
         [(*row, computed_at) for row in rows],
     )
@@ -275,6 +295,7 @@ def week_picks(conn, week_end: str, *, weighting: str, trading_dates: list[str],
                 None,
                 None,
                 rationale_sector(row["name_id"], row["quadrant"], hits["quadrant_age_periods"], hits["rs_momentum"]),
+                *PLAN_BLANKS,  # plan TA hanya untuk pick saham (docs/03 §6.4)
             )
         )
 
@@ -296,6 +317,7 @@ def week_picks(conn, week_end: str, *, weighting: str, trading_dates: list[str],
     cutoff = _cutoff_date(trading_dates, week_end, bars=5)
 
     stock_rows = []
+    candidates: dict[str, dict] = {}
     for code in stock_sectors:
         picks = []
         for row in conn.execute(STOCK_ROWS_SQL):
@@ -312,8 +334,9 @@ def week_picks(conn, week_end: str, *, weighting: str, trading_dates: list[str],
         for rank, pick in enumerate(picks[: cfg.weekly["max_stocks_per_sector"]], start=1):
             row = pick["row"]
             stop, target, lots = levels(pick["close"], row["atr14"], cfg)
+            candidates[row["ticker"]] = pick
             stock_rows.append(
-                (
+                [
                     week_end,
                     "stock",
                     row["ticker"],
@@ -329,9 +352,23 @@ def week_picks(conn, week_end: str, *, weighting: str, trading_dates: list[str],
                     row["atr14"],
                     lots,
                     None,  # rationale menunggu streak
-                )
+                ]
             )
-    return sector_rows, _score_candidates(stock_rows, cfg)
+
+    # Trading plan TA (docs/03 §6.4): satu mesin `compute/plan.py`, level plan menggantikan
+    # `stop`/`target` lama pada baris pick (docs/05 §3), `target` = `tp2`.
+    plans = plan_module.build_plans(conn, week_end, list(candidates.values()), cfg, weighting=weighting)
+    final_stock_rows = []
+    for row in stock_rows:
+        built = plans.get(row[2])
+        if built:
+            if built["stop"]["level"] is not None:
+                row[10] = built["stop"]["level"]
+            if built["tp2"]["level"] is not None:
+                row[11] = built["tp2"]["level"]
+            row[13] = lots_hint(row[9], row[10], cfg)
+        final_stock_rows.append((*row, *plan_module.plan_values(built)))
+    return sector_rows, _score_candidates(final_stock_rows, cfg)
 
 
 def compute_signals(*, weighting: str | None = None, db_path=None, report=None) -> dict:
@@ -370,7 +407,7 @@ def compute_signals(*, weighting: str | None = None, db_path=None, report=None) 
                 float(hits.get("rsi14") or 0),
                 int(hits.get("median_turnover_20d_idr") or 0),
             )
-            final_rows.append((*row[:7], streak, row[8], *row[9:14], rationale))
+            final_rows.append((*row[:7], streak, row[8], *row[9:14], rationale, *row[15:]))
         for row in sector_rows:
             final_rows.append((*row[:7], streaks.get((row[1], row[2]), 1), *row[8:]))
 

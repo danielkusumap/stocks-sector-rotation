@@ -400,7 +400,8 @@ Query: `week_end` (default minggu final terakhir), `scope` (default `sector,stoc
                 "rationale": "3 minggu berturut-turut masuk daftar; tren di atas SMA20/SMA50, RSI 62.",
                 "plan": {
                   "regime": "tren_naik",
-                  "entry_tool": "pullback_ma20", "confirm_tool": "volume",
+                  "entry_tool": "pullback_ma20", "entry_tool_reason": "Harga dekat penyangga 20 hari saat tren masih naik — beli di penyangga membuat batas rugi lebih dekat.",
+                  "confirm_tool": "volume", "confirm_reason": "Volume bar terakhir 1,8 kali rata-rata 20 hari (minimal 1,5 kali).",
                   "entry_mode": "pullback",
                   "entry_zone": { "low": 4088.0, "high": 4135.0, "reason": "Zona di sekitar penyangga 20 hari (4.110); beli di penyangga membuat batas rugi lebih dekat." },
                   "stop": { "level": 3991.0, "pct": -0.0285, "basis": "struktur_swing_low", "reason": "Batas rugi di bawah titik terendah 10 hari (3.980) ditambah penyangga 0,5× volatilitas — di situ skenario naik batal." },

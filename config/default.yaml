@@ -152,6 +152,8 @@ weekly:
     max_stop_pct: 0.08                # stop lebih lebar dari 8% → plan ditandai tidak layak untuk swing
     volume_mult: 1.5                  # konfirmasi volume untuk entry breakout (× rata-rata 20 bar)
     chase_atr: 2.0                    # harga > 2 × ATR di atas SMA20 → jangan chase, tunggu pullback
+    ma_slope_bars: 5                  # "SMA20 menanjak" = SMA20 sekarang > SMA20 N bar lalu (docs/03 §6.4.0)
+    rsi_range_max: 35                 # rezim range: konfirmasi `rsi_tepi_range` = RSI ≤ ini di tepi bawah kanal
     rr_min_tp2: 3.0                   # TP2 wajib memberi reward:risk minimal 3:1
     tp1_fallback_atr: 1.5             # TP1 kalau tidak ada resistance di atas entry
     min_events_hold: 5                # minimal event TA sebelum median lama tahan ditampilkan

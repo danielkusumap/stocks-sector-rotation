@@ -172,6 +172,26 @@ CREATE TABLE IF NOT EXISTS signal_weekly (
   atr14       REAL,
   lots_hint   INTEGER,
   rationale   TEXT NOT NULL,               -- kalimat siap tampil, Bahasa Indonesia
+  -- Trading plan TA (docs/03 §6.4, migrasi 005)
+  regime          TEXT,                    -- tren_naik | range | turun | tipis
+  entry_tool      TEXT,                    -- pullback_ma20 | breakout_donchian | sr_channel | pivot_level | none
+  confirm_tool    TEXT,                    -- volume | rsi_tepi_range | none (maks satu)
+  entry_mode      TEXT,                    -- pullback | breakout | wait_pullback | no_trade
+  entry_zone_low  REAL,
+  entry_zone_high REAL,
+  stop_pct        REAL,
+  stop_basis      TEXT,                    -- struktur_swing_low | volatilitas_atr | lantai_atr
+  tp1             REAL,
+  tp2             REAL,                    -- sama dengan `target`
+  rr_tp1          REAL,                    -- bersih biaya
+  rr_tp2          REAL,                    -- bersih biaya
+  volume_ratio    REAL,
+  hold_median_periods INTEGER,
+  hit_tp1         REAL,
+  hit_tp2         REAL,
+  invalidation    TEXT,
+  plan_ok         INTEGER,
+  plan_json       TEXT,                    -- alasan per elemen + angka dasar + catatan (bentuk docs/05 §3)
   computed_at TEXT NOT NULL,
   PRIMARY KEY (week_end, scope, ref_id)
 );
@@ -209,6 +229,8 @@ CREATE TABLE IF NOT EXISTS ta_breakout (
   exit_date    TEXT,
   exit_price   REAL,
   periods      INTEGER,                   -- periode bursa dari entry_date (0 = bar entry); NULL saat open
+  mfe_pct      REAL,                      -- MFE/MAE per event (docs/03 §10.9, migrasi 005)
+  mae_pct      REAL,
   computed_at  TEXT NOT NULL,
   UNIQUE (scope, ref_id, ma_period, trend_filter, signal_date)
 );

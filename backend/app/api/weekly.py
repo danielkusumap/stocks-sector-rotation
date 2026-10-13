@@ -11,7 +11,7 @@ from ..repo import read
 from .schemas import WeeklyPicksResponse
 
 router = APIRouter(prefix="/api/v1", tags=["weekly"])
-_API_VERSION = "1.1"  # docs/05 §3: `week_start` + `week_label` aditif (v1.0 → 1.1)
+_API_VERSION = "1.2"  # docs/05 §3: `plan` (trading plan TA) aditif (1.1 → 1.2)
 
 WEEK_SQL = "SELECT MAX(week_end) FROM signal_weekly"
 SECTORS_SQL = """
@@ -22,7 +22,7 @@ SECTORS_SQL = """
 """
 STOCKS_SQL = """
     SELECT w.ref_id AS ticker, st.name, sec.code AS sector_code, w.rank, w.score, w.streak_weeks,
-           w.entry_ref, w.stop, w.target, w.atr14, w.lots_hint, w.rule_hits, w.rationale, w.week_end
+           w.entry_ref, w.stop, w.target, w.atr14, w.lots_hint, w.rule_hits, w.rationale, w.week_end, w.plan_json
     FROM signal_weekly w
     JOIN stock st ON st.ticker = w.ref_id
     JOIN sector sec ON sec.id = st.sector_id
@@ -61,7 +61,12 @@ def weekly_picks(
             for r in conn.execute(SECTORS_SQL, (min_streak, week))
         ] if "sector" in wants else []
         stocks = [
-            {**dict(r), "rule_hits": json.loads(r["rule_hits"]) if r["rule_hits"] else {}}
+            {
+                **dict(r),
+                "rule_hits": json.loads(r["rule_hits"]) if r["rule_hits"] else {},
+                # docs/05 §3: `plan` = sumber kebenaran plan; baris lama (sebelum migrasi 005) → null
+                "plan": json.loads(r["plan_json"]) if r["plan_json"] else None,
+            }
             for r in conn.execute(STOCKS_SQL, (min_streak, week))
         ] if "stock" in wants else []
     finally:

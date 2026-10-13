@@ -187,7 +187,7 @@ def test_weekly_picks_week_start_dan_label(signal_inputs, monkeypatch):
     from backend.app.main import app
 
     body = TestClient(app).get("/api/v1/weekly/picks").json()
-    assert body["api_version"] == "1.1"
+    assert body["api_version"] == "1.2"
     assert body["sectors"], "fixture harus punya pick"
     assert date.fromisoformat(body["week_end"]).weekday() == 4  # Jumat
     assert date.fromisoformat(body["week_start"]).weekday() == 0  # Senin
@@ -201,6 +201,6 @@ def test_weekly_picks_kosong_tetap_punya_field_baru(tmp_db, monkeypatch):
     from backend.app.main import app
 
     body = TestClient(app).get("/api/v1/weekly/picks").json()
-    assert body["api_version"] == "1.1"
+    assert body["api_version"] == "1.2"
     assert body["week_end"] is None and body["week_start"] is None and body["week_label"] is None
     assert body["sectors"] == [] and body["stocks"] == [] and body["is_final"] is False

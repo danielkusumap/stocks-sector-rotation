@@ -618,6 +618,55 @@ class WeeklySectorPick(BaseModel):
     rationale: str
 
 
+class PlanEntryZone(BaseModel):
+    low: float | None
+    high: float | None
+    reason: str
+
+
+class PlanStop(BaseModel):
+    level: float | None
+    pct: float | None
+    basis: str | None
+    reason: str
+
+
+class PlanTarget(BaseModel):
+    level: float | None
+    pct: float | None
+    rr: float | None
+    basis: str | None
+    reason: str
+
+
+class PlanHold(BaseModel):
+    median_periods: float | None
+    n_events: int | None
+    win_rate: float | None
+    hit_tp1: float | None
+    hit_tp2: float | None
+    reason: str | None
+
+
+class TaPlan(BaseModel):
+    """Trading plan TA (docs/03 §6.4, docs/05 §3) — `plan` menggantikan `stop`/`target` sebagai acuan."""
+
+    regime: str
+    entry_tool: str
+    entry_tool_reason: str | None = None  # ADR-044 (aditif, api_version tetap 1.2)
+    confirm_tool: str
+    confirm_reason: str | None = None
+    entry_mode: str
+    entry_zone: PlanEntryZone
+    stop: PlanStop
+    tp1: PlanTarget
+    tp2: PlanTarget
+    hold: PlanHold
+    invalidation: str | None
+    plan_ok: bool
+    notes: list[str]
+
+
 class WeeklyStockPick(BaseModel):
     ticker: str
     name: str | None
@@ -632,6 +681,7 @@ class WeeklyStockPick(BaseModel):
     lots_hint: int | None
     rule_hits: dict[str, Any]
     rationale: str
+    plan: TaPlan | None = None  # docs/05 §3 (api_version 1.2); baris lama → null
 
 
 class WeeklyPicksResponse(Envelope):

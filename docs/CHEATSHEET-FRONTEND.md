@@ -6,7 +6,9 @@ Tujuan: satu task = baca file ini (~100 baris) + bagian task di `docs/08-TASKS-F
 
 1. Baca task-nya di `docs/08-TASKS-FRONTEND.md` (hanya task itu).
 2. Kerjakan. Rujuk `docs/05` **hanya** untuk bentuk response, `docs/06` **hanya** untuk aturan tampilan.
-3. `npm run typecheck` → `npm run test` (file terkait dulu: `npx vitest run src/lib/xxx.test.ts`) → `npm run build`.
+3. Loop verifikasi (cepat): `npm run typecheck` → `npx vitest run <file>` → `npm run spec -- e2e/<file>.spec.ts`.
+   Penutup task: `npm run gate:full` (tsc + vitest + semua spec + build) — **sekali saja di akhir**, jangan diulang
+   per mikro-edit. `npm run gate` = versi cepat tanpa spec `@a11y`/`@slow` (dipakai saat masih iterasi).
 4. Update baris task di `docs/PROGRESS.md` (status + bukti).
 5. Commit satu task: `git commit -m "F8: halaman saham + detail"`.
 
@@ -28,6 +30,19 @@ src/mocks/                handlers.ts browser.ts admin.ts fixtures/
 ```
 
 Kalau butuh komponen baru: cek `ui/` dulu — hampir semua sudah ada. Kalau perlu varian, tambahkan prop, jangan bikin file baru.
+
+## Perintah (F24)
+
+| Perintah | Isi | Kapan |
+|---|---|---|
+| `npm run typecheck` | `tsc --noEmit` | tiap simpan penting (detik) |
+| `npx vitest run src/lib/x.test.ts` | satu berkas unit test | saat menulis helper murni |
+| `npm run spec -- e2e/x.spec.ts` | satu spec e2e | membuktikan task sendiri |
+| `npm run gate` | tsc + vitest + spec **tanpa** `@a11y`/`@slow` | iterasi panjang |
+| `npm run gate:full` | tsc + vitest + semua spec + build | **sekali** saat task ditutup |
+
+Tag: spec a11y (`e2e/a11y.spec.ts`) memakai `@a11y`, spec berat (`> 30 s`) memakai `@slow` — keduanya
+dilewati `npm run gate`. Playwright jalan paralel (`fullyParallel: true`, `workers: "75%"`).
 
 ## Aturan yang paling sering dilanggar
 

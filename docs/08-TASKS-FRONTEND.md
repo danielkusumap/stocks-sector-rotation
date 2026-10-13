@@ -390,3 +390,8 @@ Commit: `F24: gate cepat (paralel, tag a11y/slow, script gate)`.
 5. Kalau bentuk response `docs/05` ternyata berbeda saat backend selesai: **backend yang salah** → lapor, jangan buat adapter diam-diam.
 6. **Jangan menjalankan pipeline skala penuh saat development.** Pakai MSW untuk UI, dan untuk uji nyata cukup DB kecil (mis. 10–20 emiten). Backfill 962 emiten adalah wewenang user, dijalankan sekali dari halaman Data saat semuanya sudah jadi.
 7. Setelah setiap task: update `docs/PROGRESS.md` (status + bukti screenshot/output). Task tanpa bukti = belum selesai.
+8. **Urutan verifikasi (F24).** Loop saat mengerjakan: `npm run typecheck` → `npx vitest run <file>` →
+   `npm run spec -- e2e/<file>.spec.ts`. Penutup task: `npm run gate:full` **sekali saja** (tsc + vitest +
+   semua spec + `npm run build`). `npm run gate` = tanpa spec `@a11y`/`@slow`. Jangan menjalankan seluruh
+   spec atau `npm run build` setelah tiap mikro-edit — e2e adalah cek termahal di repo ini.
+   Spec a11y wajib ber-tag `@a11y`; spec yang > 30 s ber-tag `@slow`.

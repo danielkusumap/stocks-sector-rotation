@@ -43,11 +43,22 @@ def table_count(conn: sqlite3.Connection) -> int:
     return conn.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table'").fetchone()[0]
 
 
+def _statements(sql: str) -> list[str]:
+    """Potong berkas migrasi jadi statement satu per satu.
+
+    Komentar `--` (baris penuh maupun di ujung baris) dibuang **sebelum** memotong, karena komentar
+    bisa memuat `;` (mis. keterangan kolom) dan akan memotong statement di tengah.
+    """
+    lines = [line.split("--", 1)[0] for line in sql.splitlines()]
+    return [part.strip() for part in "\n".join(line for line in lines if line.strip()).split(";") if part.strip()]
+
+
 def apply_migrations(conn: sqlite3.Connection) -> int:
     """Jalankan `db/migrations/NNN_*.sql` berurutan; versi terakhir dicatat di PRAGMA user_version.
 
-    shortcut: satu migrasi dijalankan sebagai satu executescript (bukan transaksi tunggal),
-    cukup selama migrasi ditulis idempotent-safe.
+    Setiap statement dijalankan sendiri dan `ADD COLUMN` untuk kolom yang sudah ada diabaikan
+    (`duplicate column name`) — db baru sudah memuat kolomnya dari schema.sql, dan db yang sebagian
+    sudah termigrasi tetap melanjutkan sampai statement terakhir (docs/04 §7: idempotent-safe).
     """
     version = conn.execute("PRAGMA user_version").fetchone()[0]
     if not MIGRATIONS_DIR.is_dir():
@@ -56,13 +67,12 @@ def apply_migrations(conn: sqlite3.Connection) -> int:
         n = int(f.name.split("_", 1)[0])
         if n <= version:
             continue
-        try:
-            conn.executescript(f.read_text(encoding="utf-8"))
-        except sqlite3.OperationalError as exc:
-            if "duplicate column name" not in str(exc):
-                raise
-            # db baru: schema.sql sudah memuat kolomnya, jadi migrasi ini memang tidak perlu.
-            # shortcut: berhenti di error pertama; db yang separuh termigrasi dibetulkan manual.
+        for statement in _statements(f.read_text(encoding="utf-8")):
+            try:
+                conn.execute(statement)
+            except sqlite3.OperationalError as exc:
+                if "duplicate column name" not in str(exc):
+                    raise
         conn.execute(f"PRAGMA user_version={n}")
         version = n
     return version

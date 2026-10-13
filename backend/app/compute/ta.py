@@ -22,12 +22,13 @@ SECTOR_BARS_SQL = """
 """
 EVENT_UPSERT_SQL = """
     INSERT INTO ta_breakout (scope, ref_id, weighting, ma_period, trend_filter, signal_date, entry_date,
-                             entry_price, entry_basis, result, exit_date, exit_price, periods, computed_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                             entry_price, entry_basis, result, exit_date, exit_price, periods, mfe_pct, mae_pct, computed_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(scope, ref_id, ma_period, trend_filter, signal_date) DO UPDATE SET
       entry_date = excluded.entry_date, entry_price = excluded.entry_price, entry_basis = excluded.entry_basis,
       result = excluded.result, exit_date = excluded.exit_date, exit_price = excluded.exit_price,
-      periods = excluded.periods, computed_at = excluded.computed_at
+      periods = excluded.periods, mfe_pct = excluded.mfe_pct, mae_pct = excluded.mae_pct,
+      computed_at = excluded.computed_at
 """
 
 
@@ -111,6 +112,7 @@ def reference_rows(
             result, exit_index, periods, exit_price = simulate_result(
                 close, entry, entry_price, target_pct=target_pct, timeout_periods=timeout_periods
             )
+            span = close[entry : (exit_index if exit_index is not None else len(close) - 1) + 1]
             rows.append(
                 (
                     ma_period,
@@ -123,6 +125,8 @@ def reference_rows(
                     bars[exit_index][0] if exit_index is not None else None,
                     exit_price,
                     periods,
+                    max(span) / entry_price - 1,  # mfe_pct (docs/03 §10.9)
+                    min(span) / entry_price - 1,  # mae_pct
                 )
             )
     return rows
