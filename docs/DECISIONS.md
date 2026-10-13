@@ -434,3 +434,19 @@ Format:
 - keputusan: tiga helper murni di `lib/rrgChart.ts` — `pointLabel(item, scope)` (saham → `ref_id`, sektor → nama), `stockLabel(item)` (`TICKER · Nama`), `describePoint(item, scope)` (baris `aria-live` + `aria-label` titik memuat ticker dan nama). Label titik chart = ticker; entri legenda & judul `PointCard` = `TICKER · Nama` (nama di entri legenda dipotong `truncate` + `title` = nama penuh supaya tinggi entri tetap 24 px); tautan di `PointCard` untuk scope saham menjadi `/stocks/{ticker}` (sebelumnya `/stocks?sector=<ticker>`, salah alamat). `scope=sector` tidak disentuh sama sekali (nama sektor, tanpa kode).
 - alternatif: (a) tetap memakai nama perusahaan tapi mengecilkan font → ditolak: melanggar skala teks `docs/06` §1 dan tidak menyelesaikan tumpukan label; (b) mengganti label titik saja tanpa legenda/kartu → ditolak: `docs/08` F16 minta ketiganya konsisten, dan pembaca layar butuh nama lengkapnya di satu tempat (kartu/aria).
 - dampak: label titik lebih pendek → ambang anti-tumpuk `docs/06` §6 (24 px layar) tidak perlu diubah dan justru lebih sedikit label disembunyikan. Nama perusahaan tetap ada di legenda (dipotong) & kartu, jadi tidak ada informasi yang hilang. Kalau nanti tabel saham ingin kolom ticker+ nama berkode, pakai `stockLabel()` yang sama — jangan bikin format kedua.
+
+## ADR-043 — Kolom insight TA: satu `/ta/summary` per halaman, bukan per baris & bukan sort tabel
+
+- **Konteks (F17):** `SectorTable`/`StockTable` perlu kolom `win_rate`/median/`last_breakout`. `docs/05`
+  §4.1/§2: sumbernya `GET /ta/summary` yang sudah punya `sort=win_rate|median_periods|events|last_breakout|…`.
+- **Keputusan:** tabel memanggil **satu** `/ta/summary` (`limit=500`) lalu **join per `ref_id`** ke baris
+  `/sectors/summary` / `/stocks`. Kolom insight **tidak bisa diurutkan** (header tidak diklik) karena urutan
+  baris tabel milik endpoint tabel, bukan `/ta/summary`; mengurutkan `/ta/summary` tidak akan mengubah urutan
+  baris. Kunci `sort` TA tidak dikirim (default backend: `win_rate desc`).
+- **Kenapa:** AC F17 meminta satu permintaan per halaman (bukan per baris) dan angka kolom = angka panel.
+  Memetakan `sort` TA ke header tabel akan berbohong: barisnya tetap urutan `/sectors/summary`.
+- **Batasan yang diketahui:** `/ta/summary` mengirim maks 500 baris pertama → baris di luar itu tampil `—`
+  (ada komentar `shortcut:` di komponen). Kalau nanti perlu semua ref, minta backend menerima daftar `ref_id`.
+- **Alternatif yang ditolak:** satu permintaan per baris (dilarang AC), atau menyalin angka TA ke `/stocks`
+  & `/sectors/summary` (mengubah bentuk respons = naikkan `api_version`, dan backend B17 sudah memisahkannya).
+

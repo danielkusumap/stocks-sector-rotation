@@ -3,9 +3,12 @@ import { cn } from "../../lib/cn";
 import { formatNum, formatRpCompact } from "../../lib/format";
 import { streakLabel } from "../../lib/labels";
 import { SECTOR_COLUMNS, nextSort, type SectorColumn } from "../../lib/sectorTable";
+import { breakoutCellText, periodsText, resultLabel, resultTone, summaryMap, winRateText } from "../../lib/taTable";
+import { useTaSummary } from "../../hooks/useApiQuery";
 import { Delta } from "../ui/Delta";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
+import { Pill } from "../ui/Pill";
 import { QuadrantBadge } from "../ui/QuadrantBadge";
 import { StreakBadge } from "../ui/StreakBadge";
 import { Table, Td, Th } from "../ui/Table";
@@ -34,8 +37,15 @@ export function SectorTable({
   onSelect: (code: string) => void;
   onResetFilters: () => void;
 }) {
+  // Kolom insight (docs/08 F17): **satu** permintaan `/ta/summary` untuk seluruh halaman,
+  // lalu dicocokkan per baris lewat `ref_id` — bukan satu permintaan per baris.
+  // shortcut: `/ta/summary` mengirim maks 500 baris pertama, jadi baris di luar itu tampil "—";
+  //           kalau suatu saat perlu semuanya, minta backend menerima daftar `ref_id`.
+  const ta = useTaSummary({ scope: "sector", limit: 500 });
+  const taRows = summaryMap(ta.data?.items);
+
   return (
-    <Table caption="Sektor: kuadran, umur, RS-Ratio, RS-Momentum, perubahan, return, turnover, streak, skor">
+    <Table caption="Sektor: kuadran, umur, RS-Ratio, RS-Momentum, perubahan, return, turnover, streak, skor, analisa teknikal">
       <thead>
         <tr>
           {SECTOR_COLUMNS.map((column) => {
@@ -71,6 +81,8 @@ export function SectorTable({
         ) : (
           items.map((item) => {
             const selected = item.code === selectedRefId;
+            const insight = taRows.get(item.code);
+            const breakout = insight ? breakoutCellText(insight) : null;
             return (
               <tr
                 key={item.code}
@@ -137,6 +149,28 @@ export function SectorTable({
                 </Td>
                 <Td align="right" className="font-mono tabular-nums">
                   {formatNum(item.score, 1)}
+                </Td>
+                {/* kolom insight TA (docs/08 F17) — angka dari `/ta/summary` */}
+                <Td align="right" className="font-mono tabular-nums">
+                  <span data-testid={`ta-win-${item.code}`}>{winRateText(insight?.win_rate)}</span>
+                </Td>
+                <Td align="right" className="font-mono tabular-nums">
+                  {periodsText(insight?.median_periods_win)}
+                </Td>
+                <Td align="right" className="whitespace-nowrap">
+                  <span data-testid={`ta-breakout-${item.code}`}>
+                    {breakout && insight?.last_breakout ? (
+                      <>
+                        {breakout}{" "}
+                        <Pill
+                          tone={resultTone(insight.last_breakout.result)}
+                          label={resultLabel(insight.last_breakout.result)}
+                        />
+                      </>
+                    ) : (
+                      <span className="text-fg-faint">—</span>
+                    )}
+                  </span>
                 </Td>
               </tr>
             );

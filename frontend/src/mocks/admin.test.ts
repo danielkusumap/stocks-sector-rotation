@@ -7,10 +7,11 @@ import { resultFor } from "./admin";
  * dan bentuk `result_json` per kind.
  */
 describe("nama run.kind (docs/05 §4.6)", () => {
-  it("persis enam nilai, tanpa tambahan", () => {
+  it("persis tujuh nilai, tanpa tambahan", () => {
     expect(Object.values(RUN_KIND).sort()).toEqual([
       "compute_all",
       "compute_signals",
+      "compute_ta",
       "import_excel",
       "midday",
       "prices_daily",
@@ -27,6 +28,7 @@ describe("bentuk result_json per kind (docs/05 §4.6)", () => {
     [RUN_KIND.computeAll, ["timeframe", "sectors", "tickers", "duration_s"]],
     [RUN_KIND.computeSignals, ["week_end", "sectors", "stocks"]],
     [RUN_KIND.midday, ["gate", "last_bar_at", "computed"]],
+    [RUN_KIND.computeTa, ["events", "refs", "ma_periods", "variants", "win_rate", "duration_s"]],
   ];
 
   it.each(shapes)("%s → kunci %j", (kind, keys) => {

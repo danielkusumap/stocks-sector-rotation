@@ -1,7 +1,7 @@
 import { Fragment, useState } from "react";
-import type { IngestRun } from "../../lib/api";
+import type { ComputeTaResult, IngestRun } from "../../lib/api";
 import { cn } from "../../lib/cn";
-import { formatDateTime, formatDuration } from "../../lib/format";
+import { formatDateTime, formatDuration, formatNum } from "../../lib/format";
 import { errorMessage, stepTitle } from "../../lib/pipeline";
 import { Button } from "../ui/Button";
 import { Panel } from "../ui/Panel";
@@ -101,9 +101,16 @@ export function RunHistory({ runs, error }: { runs: IngestRun[]; error?: unknown
                         )}
                       </div>
                       {run.result_json != null && (
-                        <pre className="mt-1 overflow-x-auto font-mono text-sm text-fg">
-                          {JSON.stringify(run.result_json, null, 1)}
-                        </pre>
+                        <>
+                          {isTaResult(run) && (
+                            <p className="mt-1 text-sm" data-testid={`run-ta-${run.run_id}`}>
+                              {taResultText(run.result_json)}
+                            </p>
+                          )}
+                          <pre className="mt-1 overflow-x-auto font-mono text-sm text-fg">
+                            {JSON.stringify(run.result_json, null, 1)}
+                          </pre>
+                        </>
                       )}
                     </Td>
                   </tr>
@@ -121,4 +128,15 @@ function duration(run: IngestRun): string {
   if (!run.started_at || !run.finished_at) return "—";
   const seconds = (new Date(run.finished_at).getTime() - new Date(run.started_at).getTime()) / 1000;
   return formatDuration(seconds);
+}
+
+/** `compute_ta` → satu baris angka yang bisa dibaca (docs/05 §4.6), bukan cuma JSON mentah. */
+function isTaResult(run: IngestRun): boolean {
+  return run.kind === "compute_ta";
+}
+
+function taResultText(result: unknown): string {
+  const ta = result as ComputeTaResult;
+  const win = ta.win_rate === null || ta.win_rate === undefined ? "—" : `${formatNum(ta.win_rate * 100, 1)}%`;
+  return `analisa teknikal: ${formatNum(ta.events, 0)} event · ${formatNum(ta.refs, 0)} emiten · menang ${win} · MA ${(ta.ma_periods ?? []).join("/")}`;
 }

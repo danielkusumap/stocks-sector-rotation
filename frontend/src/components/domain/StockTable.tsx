@@ -2,9 +2,12 @@ import { useLocation, useNavigate } from "react-router";
 import type { Dir, StockRow, StockSort } from "../../lib/api";
 import { formatNum, formatRp, formatRpCompact } from "../../lib/format";
 import { STOCK_COLUMNS, nextSort, pageOf, pageCount, rangeLabel, type StockColumn } from "../../lib/stockTable";
+import { breakoutCellText, periodsText, resultLabel, resultTone, summaryMap, winRateText } from "../../lib/taTable";
+import { useTaSummary } from "../../hooks/useApiQuery";
 import { Button } from "../ui/Button";
 import { Delta } from "../ui/Delta";
 import { EmptyState } from "../ui/EmptyState";
+import { Pill } from "../ui/Pill";
 import { QuadrantBadge } from "../ui/QuadrantBadge";
 import { Table, Td, Th } from "../ui/Table";
 
@@ -39,10 +42,14 @@ export function StockTable({
   const pages = pageCount(total, limit);
   // bawa filter URL ke halaman detail supaya tombol "← Semua saham" kembali ke tabel yang sama
   const detailHref = (ticker: string) => `/stocks/${ticker}${location.search}`;
+  // Kolom insight (docs/08 F17): **satu** permintaan `/ta/summary` untuk seluruh halaman.
+  // shortcut: maks 500 baris pertama dari `/ta/summary`; baris di luar itu tampil "—".
+  const ta = useTaSummary({ scope: "stock", limit: 500 });
+  const taRows = summaryMap(ta.data?.items);
 
   return (
     <div>
-      <Table caption="Saham: harga, kuadran, RS, return, RSI, ATR, turnover, skor">
+      <Table caption="Saham: harga, kuadran, RS, return, RSI, ATR, turnover, skor, analisa teknikal">
         <thead>
           <tr>
             {STOCK_COLUMNS.map((column) => {
@@ -126,6 +133,33 @@ export function StockTable({
                 </Td>
                 <Td align="right" className="font-mono tabular-nums">
                   {formatNum(row.stock_score, 1)}
+                </Td>
+                {/* kolom insight TA (docs/08 F17) — angka dari `/ta/summary` */}
+                <Td align="right" className="font-mono tabular-nums">
+                  <span data-testid={`ta-win-${row.ticker}`}>
+                    {winRateText(taRows.get(row.ticker)?.win_rate)}
+                  </span>
+                </Td>
+                <Td align="right" className="font-mono tabular-nums">
+                  {periodsText(taRows.get(row.ticker)?.median_periods_win)}
+                </Td>
+                <Td align="right" className="whitespace-nowrap">
+                  <span data-testid={`ta-breakout-${row.ticker}`}>
+                    {(() => {
+                      const insight = taRows.get(row.ticker);
+                      const breakout = insight ? breakoutCellText(insight) : null;
+                      if (!breakout || !insight?.last_breakout) return <span className="text-fg-faint">—</span>;
+                      return (
+                        <>
+                          {breakout}{" "}
+                          <Pill
+                            tone={resultTone(insight.last_breakout.result)}
+                            label={resultLabel(insight.last_breakout.result)}
+                          />
+                        </>
+                      );
+                    })()}
+                  </span>
                 </Td>
               </tr>
             ))

@@ -10,10 +10,12 @@ import { ToastStack, useToasts } from "../components/ui/Toast";
 import { Tooltip } from "../components/ui/Tooltip";
 import { useMetaConfig, useMetaSectors, useRuns } from "../hooks/useApiQuery";
 import { useRunProgress, useStartStep } from "../hooks/usePipeline";
-import type { ImportResult } from "../lib/api";
+import type { ComputeTaResult, ImportResult } from "../lib/api";
+import { formatDuration, formatNum } from "../lib/format";
 import { runPeriodLabel } from "../lib/period";
 import {
   PIPELINE,
+  REFRESH_VIEW_KIND,
   RUN_KIND,
   errorMessage,
   importReasonLabel,
@@ -87,17 +89,6 @@ export default function DataPage() {
             Periode run terakhir: {runPeriodLabel(newestRun(runs))}
           </p>
         </div>
-        <Tooltip label="Ambil ulang data dari server — tidak menjalankan pipeline, tidak menarik harga baru.">
-          <Button
-            className="ml-auto"
-            onClick={() => {
-              void queryClient.invalidateQueries();
-              void runsQuery.refetch();
-            }}
-          >
-            Segarkan tampilan
-          </Button>
-        </Tooltip>
       </div>
 
       <Panel title="Langkah pipeline" className="mb-4">
@@ -106,6 +97,8 @@ export default function DataPage() {
             const lock = lockReason(step, prereq);
             const last = lastRun(runs, step.kind);
             const workingHere = activeRunId !== null && activeRun?.kind === step.kind;
+            // langkah 8 bukan run backend: tidak ada chip status, tombolnya menyegarkan cache
+            const isRefresh = step.kind === REFRESH_VIEW_KIND;
             return (
               <li
                 key={step.kind}
@@ -120,13 +113,15 @@ export default function DataPage() {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="font-medium">{step.title}</h3>
-                    <span className="text-sm text-fg-muted">
-                      <Pill
-                        tone={last?.status ?? "idle"}
-                        label={statusChip(step, runs)}
-                        bold={last?.status === "failed"}
-                      />
-                    </span>
+                    {!isRefresh && (
+                      <span className="text-sm text-fg-muted">
+                        <Pill
+                          tone={last?.status ?? "idle"}
+                          label={statusChip(step, runs)}
+                          bold={last?.status === "failed"}
+                        />
+                      </span>
+                    )}
                   </div>
                   <p className="mt-0.5 text-sm text-fg-muted">{step.hint}</p>
                   {workingHere && (
@@ -137,6 +132,9 @@ export default function DataPage() {
                   {lock && <p className="mt-1 text-sm text-warn">{lock}</p>}
                   {step.kind === RUN_KIND.importExcel && last && isFinal(last.status) && last.result_json != null && (
                     <ImportSummary result={last.result_json as ImportResult} />
+                  )}
+                  {step.kind === RUN_KIND.computeTa && last && isFinal(last.status) && last.result_json != null && (
+                    <TaSummary result={last.result_json as ComputeTaResult} />
                   )}
                 </div>
                 <div className="pt-0.5">
@@ -159,6 +157,17 @@ export default function DataPage() {
                         Pilih file &amp; import
                       </Button>
                     </>
+                  ) : isRefresh ? (
+                    <Tooltip label={step.hint}>
+                      <Button
+                        onClick={() => {
+                          void queryClient.invalidateQueries();
+                          void runsQuery.refetch();
+                        }}
+                      >
+                        Segarkan tampilan
+                      </Button>
+                    </Tooltip>
                   ) : (
                     <Button
                       variant={step.n === 2 ? "primary" : "outline"}
@@ -222,5 +231,16 @@ function ImportSummary({ result }: { result: ImportResult }) {
         </ul>
       )}
     </details>
+  );
+}
+
+/** Ringkasan hasil run analisa teknikal (`result_json` `compute_ta`, docs/05 §4.6). */
+function TaSummary({ result }: { result: ComputeTaResult }) {
+  return (
+    <p className="mt-2 text-sm text-fg-muted" data-testid="ta-result">
+      Hasil: {formatNum(result.events, 0)} event dari {formatNum(result.refs, 0)} emiten · menang{" "}
+      {result.win_rate === null ? "—" : `${formatNum(result.win_rate * 100, 1)}%`} · MA{" "}
+      {result.ma_periods.join("/")} · {formatDuration(result.duration_s)}
+    </p>
   );
 }

@@ -18,6 +18,7 @@ import { QuadrantChart } from "../charts/QuadrantChart";
 import { SectorSeries } from "../charts/SectorSeries";
 import { TableSkeleton } from "../ui/Skeleton";
 import { streakLabel } from "../../lib/labels";
+import { TaPanel } from "./TaPanel";
 
 /** Kolom tabel konstituen (docs/06 §5 `StockTable`, versi ringkas untuk drawer). */
 const CONSTITUENT_COLUMNS: readonly { key: string; label: string; sort: StockSort | null }[] = [
@@ -205,6 +206,13 @@ export function SectorDrawer({
               </tbody>
             </Table>
           )}
+        </section>
+
+        <section>
+          <h3 className="text-xs font-medium tracking-[0.04em] text-fg-muted uppercase">
+            Analisa teknikal
+          </h3>
+          {code && <TaPanel scope="sector" refId={code} timeframe={timeframe} weighting={weighting} asOf={asOf} />}
         </section>
 
         <section>

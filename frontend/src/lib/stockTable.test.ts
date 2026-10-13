@@ -11,7 +11,7 @@ import {
 } from "./stockTable";
 
 describe("kolom tabel saham (docs/06 §5)", () => {
-  it("memuat Ticker, Nama, Harga, RSI, ATR, Skor seperti diminta", () => {
+  it("memuat Ticker, Nama, Harga, RSI, ATR, Skor + kolom insight analisa teknikal (F17)", () => {
     const labels = STOCK_COLUMNS.map((c) => c.label);
     expect(labels).toEqual([
       "Ticker",
@@ -26,6 +26,9 @@ describe("kolom tabel saham (docs/06 §5)", () => {
       "ATR",
       "Turnover 20h",
       "Skor",
+      "+5% dulu",
+      "Median periode",
+      "Terakhir breakout",
     ]);
   });
 

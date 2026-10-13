@@ -27,8 +27,11 @@ test("/data: 'Segarkan tampilan' + tooltip jelas + periode run terakhir dari par
   await expect(page.getByRole("button", { name: "Muat ulang data" })).toHaveCount(0);
 
   await page.getByRole("button", { name: "Segarkan tampilan" }).focus();
+  // hint langkah 8 (docs/05 §4.1) juga memuat kalimat ini → cek tooltip-nya lewat role
   await expect(
-    page.getByText("Ambil ulang data dari server — tidak menjalankan pipeline, tidak menarik harga baru."),
+    page.getByRole("tooltip", {
+      name: "Ambil ulang data dari server — tidak menjalankan pipeline, tidak menarik harga baru.",
+    }),
   ).toBeVisible();
 
   await expect(page.getByTestId("run-period")).toContainText("belum ada run");

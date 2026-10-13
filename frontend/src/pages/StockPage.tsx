@@ -4,6 +4,7 @@ import { QuadrantChart } from "../components/charts/QuadrantChart";
 import { FilterBar } from "../components/domain/FilterBar";
 import { PeriodNote } from "../components/domain/PeriodNote";
 import { StockTable } from "../components/domain/StockTable";
+import { TaPanel } from "../components/domain/TaPanel";
 import { Delta } from "../components/ui/Delta";
 import { ErrorState } from "../components/ui/ErrorState";
 import { FreshnessPill } from "../components/ui/FreshnessPill";
@@ -241,6 +242,26 @@ function StockDetail({ ticker }: { ticker: string }) {
             — saham ini belum pernah masuk daftar pick mingguan.
           </p>
         )}
+      </Panel>
+
+      <Panel
+        title="Analisa teknikal"
+        actions={
+          <span className="text-sm text-fg-muted">
+            harga penyesuaian · backtest MA &amp; breakout dari backend
+          </span>
+        }
+      >
+        <div className="p-3">
+          <TaPanel
+            scope="stock"
+            refId={ticker}
+            timeframe={filters.timeframe}
+            weighting={filters.weighting}
+            asOf={filters.as_of ?? undefined}
+            window={filters.window}
+          />
+        </div>
       </Panel>
 
       <Panel

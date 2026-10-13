@@ -63,7 +63,7 @@ test("prasyarat tombol /data dibaca dari DATA, bukan riwayat run", async ({ page
   await page.goto("/data");
   const steps = page.locator("ol > li");
   await expect(steps.nth(0).getByRole("button", { name: "Pilih file & import" })).toBeEnabled();
-  for (const index of [1, 2, 3, 4, 5]) {
+  for (const index of [1, 2, 3, 4, 5, 6]) {
     await expect(steps.nth(index).getByRole("button", { name: "Jalankan" })).toBeEnabled();
   }
   // chip status tetap dari riwayat run
@@ -74,7 +74,7 @@ test("prasyarat tombol /data dibaca dari DATA, bukan riwayat run", async ({ page
   const locked = page.locator("ol > li");
   await expect(locked.nth(1).getByRole("button", { name: "Jalankan" })).toBeDisabled();
   await expect(locked.nth(1)).toContainText('Jalankan "Import sektor (Excel)" dulu.');
-  for (const index of [3, 4, 5]) {
+  for (const index of [3, 4, 5, 6]) {
     await expect(locked.nth(index).getByRole("button", { name: "Jalankan" })).toBeDisabled();
     await expect(locked.nth(index)).toContainText('Jalankan "Ambil harga harian" dulu.');
   }

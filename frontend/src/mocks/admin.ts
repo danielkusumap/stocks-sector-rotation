@@ -2,6 +2,7 @@ import { HttpResponse, http } from "msw";
 import type {
   ComputeAllResult,
   ComputeSignalsResult,
+  ComputeTaResult,
   IngestRun,
   MiddayResult,
   PricesResult,
@@ -42,6 +43,7 @@ const TOTAL_ROWS: Record<string, number> = {
   [RUN_KIND.computeAll]: 11,
   [RUN_KIND.computeSignals]: 11,
   [RUN_KIND.midday]: 11,
+  [RUN_KIND.computeTa]: 916,
 };
 
 function messageFor(kind: string, step: number, steps: number): string {
@@ -50,6 +52,10 @@ function messageFor(kind: string, step: number, steps: number): string {
   if (kind === RUN_KIND.importExcel) return `membaca sheet ${step}/${steps}`;
   if (kind === RUN_KIND.computeAll) return step < 3 ? "menghitung indeks sektor" : "menghitung RRG & skor";
   if (kind === RUN_KIND.computeSignals) return "menyusun sinyal mingguan & streak";
+  if (kind === RUN_KIND.computeTa) {
+    const ma = step < 2 ? "10" : step < 4 ? "20" : "50";
+    return `MA ${ma} & backtest ±5% (varian ${step % 2 === 0 ? "filter tren" : "tanpa filter"})`;
+  }
   return "memeriksa kesegaran data sesi 1";
 }
 
@@ -87,6 +93,18 @@ export function resultFor(kind: string, stale: boolean): unknown {
       computed: !stale,
     };
     return midday;
+  }
+  if (kind === RUN_KIND.computeTa) {
+    // `docs/05` §4.6 — inilah yang dibaca panel riwayat (jumlah event + win rate)
+    const ta: ComputeTaResult = {
+      events: 8421,
+      refs: 916,
+      ma_periods: [10, 20, 50],
+      variants: ["filter_off", "filter_on"],
+      win_rate: 0.58,
+      duration_s: 84.2,
+    };
+    return ta;
   }
   const compute: ComputeAllResult = { timeframe: "d1", sectors: 11, tickers: 962, duration_s: 42.1 };
   return compute;
@@ -171,7 +189,9 @@ export const adminHandlers = [
   http.post(`${API}/admin/ingest/prices`, async ({ request }) => {
     const body = (await request.json().catch(() => ({}))) as { mode?: string };
     record(`POST /admin/ingest/prices?mode=${body.mode ?? "daily"}`);
-    if (!succeeded(RUN_KIND.importExcel)) {
+    // Prasyarat dibaca dari DATA (docs/08 F13 A + ADR-037): mock memakai keadaan /meta/config,
+    // yaitu `?mock=empty` = universe kosong; selain itu universe ada.
+    if (new URL(request.url).searchParams.get("mock") === "empty") {
       return conflict("prereq_no_universe", "Tabel emiten masih kosong. Jalankan Import sektor dulu.");
     }
     const kind = body.mode === "intraday" ? RUN_KIND.pricesIntraday : RUN_KIND.pricesDaily;
@@ -182,14 +202,16 @@ export const adminHandlers = [
     const sp = new URL(request.url).searchParams;
     const body = (await request.json().catch(() => ({}))) as { stage?: string; timeframe?: string };
     record(`POST /admin/compute?stage=${body.stage ?? "all"}&timeframe=${body.timeframe ?? "d1"}`);
-    if (!succeeded(RUN_KIND.pricesDaily)) {
+    // Prasyarat dari DATA (`last_ingest.prices_daily`), bukan riwayat run — ADR-037.
+    // `?mock=empty` = belum ada harga harian → 409 yang pesannya tampil di UI (AC F17 #6).
+    if (sp.get("mock") === "empty") {
       return conflict("prereq_no_prices", "Harga harian belum ada. Jalankan Ambil harga harian dulu.");
     }
     const weekly = body.stage === "signals" && body.timeframe === "w1_fri";
     if (weekly && sp.get("mock") === "notfriday") {
       return conflict("gate_weekly_not_final", "Minggu berjalan belum final. Coba setelah penutupan Jumat.");
     }
-    const kind = weekly ? RUN_KIND.computeSignals : RUN_KIND.computeAll;
+    const kind = body.stage === "ta" ? RUN_KIND.computeTa : weekly ? RUN_KIND.computeSignals : RUN_KIND.computeAll;
     return HttpResponse.json(simulate(kind, body, false), { status: 202 });
   }),
 

@@ -32,6 +32,30 @@ export const SECTOR_COLUMNS: readonly SectorColumn[] = [
   { key: "turnover", label: "Turnover hr ini", sort: "turnover", align: "right", hint: "turnover periode aktif (docs/06 §5). Filter likuiditas memakai median 20 hari, jadi baris bisa tampak kecil walau lolos filter" },
   { key: "streak", label: "Streak", sort: null, align: "right", hint: "minggu berturut-turut masuk sinyal" },
   { key: "score", label: "Skor", sort: "score", align: "right" },
+  // Kolom insight analisa teknikal (docs/08 F17): angka dari `/ta/summary` (MA & filter default
+  // dari config), satu permintaan untuk satu halaman. Tidak bisa diurutkan dari sini karena
+  // urutan baris milik `/sectors/summary`, bukan `/ta/summary`.
+  {
+    key: "ta_win_rate",
+    label: "+5% dulu",
+    sort: null,
+    align: "right",
+    hint: "persen event yang menembus +5% sebelum −5% (backtest MA default config)",
+  },
+  {
+    key: "ta_median",
+    label: "Median periode",
+    sort: null,
+    align: "right",
+    hint: "median periode sampai +5% (median, bukan rata-rata)",
+  },
+  {
+    key: "ta_breakout",
+    label: "Terakhir breakout",
+    sort: null,
+    align: "right",
+    hint: "tanggal sinyal terakhir · umur sejak entry",
+  },
 ];
 
 /** Klik header: kolom lain → `desc`, kolom yang sama → balik arah (docs/08 F5/F7). */

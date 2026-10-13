@@ -13,7 +13,11 @@ export const RUN_KIND = {
   computeAll: "compute_all",
   computeSignals: "compute_signals",
   midday: "midday",
+  computeTa: "compute_ta",
 } as const;
+
+/** Langkah 8 bukan run backend (frontend saja): invalidate cache, docs/05 §4.1. */
+export const REFRESH_VIEW_KIND = "refresh_view";
 
 export interface PipelineStep {
   n: number;
@@ -51,7 +55,7 @@ export const PIPELINE: PipelineStep[] = [
   {
     n: 4,
     title: "Hitung semua (harian)",
-    hint: "Indeks sektor → RRG → skor → sinyal harian (±30–60 detik).",
+    hint: "Indeks sektor → RRG → skor → sinyal harian. Sudah termasuk analisa teknikal (MA & backtest).",
     kind: RUN_KIND.computeAll,
     needs: RUN_KIND.pricesDaily,
     body: { stage: "all", timeframe: "d1" },
@@ -70,6 +74,21 @@ export const PIPELINE: PipelineStep[] = [
     hint: "Cek kesegaran data sesi 1 lalu hitung ulang angka tengah hari (±40 detik).",
     kind: RUN_KIND.midday,
     needs: RUN_KIND.pricesDaily,
+  },
+  {
+    n: 7,
+    title: "Hitung analisa teknikal (MA & backtest)",
+    hint: "SMA 10/20/50 + deteksi breakout + hasil ±5% untuk dua varian filter (±60–120 detik).",
+    kind: RUN_KIND.computeTa,
+    needs: RUN_KIND.pricesDaily,
+    body: { stage: "ta" },
+  },
+  {
+    // Bukan run backend: mengosongkan cache TanStack Query (docs/05 §4.1 baris 8)
+    n: 8,
+    title: "Refresh data tampilan",
+    hint: "Ambil ulang data dari server — tidak menjalankan pipeline, tidak menarik harga baru.",
+    kind: REFRESH_VIEW_KIND,
   },
 ];
 

@@ -109,9 +109,11 @@ test("popover Filter: Enter membuka, Esc menutup dan fokus kembali ke tombolnya"
 
 test("/data: stepper terjangkau Tab, Enter di tombol 1 membuka pemilih berkas", async ({ page }) => {
   await page.goto("/data");
-  await expect(page.locator("ol > li")).toHaveCount(6);
+  // 8 langkah sejak F17 (analisa teknikal + refresh tampilan)
+  await expect(page.locator("ol > li")).toHaveCount(8);
 
-  const picks = await tabTo(page, (info) => info.name === "Pilih file & import", 40);
+  // dua langkah baru menambah elemen fokusable → anggaran Tab dinaikkan
+  const picks = await tabTo(page, (info) => info.name === "Pilih file & import", 60);
   expect(picks.outlineWidth).toBe("2px");
 
   const [chooser] = await Promise.all([

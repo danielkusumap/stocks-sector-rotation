@@ -28,6 +28,7 @@ import stocksJson from "./fixtures/stocks.json";
 import weeklyJson from "./fixtures/weekly.json";
 import { weekRangeLabel, weekStart } from "../lib/weeklyPicks";
 import { adminHandlers } from "./admin";
+import { taHandlers } from "./ta";
 
 /**
  * Mock server (MSW) — dibangun dari bentuk JSON di docs/05 apa adanya, supaya UI
@@ -406,6 +407,17 @@ export const handlers = [
       market: empty
         ? { poll_seconds: 60, live_enabled: false }
         : { poll_seconds: fast ? 1 : 60, live_enabled: true },
+      // Analisa teknikal (docs/08 F17): panel & kolom insight membaca default dari sini
+      ta: {
+        ma_periods: [10, 20, 50],
+        ma_default: 20,
+        trend_filter: true,
+        trend_filter_period: 50,
+        target_pct: 0.05,
+        timeout_periods: 60,
+        min_history: 60,
+        entry_basis: "next_open",
+      },
     };
     return HttpResponse.json(body);
   }),
@@ -878,4 +890,5 @@ export const handlers = [
   }),
 
   ...adminHandlers,
+  ...taHandlers,
 ];

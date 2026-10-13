@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { SECTOR_COLUMNS, nextSort, sectorSortOf } from "./sectorTable";
 
 describe("kolom tabel sektor (docs/06 §5)", () => {
-  it("dua belas kolom dengan urutan dokumen", () => {
+  it("lima belas kolom: dua belas kolom dokumen + tiga kolom insight analisa teknikal (F17)", () => {
     expect(SECTOR_COLUMNS.map((c) => c.label)).toEqual([
       "Sektor",
       "Kuadran",
@@ -16,6 +16,9 @@ describe("kolom tabel sektor (docs/06 §5)", () => {
       "Turnover hr ini",
       "Streak",
       "Skor",
+      "+5% dulu",
+      "Median periode",
+      "Terakhir breakout",
     ]);
   });
 

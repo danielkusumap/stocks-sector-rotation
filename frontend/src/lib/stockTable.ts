@@ -33,6 +33,29 @@ export const STOCK_COLUMNS: readonly StockColumn[] = [
   { key: "atr14", label: "ATR", sort: null, align: "right", hint: "ATR 14 periode (rupiah)" },
   { key: "turnover", label: "Turnover 20h", sort: "turnover", align: "right", hint: "median turnover 20 hari" },
   { key: "stock_score", label: "Skor", sort: "stock_score", align: "right" },
+  // Kolom insight analisa teknikal (docs/08 F17) — sama seperti `SectorTable`, angka dari
+  // `/ta/summary` (satu permintaan per halaman) dan tidak bisa diurutkan dari sini.
+  {
+    key: "ta_win_rate",
+    label: "+5% dulu",
+    sort: null,
+    align: "right",
+    hint: "persen event yang menembus +5% sebelum −5% (backtest MA default config)",
+  },
+  {
+    key: "ta_median",
+    label: "Median periode",
+    sort: null,
+    align: "right",
+    hint: "median periode sampai +5% (median, bukan rata-rata)",
+  },
+  {
+    key: "ta_breakout",
+    label: "Terakhir breakout",
+    sort: null,
+    align: "right",
+    hint: "tanggal sinyal terakhir · umur sejak entry",
+  },
 ];
 
 /** Hanya kunci yang dikenal `/stocks` boleh dikirim; selain itu jatuh ke `stock_score`. */

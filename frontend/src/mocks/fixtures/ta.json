@@ -1,0 +1,4887 @@
+{
+ "_note": "Fixture MSW (docs/05 §2). Dibuat sekali oleh scratch/generate-ta-fixture.py; jangan diedit tangan.",
+ "coverage": {
+  "stock": {
+   "refs_tested": 916,
+   "refs_skipped_short_history": 6,
+   "bars_from": "2024-10-14",
+   "bars_to": "2026-10-13",
+   "price_basis": "adj_close"
+  },
+  "sector": {
+   "refs_tested": 11,
+   "refs_skipped_short_history": 0,
+   "bars_from": "2024-10-14",
+   "bars_to": "2026-10-13",
+   "price_basis": "adj_close"
+  }
+ },
+ "refs": {
+  "IDXENERGY": {
+   "name": "Energi",
+   "sector_code": null,
+   "close": 1344,
+   "ma": {
+    "10": 1383.0,
+    "20": 1431.0,
+    "50": 1293.0
+   },
+   "runs": {
+    "10|on": {
+     "stats": {
+      "n_events": 8,
+      "win": 4,
+      "loss": 3,
+      "expired": 1,
+      "open": 0,
+      "win_rate": 0.5714,
+      "median_periods_win": 10.0,
+      "median_periods_loss": 7
+     },
+     "latest": {
+      "signal_date": "2026-04-15",
+      "entry_date": "2026-04-16",
+      "entry_price": 1263.4,
+      "entry_basis": "next_open",
+      "periods_since": 9,
+      "gain_since": 0.0638,
+      "result": "expired",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-04-15",
+       "entry_date": "2026-04-16",
+       "entry_price": 1263.4,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-04-06",
+       "entry_date": "2026-04-07",
+       "entry_price": 1373.6,
+       "result": "loss",
+       "periods": 7,
+       "exit_date": "2026-04-07",
+       "exit_price": 1304.9
+      },
+      {
+       "signal_date": "2026-03-22",
+       "entry_date": "2026-03-23",
+       "entry_price": 1362.8,
+       "result": "loss",
+       "periods": 4,
+       "exit_date": "2026-03-23",
+       "exit_price": 1294.7
+      },
+      {
+       "signal_date": "2026-03-18",
+       "entry_date": "2026-03-19",
+       "entry_price": 1263.4,
+       "result": "loss",
+       "periods": 9,
+       "exit_date": "2026-03-19",
+       "exit_price": 1200.2
+      },
+      {
+       "signal_date": "2026-03-09",
+       "entry_date": "2026-03-10",
+       "entry_price": 1348.0,
+       "result": "win",
+       "periods": 4,
+       "exit_date": "2026-03-10",
+       "exit_price": 1415.4
+      },
+      {
+       "signal_date": "2026-02-26",
+       "entry_date": "2026-02-27",
+       "entry_price": 1361.5,
+       "result": "win",
+       "periods": 12,
+       "exit_date": "2026-02-27",
+       "exit_price": 1429.6
+      },
+      {
+       "signal_date": "2026-02-19",
+       "entry_date": "2026-02-20",
+       "entry_price": 1392.4,
+       "result": "win",
+       "periods": 13,
+       "exit_date": "2026-02-20",
+       "exit_price": 1462.0
+      },
+      {
+       "signal_date": "2026-02-11",
+       "entry_date": "2026-02-12",
+       "entry_price": 1225.7,
+       "result": "win",
+       "periods": 8,
+       "exit_date": "2026-02-12",
+       "exit_price": 1287.0
+      }
+     ]
+    },
+    "10|off": {
+     "stats": {
+      "n_events": 7,
+      "win": 2,
+      "loss": 5,
+      "expired": 0,
+      "open": 0,
+      "win_rate": 0.2857,
+      "median_periods_win": 10.5,
+      "median_periods_loss": 11
+     },
+     "latest": {
+      "signal_date": "2026-04-06",
+      "entry_date": "2026-04-07",
+      "entry_price": 1243.2,
+      "entry_basis": "next_open",
+      "periods_since": 9,
+      "gain_since": 0.0811,
+      "result": "loss",
+      "exit_date": "2026-04-07",
+      "exit_price": 1181.0,
+      "periods": 9
+     },
+     "events": [
+      {
+       "signal_date": "2026-04-06",
+       "entry_date": "2026-04-07",
+       "entry_price": 1243.2,
+       "result": "loss",
+       "periods": 9,
+       "exit_date": "2026-04-07",
+       "exit_price": 1181.0
+      },
+      {
+       "signal_date": "2026-03-22",
+       "entry_date": "2026-03-23",
+       "entry_price": 1206.9,
+       "result": "loss",
+       "periods": 12,
+       "exit_date": "2026-03-23",
+       "exit_price": 1146.6
+      },
+      {
+       "signal_date": "2026-03-18",
+       "entry_date": "2026-03-19",
+       "entry_price": 1279.5,
+       "result": "loss",
+       "periods": 5,
+       "exit_date": "2026-03-19",
+       "exit_price": 1215.5
+      },
+      {
+       "signal_date": "2026-03-09",
+       "entry_date": "2026-03-10",
+       "entry_price": 1260.7,
+       "result": "loss",
+       "periods": 12,
+       "exit_date": "2026-03-10",
+       "exit_price": 1197.7
+      },
+      {
+       "signal_date": "2026-02-26",
+       "entry_date": "2026-02-27",
+       "entry_price": 1356.1,
+       "result": "loss",
+       "periods": 11,
+       "exit_date": "2026-02-27",
+       "exit_price": 1288.3
+      },
+      {
+       "signal_date": "2026-02-19",
+       "entry_date": "2026-02-20",
+       "entry_price": 1380.3,
+       "result": "win",
+       "periods": 14,
+       "exit_date": "2026-02-20",
+       "exit_price": 1449.3
+      },
+      {
+       "signal_date": "2026-02-11",
+       "entry_date": "2026-02-12",
+       "entry_price": 1210.9,
+       "result": "win",
+       "periods": 7,
+       "exit_date": "2026-02-12",
+       "exit_price": 1271.4
+      }
+     ]
+    },
+    "20|on": {
+     "stats": {
+      "n_events": 8,
+      "win": 1,
+      "loss": 4,
+      "expired": 2,
+      "open": 1,
+      "win_rate": 0.2,
+      "median_periods_win": 8,
+      "median_periods_loss": 9.5
+     },
+     "latest": {
+      "signal_date": "2026-10-06",
+      "entry_date": "2026-10-07",
+      "entry_price": 1344.0,
+      "entry_basis": "next_open",
+      "periods_since": 5,
+      "gain_since": 0.0,
+      "result": "open",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-10-06",
+       "entry_date": "2026-10-07",
+       "entry_price": 1344.0,
+       "result": "open",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-04-03",
+       "entry_date": "2026-04-04",
+       "entry_price": 1383.0,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-03-25",
+       "entry_date": "2026-03-26",
+       "entry_price": 1208.3,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-03-18",
+       "entry_date": "2026-03-19",
+       "entry_price": 1188.1,
+       "result": "loss",
+       "periods": 5,
+       "exit_date": "2026-03-19",
+       "exit_price": 1128.7
+      },
+      {
+       "signal_date": "2026-03-09",
+       "entry_date": "2026-03-10",
+       "entry_price": 1384.3,
+       "result": "loss",
+       "periods": 8,
+       "exit_date": "2026-03-10",
+       "exit_price": 1315.1
+      },
+      {
+       "signal_date": "2026-02-26",
+       "entry_date": "2026-02-27",
+       "entry_price": 1415.2,
+       "result": "loss",
+       "periods": 11,
+       "exit_date": "2026-02-27",
+       "exit_price": 1344.4
+      },
+      {
+       "signal_date": "2026-02-19",
+       "entry_date": "2026-02-20",
+       "entry_price": 1349.4,
+       "result": "loss",
+       "periods": 12,
+       "exit_date": "2026-02-20",
+       "exit_price": 1281.9
+      },
+      {
+       "signal_date": "2026-02-11",
+       "entry_date": "2026-02-12",
+       "entry_price": 1376.3,
+       "result": "win",
+       "periods": 8,
+       "exit_date": "2026-02-12",
+       "exit_price": 1445.1
+      }
+     ]
+    },
+    "20|off": {
+     "stats": {
+      "n_events": 13,
+      "win": 7,
+      "loss": 4,
+      "expired": 1,
+      "open": 1,
+      "win_rate": 0.6364,
+      "median_periods_win": 7,
+      "median_periods_loss": 6.5
+     },
+     "latest": {
+      "signal_date": "2026-10-06",
+      "entry_date": "2026-10-07",
+      "entry_price": 1299.6,
+      "entry_basis": "next_open",
+      "periods_since": 5,
+      "gain_since": 0.0342,
+      "result": "open",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-10-06",
+       "entry_date": "2026-10-07",
+       "entry_price": 1299.6,
+       "result": "open",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-05-10",
+       "entry_date": "2026-05-11",
+       "entry_price": 1213.6,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-05-05",
+       "entry_date": "2026-05-06",
+       "entry_price": 1401.8,
+       "result": "loss",
+       "periods": 11,
+       "exit_date": "2026-05-06",
+       "exit_price": 1331.7
+      },
+      {
+       "signal_date": "2026-04-25",
+       "entry_date": "2026-04-26",
+       "entry_price": 1201.5,
+       "result": "loss",
+       "periods": 8,
+       "exit_date": "2026-04-26",
+       "exit_price": 1141.4
+      },
+      {
+       "signal_date": "2026-04-17",
+       "entry_date": "2026-04-18",
+       "entry_price": 1392.4,
+       "result": "loss",
+       "periods": 5,
+       "exit_date": "2026-04-18",
+       "exit_price": 1322.8
+      },
+      {
+       "signal_date": "2026-04-12",
+       "entry_date": "2026-04-13",
+       "entry_price": 1219.0,
+       "result": "loss",
+       "periods": 4,
+       "exit_date": "2026-04-13",
+       "exit_price": 1158.0
+      },
+      {
+       "signal_date": "2026-04-06",
+       "entry_date": "2026-04-07",
+       "entry_price": 1360.1,
+       "result": "win",
+       "periods": 7,
+       "exit_date": "2026-04-07",
+       "exit_price": 1428.1
+      },
+      {
+       "signal_date": "2026-03-22",
+       "entry_date": "2026-03-23",
+       "entry_price": 1295.6,
+       "result": "win",
+       "periods": 13,
+       "exit_date": "2026-03-23",
+       "exit_price": 1360.4
+      },
+      {
+       "signal_date": "2026-03-18",
+       "entry_date": "2026-03-19",
+       "entry_price": 1335.9,
+       "result": "win",
+       "periods": 13,
+       "exit_date": "2026-03-19",
+       "exit_price": 1402.7
+      },
+      {
+       "signal_date": "2026-03-09",
+       "entry_date": "2026-03-10",
+       "entry_price": 1297.0,
+       "result": "win",
+       "periods": 4,
+       "exit_date": "2026-03-10",
+       "exit_price": 1361.9
+      },
+      {
+       "signal_date": "2026-02-26",
+       "entry_date": "2026-02-27",
+       "entry_price": 1298.3,
+       "result": "win",
+       "periods": 5,
+       "exit_date": "2026-02-27",
+       "exit_price": 1363.2
+      },
+      {
+       "signal_date": "2026-02-19",
+       "entry_date": "2026-02-20",
+       "entry_price": 1337.3,
+       "result": "win",
+       "periods": 7,
+       "exit_date": "2026-02-20",
+       "exit_price": 1404.2
+      },
+      {
+       "signal_date": "2026-02-11",
+       "entry_date": "2026-02-12",
+       "entry_price": 1361.5,
+       "result": "win",
+       "periods": 7,
+       "exit_date": "2026-02-12",
+       "exit_price": 1429.6
+      }
+     ]
+    },
+    "50|on": {
+     "stats": {
+      "n_events": 11,
+      "win": 6,
+      "loss": 3,
+      "expired": 2,
+      "open": 0,
+      "win_rate": 0.6667,
+      "median_periods_win": 7.0,
+      "median_periods_loss": 11
+     },
+     "latest": {
+      "signal_date": "2026-05-10",
+      "entry_date": "2026-05-11",
+      "entry_price": 1321.2,
+      "entry_basis": "next_open",
+      "periods_since": 9,
+      "gain_since": 0.0173,
+      "result": "expired",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-05-10",
+       "entry_date": "2026-05-11",
+       "entry_price": 1321.2,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-04-28",
+       "entry_date": "2026-04-29",
+       "entry_price": 1357.4,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-04-17",
+       "entry_date": "2026-04-18",
+       "entry_price": 1204.2,
+       "result": "loss",
+       "periods": 11,
+       "exit_date": "2026-04-18",
+       "exit_price": 1144.0
+      },
+      {
+       "signal_date": "2026-04-12",
+       "entry_date": "2026-04-13",
+       "entry_price": 1283.5,
+       "result": "loss",
+       "periods": 12,
+       "exit_date": "2026-04-13",
+       "exit_price": 1219.3
+      },
+      {
+       "signal_date": "2026-04-06",
+       "entry_date": "2026-04-07",
+       "entry_price": 1243.2,
+       "result": "loss",
+       "periods": 3,
+       "exit_date": "2026-04-07",
+       "exit_price": 1181.0
+      },
+      {
+       "signal_date": "2026-03-22",
+       "entry_date": "2026-03-23",
+       "entry_price": 1231.1,
+       "result": "win",
+       "periods": 5,
+       "exit_date": "2026-03-23",
+       "exit_price": 1292.7
+      },
+      {
+       "signal_date": "2026-03-18",
+       "entry_date": "2026-03-19",
+       "entry_price": 1337.3,
+       "result": "win",
+       "periods": 8,
+       "exit_date": "2026-03-19",
+       "exit_price": 1404.2
+      },
+      {
+       "signal_date": "2026-03-09",
+       "entry_date": "2026-03-10",
+       "entry_price": 1249.9,
+       "result": "win",
+       "periods": 4,
+       "exit_date": "2026-03-10",
+       "exit_price": 1312.4
+      },
+      {
+       "signal_date": "2026-02-26",
+       "entry_date": "2026-02-27",
+       "entry_price": 1353.4,
+       "result": "win",
+       "periods": 8,
+       "exit_date": "2026-02-27",
+       "exit_price": 1421.1
+      },
+      {
+       "signal_date": "2026-02-19",
+       "entry_date": "2026-02-20",
+       "entry_price": 1311.7,
+       "result": "win",
+       "periods": 14,
+       "exit_date": "2026-02-20",
+       "exit_price": 1377.3
+      },
+      {
+       "signal_date": "2026-02-11",
+       "entry_date": "2026-02-12",
+       "entry_price": 1209.6,
+       "result": "win",
+       "periods": 6,
+       "exit_date": "2026-02-12",
+       "exit_price": 1270.1
+      }
+     ]
+    },
+    "50|off": {
+     "stats": {
+      "n_events": 8,
+      "win": 6,
+      "loss": 1,
+      "expired": 1,
+      "open": 0,
+      "win_rate": 0.8571,
+      "median_periods_win": 5.5,
+      "median_periods_loss": 7
+     },
+     "latest": {
+      "signal_date": "2026-04-15",
+      "entry_date": "2026-04-16",
+      "entry_price": 1350.7,
+      "entry_basis": "next_open",
+      "periods_since": 9,
+      "gain_since": -0.005,
+      "result": "expired",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-04-15",
+       "entry_date": "2026-04-16",
+       "entry_price": 1350.7,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-04-06",
+       "entry_date": "2026-04-07",
+       "entry_price": 1356.1,
+       "result": "loss",
+       "periods": 7,
+       "exit_date": "2026-04-07",
+       "exit_price": 1288.3
+      },
+      {
+       "signal_date": "2026-03-22",
+       "entry_date": "2026-03-23",
+       "entry_price": 1318.5,
+       "result": "win",
+       "periods": 11,
+       "exit_date": "2026-03-23",
+       "exit_price": 1384.4
+      },
+      {
+       "signal_date": "2026-03-18",
+       "entry_date": "2026-03-19",
+       "entry_price": 1241.9,
+       "result": "win",
+       "periods": 11,
+       "exit_date": "2026-03-19",
+       "exit_price": 1304.0
+      },
+      {
+       "signal_date": "2026-03-09",
+       "entry_date": "2026-03-10",
+       "entry_price": 1405.8,
+       "result": "win",
+       "periods": 5,
+       "exit_date": "2026-03-10",
+       "exit_price": 1476.1
+      },
+      {
+       "signal_date": "2026-02-26",
+       "entry_date": "2026-02-27",
+       "entry_price": 1236.5,
+       "result": "win",
+       "periods": 4,
+       "exit_date": "2026-02-27",
+       "exit_price": 1298.3
+      },
+      {
+       "signal_date": "2026-02-19",
+       "entry_date": "2026-02-20",
+       "entry_price": 1299.6,
+       "result": "win",
+       "periods": 6,
+       "exit_date": "2026-02-20",
+       "exit_price": 1364.6
+      },
+      {
+       "signal_date": "2026-02-11",
+       "entry_date": "2026-02-12",
+       "entry_price": 1194.8,
+       "result": "win",
+       "periods": 5,
+       "exit_date": "2026-02-12",
+       "exit_price": 1254.5
+      }
+     ]
+    }
+   }
+  },
+  "IDXBASIC": {
+   "name": "Barang Baku",
+   "sector_code": null,
+   "close": 1039,
+   "ma": {
+    "10": 1020.0,
+    "20": 1042.0,
+    "50": 1024.0
+   },
+   "runs": {}
+  },
+  "IDXINDUST": {
+   "name": "Perindustrian",
+   "sector_code": null,
+   "close": 1415,
+   "ma": {
+    "10": 1296.0,
+    "20": 1347.0,
+    "50": 1315.0
+   },
+   "runs": {}
+  },
+  "IDXNONCYC": {
+   "name": "Konsumen Primer",
+   "sector_code": null,
+   "close": 1443,
+   "ma": {
+    "10": 1466.0,
+    "20": 1518.0,
+    "50": 1485.0
+   },
+   "runs": {}
+  },
+  "IDXCYCLIC": {
+   "name": "Konsumen Non-Primer",
+   "sector_code": null,
+   "close": 1330,
+   "ma": {
+    "10": 1456.0,
+    "20": 1224.0,
+    "50": 1474.0
+   },
+   "runs": {}
+  },
+  "IDXHEALTH": {
+   "name": "Kesehatan",
+   "sector_code": null,
+   "close": 1217,
+   "ma": {
+    "10": 1156.0,
+    "20": 1200.0,
+    "50": 1172.0
+   },
+   "runs": {
+    "10|on": {
+     "stats": {
+      "n_events": 6,
+      "win": 2,
+      "loss": 3,
+      "expired": 1,
+      "open": 0,
+      "win_rate": 0.4,
+      "median_periods_win": 8.5,
+      "median_periods_loss": 8
+     },
+     "latest": {
+      "signal_date": "2026-03-25",
+      "entry_date": "2026-03-26",
+      "entry_price": 1201.2,
+      "entry_basis": "next_open",
+      "periods_since": 9,
+      "gain_since": 0.0132,
+      "result": "expired",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-03-25",
+       "entry_date": "2026-03-26",
+       "entry_price": 1201.2,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-03-14",
+       "entry_date": "2026-03-15",
+       "entry_price": 1189.0,
+       "result": "loss",
+       "periods": 9,
+       "exit_date": "2026-03-15",
+       "exit_price": 1129.5
+      },
+      {
+       "signal_date": "2026-03-09",
+       "entry_date": "2026-03-10",
+       "entry_price": 1207.3,
+       "result": "loss",
+       "periods": 8,
+       "exit_date": "2026-03-10",
+       "exit_price": 1146.9
+      },
+      {
+       "signal_date": "2026-03-03",
+       "entry_date": "2026-03-04",
+       "entry_price": 1207.3,
+       "result": "loss",
+       "periods": 3,
+       "exit_date": "2026-03-04",
+       "exit_price": 1146.9
+      },
+      {
+       "signal_date": "2026-02-19",
+       "entry_date": "2026-02-20",
+       "entry_price": 1180.5,
+       "result": "win",
+       "periods": 10,
+       "exit_date": "2026-02-20",
+       "exit_price": 1239.5
+      },
+      {
+       "signal_date": "2026-02-15",
+       "entry_date": "2026-02-16",
+       "entry_price": 1286.4,
+       "result": "win",
+       "periods": 7,
+       "exit_date": "2026-02-16",
+       "exit_price": 1350.7
+      }
+     ]
+    },
+    "10|off": {
+     "stats": {
+      "n_events": 9,
+      "win": 6,
+      "loss": 3,
+      "expired": 0,
+      "open": 0,
+      "win_rate": 0.6667,
+      "median_periods_win": 9.0,
+      "median_periods_loss": 10
+     },
+     "latest": {
+      "signal_date": "2026-04-21",
+      "entry_date": "2026-04-22",
+      "entry_price": 1073.4,
+      "entry_basis": "next_open",
+      "periods_since": 9,
+      "gain_since": 0.1338,
+      "result": "loss",
+      "exit_date": "2026-04-22",
+      "exit_price": 1019.7,
+      "periods": 11
+     },
+     "events": [
+      {
+       "signal_date": "2026-04-21",
+       "entry_date": "2026-04-22",
+       "entry_price": 1073.4,
+       "result": "loss",
+       "periods": 11,
+       "exit_date": "2026-04-22",
+       "exit_price": 1019.7
+      },
+      {
+       "signal_date": "2026-04-12",
+       "entry_date": "2026-04-13",
+       "entry_price": 1092.9,
+       "result": "loss",
+       "periods": 10,
+       "exit_date": "2026-04-13",
+       "exit_price": 1038.3
+      },
+      {
+       "signal_date": "2026-04-02",
+       "entry_date": "2026-04-03",
+       "entry_price": 1172.0,
+       "result": "loss",
+       "periods": 9,
+       "exit_date": "2026-04-03",
+       "exit_price": 1113.4
+      },
+      {
+       "signal_date": "2026-03-22",
+       "entry_date": "2026-03-23",
+       "entry_price": 1280.3,
+       "result": "win",
+       "periods": 7,
+       "exit_date": "2026-03-23",
+       "exit_price": 1344.3
+      },
+      {
+       "signal_date": "2026-03-14",
+       "entry_date": "2026-03-15",
+       "entry_price": 1203.6,
+       "result": "win",
+       "periods": 12,
+       "exit_date": "2026-03-15",
+       "exit_price": 1263.8
+      },
+      {
+       "signal_date": "2026-03-09",
+       "entry_date": "2026-03-10",
+       "entry_price": 1128.2,
+       "result": "win",
+       "periods": 8,
+       "exit_date": "2026-03-10",
+       "exit_price": 1184.6
+      },
+      {
+       "signal_date": "2026-03-03",
+       "entry_date": "2026-03-04",
+       "entry_price": 1202.4,
+       "result": "win",
+       "periods": 10,
+       "exit_date": "2026-03-04",
+       "exit_price": 1262.5
+      },
+      {
+       "signal_date": "2026-02-19",
+       "entry_date": "2026-02-20",
+       "entry_price": 1169.5,
+       "result": "win",
+       "periods": 13,
+       "exit_date": "2026-02-20",
+       "exit_price": 1228.0
+      },
+      {
+       "signal_date": "2026-02-15",
+       "entry_date": "2026-02-16",
+       "entry_price": 1273.0,
+       "result": "win",
+       "periods": 8,
+       "exit_date": "2026-02-16",
+       "exit_price": 1336.7
+      }
+     ]
+    },
+    "20|on": {
+     "stats": {
+      "n_events": 8,
+      "win": 1,
+      "loss": 4,
+      "expired": 2,
+      "open": 1,
+      "win_rate": 0.2,
+      "median_periods_win": 7,
+      "median_periods_loss": 7.5
+     },
+     "latest": {
+      "signal_date": "2026-10-06",
+      "entry_date": "2026-10-07",
+      "entry_price": 1178.1,
+      "entry_basis": "next_open",
+      "periods_since": 5,
+      "gain_since": 0.033,
+      "result": "open",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-10-06",
+       "entry_date": "2026-10-07",
+       "entry_price": 1178.1,
+       "result": "open",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-04-07",
+       "entry_date": "2026-04-08",
+       "entry_price": 1084.3,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-03-25",
+       "entry_date": "2026-03-26",
+       "entry_price": 1281.5,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-03-14",
+       "entry_date": "2026-03-15",
+       "entry_price": 1120.9,
+       "result": "loss",
+       "periods": 5,
+       "exit_date": "2026-03-15",
+       "exit_price": 1064.9
+      },
+      {
+       "signal_date": "2026-03-09",
+       "entry_date": "2026-03-10",
+       "entry_price": 1240.1,
+       "result": "loss",
+       "periods": 6,
+       "exit_date": "2026-03-10",
+       "exit_price": 1178.1
+      },
+      {
+       "signal_date": "2026-03-03",
+       "entry_date": "2026-03-04",
+       "entry_price": 1255.9,
+       "result": "loss",
+       "periods": 9,
+       "exit_date": "2026-03-04",
+       "exit_price": 1193.1
+      },
+      {
+       "signal_date": "2026-02-19",
+       "entry_date": "2026-02-20",
+       "entry_price": 1242.6,
+       "result": "loss",
+       "periods": 12,
+       "exit_date": "2026-02-20",
+       "exit_price": 1180.5
+      },
+      {
+       "signal_date": "2026-02-15",
+       "entry_date": "2026-02-16",
+       "entry_price": 1202.4,
+       "result": "win",
+       "periods": 7,
+       "exit_date": "2026-02-16",
+       "exit_price": 1262.5
+      }
+     ]
+    },
+    "20|off": {
+     "stats": {
+      "n_events": 7,
+      "win": 3,
+      "loss": 2,
+      "expired": 1,
+      "open": 1,
+      "win_rate": 0.6,
+      "median_periods_win": 6,
+      "median_periods_loss": 4.5
+     },
+     "latest": {
+      "signal_date": "2026-10-06",
+      "entry_date": "2026-10-07",
+      "entry_price": 1196.3,
+      "entry_basis": "next_open",
+      "periods_since": 5,
+      "gain_since": 0.0173,
+      "result": "open",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-10-06",
+       "entry_date": "2026-10-07",
+       "entry_price": 1196.3,
+       "result": "open",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-03-25",
+       "entry_date": "2026-03-26",
+       "entry_price": 1140.3,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-03-14",
+       "entry_date": "2026-03-15",
+       "entry_price": 1254.7,
+       "result": "loss",
+       "periods": 3,
+       "exit_date": "2026-03-15",
+       "exit_price": 1192.0
+      },
+      {
+       "signal_date": "2026-03-09",
+       "entry_date": "2026-03-10",
+       "entry_price": 1161.0,
+       "result": "loss",
+       "periods": 6,
+       "exit_date": "2026-03-10",
+       "exit_price": 1103.0
+      },
+      {
+       "signal_date": "2026-03-03",
+       "entry_date": "2026-03-04",
+       "entry_price": 1150.1,
+       "result": "win",
+       "periods": 9,
+       "exit_date": "2026-03-04",
+       "exit_price": 1207.6
+      },
+      {
+       "signal_date": "2026-02-19",
+       "entry_date": "2026-02-20",
+       "entry_price": 1231.6,
+       "result": "win",
+       "periods": 4,
+       "exit_date": "2026-02-20",
+       "exit_price": 1293.2
+      },
+      {
+       "signal_date": "2026-02-15",
+       "entry_date": "2026-02-16",
+       "entry_price": 1290.0,
+       "result": "win",
+       "periods": 6,
+       "exit_date": "2026-02-16",
+       "exit_price": 1354.5
+      }
+     ]
+    },
+    "50|on": {
+     "stats": {
+      "n_events": 9,
+      "win": 4,
+      "loss": 3,
+      "expired": 2,
+      "open": 0,
+      "win_rate": 0.5714,
+      "median_periods_win": 8.5,
+      "median_periods_loss": 3
+     },
+     "latest": {
+      "signal_date": "2026-04-18",
+      "entry_date": "2026-04-19",
+      "entry_price": 1288.8,
+      "entry_basis": "next_open",
+      "periods_since": 9,
+      "gain_since": -0.0557,
+      "result": "expired",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-04-18",
+       "entry_date": "2026-04-19",
+       "entry_price": 1288.8,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-04-07",
+       "entry_date": "2026-04-08",
+       "entry_price": 1270.5,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-04-02",
+       "entry_date": "2026-04-03",
+       "entry_price": 1172.0,
+       "result": "loss",
+       "periods": 3,
+       "exit_date": "2026-04-03",
+       "exit_price": 1113.4
+      },
+      {
+       "signal_date": "2026-03-22",
+       "entry_date": "2026-03-23",
+       "entry_price": 1081.9,
+       "result": "loss",
+       "periods": 10,
+       "exit_date": "2026-03-23",
+       "exit_price": 1027.8
+      },
+      {
+       "signal_date": "2026-03-14",
+       "entry_date": "2026-03-15",
+       "entry_price": 1255.9,
+       "result": "loss",
+       "periods": 3,
+       "exit_date": "2026-03-15",
+       "exit_price": 1193.1
+      },
+      {
+       "signal_date": "2026-03-09",
+       "entry_date": "2026-03-10",
+       "entry_price": 1118.4,
+       "result": "win",
+       "periods": 7,
+       "exit_date": "2026-03-10",
+       "exit_price": 1174.3
+      },
+      {
+       "signal_date": "2026-03-03",
+       "entry_date": "2026-03-04",
+       "entry_price": 1200.0,
+       "result": "win",
+       "periods": 10,
+       "exit_date": "2026-03-04",
+       "exit_price": 1260.0
+      },
+      {
+       "signal_date": "2026-02-19",
+       "entry_date": "2026-02-20",
+       "entry_price": 1107.5,
+       "result": "win",
+       "periods": 11,
+       "exit_date": "2026-02-20",
+       "exit_price": 1162.9
+      },
+      {
+       "signal_date": "2026-02-15",
+       "entry_date": "2026-02-16",
+       "entry_price": 1271.8,
+       "result": "win",
+       "periods": 5,
+       "exit_date": "2026-02-16",
+       "exit_price": 1335.4
+      }
+     ]
+    },
+    "50|off": {
+     "stats": {
+      "n_events": 4,
+      "win": 2,
+      "loss": 1,
+      "expired": 1,
+      "open": 0,
+      "win_rate": 0.6667,
+      "median_periods_win": 9.0,
+      "median_periods_loss": 11
+     },
+     "latest": {
+      "signal_date": "2026-03-12",
+      "entry_date": "2026-03-13",
+      "entry_price": 1259.6,
+      "entry_basis": "next_open",
+      "periods_since": 9,
+      "gain_since": -0.0338,
+      "result": "expired",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-03-12",
+       "entry_date": "2026-03-13",
+       "entry_price": 1259.6,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-03-03",
+       "entry_date": "2026-03-04",
+       "entry_price": 1094.1,
+       "result": "loss",
+       "periods": 11,
+       "exit_date": "2026-03-04",
+       "exit_price": 1039.4
+      },
+      {
+       "signal_date": "2026-02-19",
+       "entry_date": "2026-02-20",
+       "entry_price": 1096.5,
+       "result": "win",
+       "periods": 14,
+       "exit_date": "2026-02-20",
+       "exit_price": 1151.3
+      },
+      {
+       "signal_date": "2026-02-15",
+       "entry_date": "2026-02-16",
+       "entry_price": 1258.4,
+       "result": "win",
+       "periods": 4,
+       "exit_date": "2026-02-16",
+       "exit_price": 1321.3
+      }
+     ]
+    }
+   }
+  },
+  "IDXFINANCE": {
+   "name": "Keuangan",
+   "sector_code": null,
+   "close": 1211,
+   "ma": {
+    "10": 1301.0,
+    "20": 1204.0,
+    "50": 1327.0
+   },
+   "runs": {
+    "10|on": {
+     "stats": {
+      "n_events": 5,
+      "win": 2,
+      "loss": 1,
+      "expired": 2,
+      "open": 0,
+      "win_rate": 0.6667,
+      "median_periods_win": 12.0,
+      "median_periods_loss": 5
+     },
+     "latest": {
+      "signal_date": "2026-03-15",
+      "entry_date": "2026-03-16",
+      "entry_price": 1104.4,
+      "entry_basis": "next_open",
+      "periods_since": 9,
+      "gain_since": 0.0965,
+      "result": "expired",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-03-15",
+       "entry_date": "2026-03-16",
+       "entry_price": 1104.4,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-03-04",
+       "entry_date": "2026-03-05",
+       "entry_price": 1195.3,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-02-26",
+       "entry_date": "2026-02-27",
+       "entry_price": 1189.2,
+       "result": "loss",
+       "periods": 5,
+       "exit_date": "2026-02-27",
+       "exit_price": 1129.7
+      },
+      {
+       "signal_date": "2026-02-19",
+       "entry_date": "2026-02-20",
+       "entry_price": 1109.3,
+       "result": "win",
+       "periods": 14,
+       "exit_date": "2026-02-20",
+       "exit_price": 1164.8
+      },
+      {
+       "signal_date": "2026-02-11",
+       "entry_date": "2026-02-12",
+       "entry_price": 1177.1,
+       "result": "win",
+       "periods": 10,
+       "exit_date": "2026-02-12",
+       "exit_price": 1236.0
+      }
+     ]
+    },
+    "10|off": {
+     "stats": {
+      "n_events": 6,
+      "win": 2,
+      "loss": 3,
+      "expired": 1,
+      "open": 0,
+      "win_rate": 0.4,
+      "median_periods_win": 5.0,
+      "median_periods_loss": 7
+     },
+     "latest": {
+      "signal_date": "2026-03-21",
+      "entry_date": "2026-03-22",
+      "entry_price": 1163.8,
+      "entry_basis": "next_open",
+      "periods_since": 9,
+      "gain_since": 0.0406,
+      "result": "expired",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-03-21",
+       "entry_date": "2026-03-22",
+       "entry_price": 1163.8,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-03-16",
+       "entry_date": "2026-03-17",
+       "entry_price": 1281.2,
+       "result": "loss",
+       "periods": 7,
+       "exit_date": "2026-03-17",
+       "exit_price": 1217.1
+      },
+      {
+       "signal_date": "2026-03-09",
+       "entry_date": "2026-03-10",
+       "entry_price": 1100.8,
+       "result": "loss",
+       "periods": 4,
+       "exit_date": "2026-03-10",
+       "exit_price": 1045.8
+      },
+      {
+       "signal_date": "2026-02-28",
+       "entry_date": "2026-02-29",
+       "entry_price": 1126.2,
+       "result": "loss",
+       "periods": 11,
+       "exit_date": "2026-02-29",
+       "exit_price": 1069.9
+      },
+      {
+       "signal_date": "2026-02-23",
+       "entry_date": "2026-02-24",
+       "entry_price": 1152.9,
+       "result": "win",
+       "periods": 5,
+       "exit_date": "2026-02-24",
+       "exit_price": 1210.5
+      },
+      {
+       "signal_date": "2026-02-17",
+       "entry_date": "2026-02-18",
+       "entry_price": 1065.7,
+       "result": "win",
+       "periods": 5,
+       "exit_date": "2026-02-18",
+       "exit_price": 1119.0
+      }
+     ]
+    },
+    "20|on": {
+     "stats": {
+      "n_events": 7,
+      "win": 2,
+      "loss": 3,
+      "expired": 2,
+      "open": 0,
+      "win_rate": 0.4,
+      "median_periods_win": 10.0,
+      "median_periods_loss": 6
+     },
+     "latest": {
+      "signal_date": "2026-04-06",
+      "entry_date": "2026-04-07",
+      "entry_price": 1244.9,
+      "entry_basis": "next_open",
+      "periods_since": 9,
+      "gain_since": -0.0272,
+      "result": "expired",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-04-06",
+       "entry_date": "2026-04-07",
+       "entry_price": 1244.9,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-03-23",
+       "entry_date": "2026-03-24",
+       "entry_price": 1086.3,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-03-19",
+       "entry_date": "2026-03-20",
+       "entry_price": 1226.7,
+       "result": "loss",
+       "periods": 6,
+       "exit_date": "2026-03-20",
+       "exit_price": 1165.4
+      },
+      {
+       "signal_date": "2026-03-13",
+       "entry_date": "2026-03-14",
+       "entry_price": 1283.7,
+       "result": "loss",
+       "periods": 11,
+       "exit_date": "2026-03-14",
+       "exit_price": 1219.5
+      },
+      {
+       "signal_date": "2026-03-02",
+       "entry_date": "2026-03-03",
+       "entry_price": 1169.8,
+       "result": "loss",
+       "periods": 4,
+       "exit_date": "2026-03-03",
+       "exit_price": 1111.3
+      },
+      {
+       "signal_date": "2026-02-25",
+       "entry_date": "2026-02-26",
+       "entry_price": 1237.6,
+       "result": "win",
+       "periods": 11,
+       "exit_date": "2026-02-26",
+       "exit_price": 1299.5
+      },
+      {
+       "signal_date": "2026-02-16",
+       "entry_date": "2026-02-17",
+       "entry_price": 1261.9,
+       "result": "win",
+       "periods": 9,
+       "exit_date": "2026-02-17",
+       "exit_price": 1325.0
+      }
+     ]
+    },
+    "20|off": {
+     "stats": {
+      "n_events": 6,
+      "win": 4,
+      "loss": 1,
+      "expired": 1,
+      "open": 0,
+      "win_rate": 0.8,
+      "median_periods_win": 7.5,
+      "median_periods_loss": 4
+     },
+     "latest": {
+      "signal_date": "2026-03-27",
+      "entry_date": "2026-03-28",
+      "entry_price": 1091.1,
+      "entry_basis": "next_open",
+      "periods_since": 9,
+      "gain_since": 0.1099,
+      "result": "expired",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-03-27",
+       "entry_date": "2026-03-28",
+       "entry_price": 1091.1,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-03-17",
+       "entry_date": "2026-03-18",
+       "entry_price": 1278.8,
+       "result": "loss",
+       "periods": 4,
+       "exit_date": "2026-03-18",
+       "exit_price": 1214.9
+      },
+      {
+       "signal_date": "2026-03-13",
+       "entry_date": "2026-03-14",
+       "entry_price": 1189.2,
+       "result": "win",
+       "periods": 11,
+       "exit_date": "2026-03-14",
+       "exit_price": 1248.7
+      },
+      {
+       "signal_date": "2026-03-04",
+       "entry_date": "2026-03-05",
+       "entry_price": 1207.4,
+       "result": "win",
+       "periods": 4,
+       "exit_date": "2026-03-05",
+       "exit_price": 1267.8
+      },
+      {
+       "signal_date": "2026-02-21",
+       "entry_date": "2026-02-22",
+       "entry_price": 1162.6,
+       "result": "win",
+       "periods": 11,
+       "exit_date": "2026-02-22",
+       "exit_price": 1220.7
+      },
+      {
+       "signal_date": "2026-02-14",
+       "entry_date": "2026-02-15",
+       "entry_price": 1150.5,
+       "result": "win",
+       "periods": 4,
+       "exit_date": "2026-02-15",
+       "exit_price": 1208.0
+      }
+     ]
+    },
+    "50|on": {
+     "stats": {
+      "n_events": 7,
+      "win": 6,
+      "loss": 1,
+      "expired": 0,
+      "open": 0,
+      "win_rate": 0.8571,
+      "median_periods_win": 7.0,
+      "median_periods_loss": 7
+     },
+     "latest": {
+      "signal_date": "2026-04-02",
+      "entry_date": "2026-04-03",
+      "entry_price": 1263.1,
+      "entry_basis": "next_open",
+      "periods_since": 9,
+      "gain_since": -0.0412,
+      "result": "loss",
+      "exit_date": "2026-04-03",
+      "exit_price": 1199.9,
+      "periods": 7
+     },
+     "events": [
+      {
+       "signal_date": "2026-04-02",
+       "entry_date": "2026-04-03",
+       "entry_price": 1263.1,
+       "result": "loss",
+       "periods": 7,
+       "exit_date": "2026-04-03",
+       "exit_price": 1199.9
+      },
+      {
+       "signal_date": "2026-03-22",
+       "entry_date": "2026-03-23",
+       "entry_price": 1069.3,
+       "result": "win",
+       "periods": 4,
+       "exit_date": "2026-03-23",
+       "exit_price": 1122.8
+      },
+      {
+       "signal_date": "2026-03-14",
+       "entry_date": "2026-03-15",
+       "entry_price": 1119.0,
+       "result": "win",
+       "periods": 8,
+       "exit_date": "2026-03-15",
+       "exit_price": 1175.0
+      },
+      {
+       "signal_date": "2026-03-09",
+       "entry_date": "2026-03-10",
+       "entry_price": 1229.2,
+       "result": "win",
+       "periods": 4,
+       "exit_date": "2026-03-10",
+       "exit_price": 1290.7
+      },
+      {
+       "signal_date": "2026-03-03",
+       "entry_date": "2026-03-04",
+       "entry_price": 1093.5,
+       "result": "win",
+       "periods": 13,
+       "exit_date": "2026-03-04",
+       "exit_price": 1148.2
+      },
+      {
+       "signal_date": "2026-02-19",
+       "entry_date": "2026-02-20",
+       "entry_price": 1166.2,
+       "result": "win",
+       "periods": 11,
+       "exit_date": "2026-02-20",
+       "exit_price": 1224.5
+      },
+      {
+       "signal_date": "2026-02-15",
+       "entry_date": "2026-02-16",
+       "entry_price": 1196.5,
+       "result": "win",
+       "periods": 6,
+       "exit_date": "2026-02-16",
+       "exit_price": 1256.3
+      }
+     ]
+    },
+    "50|off": {
+     "stats": {
+      "n_events": 8,
+      "win": 2,
+      "loss": 5,
+      "expired": 1,
+      "open": 0,
+      "win_rate": 0.2857,
+      "median_periods_win": 11.5,
+      "median_periods_loss": 6
+     },
+     "latest": {
+      "signal_date": "2026-04-15",
+      "entry_date": "2026-04-16",
+      "entry_price": 1241.3,
+      "entry_basis": "next_open",
+      "periods_since": 9,
+      "gain_since": -0.0244,
+      "result": "expired",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-04-15",
+       "entry_date": "2026-04-16",
+       "entry_price": 1241.3,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-04-04",
+       "entry_date": "2026-04-05",
+       "entry_price": 1069.3,
+       "result": "loss",
+       "periods": 11,
+       "exit_date": "2026-04-05",
+       "exit_price": 1015.8
+      },
+      {
+       "signal_date": "2026-03-26",
+       "entry_date": "2026-03-27",
+       "entry_price": 1174.7,
+       "result": "loss",
+       "periods": 6,
+       "exit_date": "2026-03-27",
+       "exit_price": 1116.0
+      },
+      {
+       "signal_date": "2026-03-20",
+       "entry_date": "2026-03-21",
+       "entry_price": 1171.0,
+       "result": "loss",
+       "periods": 9,
+       "exit_date": "2026-03-21",
+       "exit_price": 1112.5
+      },
+      {
+       "signal_date": "2026-03-09",
+       "entry_date": "2026-03-10",
+       "entry_price": 1134.7,
+       "result": "loss",
+       "periods": 4,
+       "exit_date": "2026-03-10",
+       "exit_price": 1078.0
+      },
+      {
+       "signal_date": "2026-03-05",
+       "entry_date": "2026-03-06",
+       "entry_price": 1131.1,
+       "result": "loss",
+       "periods": 5,
+       "exit_date": "2026-03-06",
+       "exit_price": 1074.5
+      },
+      {
+       "signal_date": "2026-02-23",
+       "entry_date": "2026-02-24",
+       "entry_price": 1091.1,
+       "result": "win",
+       "periods": 11,
+       "exit_date": "2026-02-24",
+       "exit_price": 1145.7
+      },
+      {
+       "signal_date": "2026-02-13",
+       "entry_date": "2026-02-14",
+       "entry_price": 1085.1,
+       "result": "win",
+       "periods": 12,
+       "exit_date": "2026-02-14",
+       "exit_price": 1139.4
+      }
+     ]
+    }
+   }
+  },
+  "IDXPROPERT": {
+   "name": "Properti & Real Estat",
+   "sector_code": null,
+   "close": 1071,
+   "ma": {
+    "10": 1190.0,
+    "20": 1104.0,
+    "50": 987.0
+   },
+   "runs": {}
+  },
+  "IDXTECHNO": {
+   "name": "Teknologi",
+   "sector_code": null,
+   "close": 1092,
+   "ma": {
+    "10": 1043.0,
+    "20": 1082.0,
+    "50": 1057.0
+   },
+   "runs": {}
+  },
+  "IDXINFRA": {
+   "name": "Infrastruktur",
+   "sector_code": null,
+   "close": 1338,
+   "ma": {
+    "10": 1262.0,
+    "20": 1290.0,
+    "50": 1267.0
+   },
+   "runs": {}
+  },
+  "IDXTRANS": {
+   "name": "Transportasi & Logistik",
+   "sector_code": null,
+   "close": 1484,
+   "ma": {
+    "10": 1447.0,
+    "20": 1478.0,
+    "50": 1453.0
+   },
+   "runs": {}
+  },
+  "BBRI": {
+   "name": "Bank Rakyat Indonesia",
+   "sector_code": "IDXFINANCE",
+   "close": 4250,
+   "ma": {
+    "10": 4373.0,
+    "20": 4084.0,
+    "50": 3897.0
+   },
+   "runs": {
+    "10|on": {
+     "stats": {
+      "n_events": 9,
+      "win": 6,
+      "loss": 3,
+      "expired": 0,
+      "open": 0,
+      "win_rate": 0.6667,
+      "median_periods_win": 8.5,
+      "median_periods_loss": 11
+     },
+     "latest": {
+      "signal_date": "2026-04-19",
+      "entry_date": "2026-04-20",
+      "entry_price": 3774.0,
+      "entry_basis": "next_open",
+      "periods_since": 9,
+      "gain_since": 0.1261,
+      "result": "loss",
+      "exit_date": "2026-04-20",
+      "exit_price": 3585.3,
+      "periods": 5
+     },
+     "events": [
+      {
+       "signal_date": "2026-04-19",
+       "entry_date": "2026-04-20",
+       "entry_price": 3774.0,
+       "result": "loss",
+       "periods": 5,
+       "exit_date": "2026-04-20",
+       "exit_price": 3585.3
+      },
+      {
+       "signal_date": "2026-04-12",
+       "entry_date": "2026-04-13",
+       "entry_price": 4177.8,
+       "result": "loss",
+       "periods": 12,
+       "exit_date": "2026-04-13",
+       "exit_price": 3968.9
+      },
+      {
+       "signal_date": "2026-04-04",
+       "entry_date": "2026-04-05",
+       "entry_price": 4496.5,
+       "result": "loss",
+       "periods": 11,
+       "exit_date": "2026-04-05",
+       "exit_price": 4271.7
+      },
+      {
+       "signal_date": "2026-03-26",
+       "entry_date": "2026-03-27",
+       "entry_price": 3914.2,
+       "result": "win",
+       "periods": 12,
+       "exit_date": "2026-03-27",
+       "exit_price": 4109.9
+      },
+      {
+       "signal_date": "2026-03-20",
+       "entry_date": "2026-03-21",
+       "entry_price": 3918.5,
+       "result": "win",
+       "periods": 7,
+       "exit_date": "2026-03-21",
+       "exit_price": 4114.4
+      },
+      {
+       "signal_date": "2026-03-09",
+       "entry_date": "2026-03-10",
+       "entry_price": 4347.8,
+       "result": "win",
+       "periods": 6,
+       "exit_date": "2026-03-10",
+       "exit_price": 4565.2
+      },
+      {
+       "signal_date": "2026-03-05",
+       "entry_date": "2026-03-06",
+       "entry_price": 3931.2,
+       "result": "win",
+       "periods": 10,
+       "exit_date": "2026-03-06",
+       "exit_price": 4127.8
+      },
+      {
+       "signal_date": "2026-02-23",
+       "entry_date": "2026-02-24",
+       "entry_price": 3871.8,
+       "result": "win",
+       "periods": 4,
+       "exit_date": "2026-02-24",
+       "exit_price": 4065.4
+      },
+      {
+       "signal_date": "2026-02-13",
+       "entry_date": "2026-02-14",
+       "entry_price": 3757.0,
+       "result": "win",
+       "periods": 11,
+       "exit_date": "2026-02-14",
+       "exit_price": 3944.9
+      }
+     ]
+    },
+    "10|off": {
+     "stats": {
+      "n_events": 7,
+      "win": 4,
+      "loss": 3,
+      "expired": 0,
+      "open": 0,
+      "win_rate": 0.5714,
+      "median_periods_win": 8.5,
+      "median_periods_loss": 10
+     },
+     "latest": {
+      "signal_date": "2026-04-02",
+      "entry_date": "2026-04-03",
+      "entry_price": 3820.8,
+      "entry_basis": "next_open",
+      "periods_since": 9,
+      "gain_since": 0.1123,
+      "result": "loss",
+      "exit_date": "2026-04-03",
+      "exit_price": 3629.8,
+      "periods": 7
+     },
+     "events": [
+      {
+       "signal_date": "2026-04-02",
+       "entry_date": "2026-04-03",
+       "entry_price": 3820.8,
+       "result": "loss",
+       "periods": 7,
+       "exit_date": "2026-04-03",
+       "exit_price": 3629.8
+      },
+      {
+       "signal_date": "2026-03-22",
+       "entry_date": "2026-03-23",
+       "entry_price": 3948.2,
+       "result": "loss",
+       "periods": 10,
+       "exit_date": "2026-03-23",
+       "exit_price": 3750.8
+      },
+      {
+       "signal_date": "2026-03-14",
+       "entry_date": "2026-03-15",
+       "entry_price": 3854.8,
+       "result": "loss",
+       "periods": 11,
+       "exit_date": "2026-03-15",
+       "exit_price": 3662.1
+      },
+      {
+       "signal_date": "2026-03-09",
+       "entry_date": "2026-03-10",
+       "entry_price": 4058.8,
+       "result": "win",
+       "periods": 9,
+       "exit_date": "2026-03-10",
+       "exit_price": 4261.7
+      },
+      {
+       "signal_date": "2026-03-03",
+       "entry_date": "2026-03-04",
+       "entry_price": 4356.2,
+       "result": "win",
+       "periods": 5,
+       "exit_date": "2026-03-04",
+       "exit_price": 4574.0
+      },
+      {
+       "signal_date": "2026-02-19",
+       "entry_date": "2026-02-20",
+       "entry_price": 4190.5,
+       "result": "win",
+       "periods": 10,
+       "exit_date": "2026-02-20",
+       "exit_price": 4400.0
+      },
+      {
+       "signal_date": "2026-02-15",
+       "entry_date": "2026-02-16",
+       "entry_price": 3765.5,
+       "result": "win",
+       "periods": 8,
+       "exit_date": "2026-02-16",
+       "exit_price": 3953.8
+      }
+     ]
+    },
+    "20|on": {
+     "stats": {
+      "n_events": 10,
+      "win": 5,
+      "loss": 3,
+      "expired": 1,
+      "open": 1,
+      "win_rate": 0.625,
+      "median_periods_win": 7,
+      "median_periods_loss": 7
+     },
+     "latest": {
+      "signal_date": "2026-10-06",
+      "entry_date": "2026-10-07",
+      "entry_price": 4262.7,
+      "entry_basis": "next_open",
+      "periods_since": 5,
+      "gain_since": -0.003,
+      "result": "open",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-10-06",
+       "entry_date": "2026-10-07",
+       "entry_price": 4262.7,
+       "result": "open",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-04-21",
+       "entry_date": "2026-04-22",
+       "entry_price": 3816.5,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-04-12",
+       "entry_date": "2026-04-13",
+       "entry_price": 4211.8,
+       "result": "loss",
+       "periods": 7,
+       "exit_date": "2026-04-13",
+       "exit_price": 4001.2
+      },
+      {
+       "signal_date": "2026-03-28",
+       "entry_date": "2026-03-29",
+       "entry_price": 4211.8,
+       "result": "loss",
+       "periods": 4,
+       "exit_date": "2026-03-29",
+       "exit_price": 4001.2
+      },
+      {
+       "signal_date": "2026-03-24",
+       "entry_date": "2026-03-25",
+       "entry_price": 4275.5,
+       "result": "loss",
+       "periods": 9,
+       "exit_date": "2026-03-25",
+       "exit_price": 4061.7
+      },
+      {
+       "signal_date": "2026-03-15",
+       "entry_date": "2026-03-16",
+       "entry_price": 4488.0,
+       "result": "win",
+       "periods": 5,
+       "exit_date": "2026-03-16",
+       "exit_price": 4712.4
+      },
+      {
+       "signal_date": "2026-03-05",
+       "entry_date": "2026-03-06",
+       "entry_price": 4254.2,
+       "result": "win",
+       "periods": 12,
+       "exit_date": "2026-03-06",
+       "exit_price": 4466.9
+      },
+      {
+       "signal_date": "2026-02-25",
+       "entry_date": "2026-02-26",
+       "entry_price": 4360.5,
+       "result": "win",
+       "periods": 7,
+       "exit_date": "2026-02-26",
+       "exit_price": 4578.5
+      },
+      {
+       "signal_date": "2026-02-17",
+       "entry_date": "2026-02-18",
+       "entry_price": 4233.0,
+       "result": "win",
+       "periods": 6,
+       "exit_date": "2026-02-18",
+       "exit_price": 4444.7
+      },
+      {
+       "signal_date": "2026-02-12",
+       "entry_date": "2026-02-13",
+       "entry_price": 3876.0,
+       "result": "win",
+       "periods": 10,
+       "exit_date": "2026-02-13",
+       "exit_price": 4069.8
+      }
+     ]
+    },
+    "20|off": {
+     "stats": {
+      "n_events": 15,
+      "win": 6,
+      "loss": 7,
+      "expired": 1,
+      "open": 1,
+      "win_rate": 0.4615,
+      "median_periods_win": 7.0,
+      "median_periods_loss": 9
+     },
+     "latest": {
+      "signal_date": "2026-10-06",
+      "entry_date": "2026-10-07",
+      "entry_price": 4292.5,
+      "entry_basis": "next_open",
+      "periods_since": 5,
+      "gain_since": -0.0099,
+      "result": "open",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-10-06",
+       "entry_date": "2026-10-07",
+       "entry_price": 4292.5,
+       "result": "open",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-06-06",
+       "entry_date": "2026-06-07",
+       "entry_price": 3765.5,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-05-23",
+       "entry_date": "2026-05-24",
+       "entry_price": 3795.2,
+       "result": "loss",
+       "periods": 4,
+       "exit_date": "2026-05-24",
+       "exit_price": 3605.4
+      },
+      {
+       "signal_date": "2026-05-19",
+       "entry_date": "2026-05-20",
+       "entry_price": 3867.5,
+       "result": "loss",
+       "periods": 9,
+       "exit_date": "2026-05-20",
+       "exit_price": 3674.1
+      },
+      {
+       "signal_date": "2026-05-10",
+       "entry_date": "2026-05-11",
+       "entry_price": 4071.5,
+       "result": "loss",
+       "periods": 4,
+       "exit_date": "2026-05-11",
+       "exit_price": 3867.9
+      },
+      {
+       "signal_date": "2026-04-27",
+       "entry_date": "2026-04-28",
+       "entry_price": 4364.8,
+       "result": "loss",
+       "periods": 7,
+       "exit_date": "2026-04-28",
+       "exit_price": 4146.6
+      },
+      {
+       "signal_date": "2026-04-20",
+       "entry_date": "2026-04-21",
+       "entry_price": 3914.2,
+       "result": "loss",
+       "periods": 10,
+       "exit_date": "2026-04-21",
+       "exit_price": 3718.5
+      },
+      {
+       "signal_date": "2026-04-12",
+       "entry_date": "2026-04-13",
+       "entry_price": 3846.2,
+       "result": "loss",
+       "periods": 11,
+       "exit_date": "2026-04-13",
+       "exit_price": 3653.9
+      },
+      {
+       "signal_date": "2026-04-07",
+       "entry_date": "2026-04-08",
+       "entry_price": 4305.2,
+       "result": "loss",
+       "periods": 10,
+       "exit_date": "2026-04-08",
+       "exit_price": 4089.9
+      },
+      {
+       "signal_date": "2026-03-28",
+       "entry_date": "2026-03-29",
+       "entry_price": 3956.8,
+       "result": "win",
+       "periods": 14,
+       "exit_date": "2026-03-29",
+       "exit_price": 4154.6
+      },
+      {
+       "signal_date": "2026-03-17",
+       "entry_date": "2026-03-18",
+       "entry_price": 4424.2,
+       "result": "win",
+       "periods": 7,
+       "exit_date": "2026-03-18",
+       "exit_price": 4645.4
+      },
+      {
+       "signal_date": "2026-03-13",
+       "entry_date": "2026-03-14",
+       "entry_price": 3965.2,
+       "result": "win",
+       "periods": 4,
+       "exit_date": "2026-03-14",
+       "exit_price": 4163.5
+      },
+      {
+       "signal_date": "2026-03-04",
+       "entry_date": "2026-03-05",
+       "entry_price": 4016.2,
+       "result": "win",
+       "periods": 4,
+       "exit_date": "2026-03-05",
+       "exit_price": 4217.0
+      },
+      {
+       "signal_date": "2026-02-21",
+       "entry_date": "2026-02-22",
+       "entry_price": 4135.2,
+       "result": "win",
+       "periods": 14,
+       "exit_date": "2026-02-22",
+       "exit_price": 4342.0
+      },
+      {
+       "signal_date": "2026-02-14",
+       "entry_date": "2026-02-15",
+       "entry_price": 3884.5,
+       "result": "win",
+       "periods": 7,
+       "exit_date": "2026-02-15",
+       "exit_price": 4078.7
+      }
+     ]
+    },
+    "50|on": {
+     "stats": {
+      "n_events": 8,
+      "win": 4,
+      "loss": 3,
+      "expired": 1,
+      "open": 0,
+      "win_rate": 0.5714,
+      "median_periods_win": 9.5,
+      "median_periods_loss": 6
+     },
+     "latest": {
+      "signal_date": "2026-04-15",
+      "entry_date": "2026-04-16",
+      "entry_price": 4313.8,
+      "entry_basis": "next_open",
+      "periods_since": 9,
+      "gain_since": -0.0148,
+      "result": "expired",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-04-15",
+       "entry_date": "2026-04-16",
+       "entry_price": 4313.8,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-04-08",
+       "entry_date": "2026-04-09",
+       "entry_price": 4479.5,
+       "result": "loss",
+       "periods": 7,
+       "exit_date": "2026-04-09",
+       "exit_price": 4255.5
+      },
+      {
+       "signal_date": "2026-03-26",
+       "entry_date": "2026-03-27",
+       "entry_price": 4301.0,
+       "result": "loss",
+       "periods": 6,
+       "exit_date": "2026-03-27",
+       "exit_price": 4085.9
+      },
+      {
+       "signal_date": "2026-03-16",
+       "entry_date": "2026-03-17",
+       "entry_price": 3888.8,
+       "result": "loss",
+       "periods": 3,
+       "exit_date": "2026-03-17",
+       "exit_price": 3694.4
+      },
+      {
+       "signal_date": "2026-03-09",
+       "entry_date": "2026-03-10",
+       "entry_price": 3910.0,
+       "result": "win",
+       "periods": 10,
+       "exit_date": "2026-03-10",
+       "exit_price": 4105.5
+      },
+      {
+       "signal_date": "2026-02-28",
+       "entry_date": "2026-02-29",
+       "entry_price": 4462.5,
+       "result": "win",
+       "periods": 11,
+       "exit_date": "2026-02-29",
+       "exit_price": 4685.6
+      },
+      {
+       "signal_date": "2026-02-23",
+       "entry_date": "2026-02-24",
+       "entry_price": 4131.0,
+       "result": "win",
+       "periods": 7,
+       "exit_date": "2026-02-24",
+       "exit_price": 4337.6
+      },
+      {
+       "signal_date": "2026-02-17",
+       "entry_date": "2026-02-18",
+       "entry_price": 3880.2,
+       "result": "win",
+       "periods": 9,
+       "exit_date": "2026-02-18",
+       "exit_price": 4074.2
+      }
+     ]
+    },
+    "50|off": {
+     "stats": {
+      "n_events": 5,
+      "win": 4,
+      "loss": 1,
+      "expired": 0,
+      "open": 0,
+      "win_rate": 0.8,
+      "median_periods_win": 9.5,
+      "median_periods_loss": 3
+     },
+     "latest": {
+      "signal_date": "2026-03-18",
+      "entry_date": "2026-03-19",
+      "entry_price": 4177.8,
+      "entry_basis": "next_open",
+      "periods_since": 9,
+      "gain_since": 0.0173,
+      "result": "loss",
+      "exit_date": "2026-03-19",
+      "exit_price": 3968.9,
+      "periods": 3
+     },
+     "events": [
+      {
+       "signal_date": "2026-03-18",
+       "entry_date": "2026-03-19",
+       "entry_price": 4177.8,
+       "result": "loss",
+       "periods": 3,
+       "exit_date": "2026-03-19",
+       "exit_price": 3968.9
+      },
+      {
+       "signal_date": "2026-03-09",
+       "entry_date": "2026-03-10",
+       "entry_price": 4390.2,
+       "result": "win",
+       "periods": 13,
+       "exit_date": "2026-03-10",
+       "exit_price": 4609.7
+      },
+      {
+       "signal_date": "2026-02-26",
+       "entry_date": "2026-02-27",
+       "entry_price": 4118.2,
+       "result": "win",
+       "periods": 6,
+       "exit_date": "2026-02-27",
+       "exit_price": 4324.1
+      },
+      {
+       "signal_date": "2026-02-19",
+       "entry_date": "2026-02-20",
+       "entry_price": 4033.2,
+       "result": "win",
+       "periods": 13,
+       "exit_date": "2026-02-20",
+       "exit_price": 4234.9
+      },
+      {
+       "signal_date": "2026-02-11",
+       "entry_date": "2026-02-12",
+       "entry_price": 3888.8,
+       "result": "win",
+       "periods": 6,
+       "exit_date": "2026-02-12",
+       "exit_price": 4083.2
+      }
+     ]
+    }
+   }
+  },
+  "BBCA": {
+   "name": "Bank Central Asia",
+   "sector_code": "IDXFINANCE",
+   "close": 9875,
+   "ma": {
+    "10": 9391.0,
+    "20": 9510.0,
+    "50": 9075.0
+   },
+   "runs": {
+    "10|on": {
+     "stats": {
+      "n_events": 8,
+      "win": 1,
+      "loss": 4,
+      "expired": 2,
+      "open": 1,
+      "win_rate": 0.2,
+      "median_periods_win": 9,
+      "median_periods_loss": 9.0
+     },
+     "latest": {
+      "signal_date": "2026-10-06",
+      "entry_date": "2026-10-07",
+      "entry_price": 9805.9,
+      "entry_basis": "next_open",
+      "periods_since": 5,
+      "gain_since": 0.007,
+      "result": "open",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-10-06",
+       "entry_date": "2026-10-07",
+       "entry_price": 9805.9,
+       "result": "open",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-03-23",
+       "entry_date": "2026-03-24",
+       "entry_price": 9766.4,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-03-19",
+       "entry_date": "2026-03-20",
+       "entry_price": 9628.1,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-03-13",
+       "entry_date": "2026-03-14",
+       "entry_price": 9657.8,
+       "result": "loss",
+       "periods": 4,
+       "exit_date": "2026-03-14",
+       "exit_price": 9174.9
+      },
+      {
+       "signal_date": "2026-03-05",
+       "entry_date": "2026-03-06",
+       "entry_price": 10457.6,
+       "result": "loss",
+       "periods": 9,
+       "exit_date": "2026-03-06",
+       "exit_price": 9934.7
+      },
+      {
+       "signal_date": "2026-02-27",
+       "entry_date": "2026-02-28",
+       "entry_price": 8838.1,
+       "result": "loss",
+       "periods": 10,
+       "exit_date": "2026-02-28",
+       "exit_price": 8396.2
+      },
+      {
+       "signal_date": "2026-02-21",
+       "entry_date": "2026-02-22",
+       "entry_price": 8699.9,
+       "result": "loss",
+       "periods": 9,
+       "exit_date": "2026-02-22",
+       "exit_price": 8264.9
+      },
+      {
+       "signal_date": "2026-02-10",
+       "entry_date": "2026-02-11",
+       "entry_price": 8798.6,
+       "result": "win",
+       "periods": 9,
+       "exit_date": "2026-02-11",
+       "exit_price": 9238.5
+      }
+     ]
+    },
+    "10|off": {
+     "stats": {
+      "n_events": 7,
+      "win": 1,
+      "loss": 4,
+      "expired": 1,
+      "open": 1,
+      "win_rate": 0.2,
+      "median_periods_win": 6,
+      "median_periods_loss": 5.5
+     },
+     "latest": {
+      "signal_date": "2026-10-06",
+      "entry_date": "2026-10-07",
+      "entry_price": 9717.0,
+      "entry_basis": "next_open",
+      "periods_since": 5,
+      "gain_since": 0.0163,
+      "result": "open",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-10-06",
+       "entry_date": "2026-10-07",
+       "entry_price": 9717.0,
+       "result": "open",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-03-23",
+       "entry_date": "2026-03-24",
+       "entry_price": 9707.1,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-03-15",
+       "entry_date": "2026-03-16",
+       "entry_price": 10329.2,
+       "result": "loss",
+       "periods": 6,
+       "exit_date": "2026-03-16",
+       "exit_price": 9812.7
+      },
+      {
+       "signal_date": "2026-03-05",
+       "entry_date": "2026-03-06",
+       "entry_price": 9786.1,
+       "result": "loss",
+       "periods": 5,
+       "exit_date": "2026-03-06",
+       "exit_price": 9296.8
+      },
+      {
+       "signal_date": "2026-02-25",
+       "entry_date": "2026-02-26",
+       "entry_price": 9825.6,
+       "result": "loss",
+       "periods": 6,
+       "exit_date": "2026-02-26",
+       "exit_price": 9334.3
+      },
+      {
+       "signal_date": "2026-02-17",
+       "entry_date": "2026-02-18",
+       "entry_price": 10260.1,
+       "result": "loss",
+       "periods": 3,
+       "exit_date": "2026-02-18",
+       "exit_price": 9747.1
+      },
+      {
+       "signal_date": "2026-02-12",
+       "entry_date": "2026-02-13",
+       "entry_price": 8818.4,
+       "result": "win",
+       "periods": 6,
+       "exit_date": "2026-02-13",
+       "exit_price": 9259.3
+      }
+     ]
+    },
+    "20|on": {
+     "stats": {
+      "n_events": 8,
+      "win": 1,
+      "loss": 4,
+      "expired": 2,
+      "open": 1,
+      "win_rate": 0.2,
+      "median_periods_win": 8,
+      "median_periods_loss": 4.5
+     },
+     "latest": {
+      "signal_date": "2026-10-06",
+      "entry_date": "2026-10-07",
+      "entry_price": 9618.2,
+      "entry_basis": "next_open",
+      "periods_since": 5,
+      "gain_since": 0.0267,
+      "result": "open",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-10-06",
+       "entry_date": "2026-10-07",
+       "entry_price": 9618.2,
+       "result": "open",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-04-05",
+       "entry_date": "2026-04-06",
+       "entry_price": 8769.0,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-03-21",
+       "entry_date": "2026-03-22",
+       "entry_price": 9647.9,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-03-16",
+       "entry_date": "2026-03-17",
+       "entry_price": 9193.6,
+       "result": "loss",
+       "periods": 5,
+       "exit_date": "2026-03-17",
+       "exit_price": 8733.9
+      },
+      {
+       "signal_date": "2026-03-09",
+       "entry_date": "2026-03-10",
+       "entry_price": 9272.6,
+       "result": "loss",
+       "periods": 4,
+       "exit_date": "2026-03-10",
+       "exit_price": 8809.0
+      },
+      {
+       "signal_date": "2026-02-28",
+       "entry_date": "2026-02-29",
+       "entry_price": 9835.5,
+       "result": "loss",
+       "periods": 3,
+       "exit_date": "2026-02-29",
+       "exit_price": 9343.7
+      },
+      {
+       "signal_date": "2026-02-23",
+       "entry_date": "2026-02-24",
+       "entry_price": 9539.2,
+       "result": "loss",
+       "periods": 10,
+       "exit_date": "2026-02-24",
+       "exit_price": 9062.2
+      },
+      {
+       "signal_date": "2026-02-17",
+       "entry_date": "2026-02-18",
+       "entry_price": 9075.1,
+       "result": "win",
+       "periods": 8,
+       "exit_date": "2026-02-18",
+       "exit_price": 9528.9
+      }
+     ]
+    },
+    "20|off": {
+     "stats": {
+      "n_events": 11,
+      "win": 5,
+      "loss": 4,
+      "expired": 1,
+      "open": 1,
+      "win_rate": 0.5556,
+      "median_periods_win": 6,
+      "median_periods_loss": 9.0
+     },
+     "latest": {
+      "signal_date": "2026-10-06",
+      "entry_date": "2026-10-07",
+      "entry_price": 9568.9,
+      "entry_basis": "next_open",
+      "periods_since": 5,
+      "gain_since": 0.032,
+      "result": "open",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-10-06",
+       "entry_date": "2026-10-07",
+       "entry_price": 9568.9,
+       "result": "open",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-04-28",
+       "entry_date": "2026-04-29",
+       "entry_price": 9351.6,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-04-17",
+       "entry_date": "2026-04-18",
+       "entry_price": 8769.0,
+       "result": "loss",
+       "periods": 3,
+       "exit_date": "2026-04-18",
+       "exit_price": 8330.5
+      },
+      {
+       "signal_date": "2026-04-12",
+       "entry_date": "2026-04-13",
+       "entry_price": 9884.9,
+       "result": "loss",
+       "periods": 10,
+       "exit_date": "2026-04-13",
+       "exit_price": 9390.7
+      },
+      {
+       "signal_date": "2026-04-06",
+       "entry_date": "2026-04-07",
+       "entry_price": 10082.4,
+       "result": "loss",
+       "periods": 11,
+       "exit_date": "2026-04-07",
+       "exit_price": 9578.3
+      },
+      {
+       "signal_date": "2026-03-22",
+       "entry_date": "2026-03-23",
+       "entry_price": 9726.9,
+       "result": "loss",
+       "periods": 8,
+       "exit_date": "2026-03-23",
+       "exit_price": 9240.6
+      },
+      {
+       "signal_date": "2026-03-18",
+       "entry_date": "2026-03-19",
+       "entry_price": 9865.1,
+       "result": "win",
+       "periods": 6,
+       "exit_date": "2026-03-19",
+       "exit_price": 10358.4
+      },
+      {
+       "signal_date": "2026-03-09",
+       "entry_date": "2026-03-10",
+       "entry_price": 10388.5,
+       "result": "win",
+       "periods": 14,
+       "exit_date": "2026-03-10",
+       "exit_price": 10907.9
+      },
+      {
+       "signal_date": "2026-02-26",
+       "entry_date": "2026-02-27",
+       "entry_price": 9855.2,
+       "result": "win",
+       "periods": 5,
+       "exit_date": "2026-02-27",
+       "exit_price": 10348.0
+      },
+      {
+       "signal_date": "2026-02-19",
+       "entry_date": "2026-02-20",
+       "entry_price": 9312.1,
+       "result": "win",
+       "periods": 10,
+       "exit_date": "2026-02-20",
+       "exit_price": 9777.7
+      },
+      {
+       "signal_date": "2026-02-11",
+       "entry_date": "2026-02-12",
+       "entry_price": 10062.6,
+       "result": "win",
+       "periods": 5,
+       "exit_date": "2026-02-12",
+       "exit_price": 10565.7
+      }
+     ]
+    },
+    "50|on": {
+     "stats": {
+      "n_events": 12,
+      "win": 5,
+      "loss": 4,
+      "expired": 2,
+      "open": 1,
+      "win_rate": 0.5556,
+      "median_periods_win": 11,
+      "median_periods_loss": 7.5
+     },
+     "latest": {
+      "signal_date": "2026-10-06",
+      "entry_date": "2026-10-07",
+      "entry_price": 9519.5,
+      "entry_basis": "next_open",
+      "periods_since": 5,
+      "gain_since": 0.0373,
+      "result": "open",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-10-06",
+       "entry_date": "2026-10-07",
+       "entry_price": 9519.5,
+       "result": "open",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-05-03",
+       "entry_date": "2026-05-04",
+       "entry_price": 9924.4,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-04-26",
+       "entry_date": "2026-04-27",
+       "entry_price": 8867.8,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-04-20",
+       "entry_date": "2026-04-21",
+       "entry_price": 8838.1,
+       "result": "loss",
+       "periods": 8,
+       "exit_date": "2026-04-21",
+       "exit_price": 8396.2
+      },
+      {
+       "signal_date": "2026-04-12",
+       "entry_date": "2026-04-13",
+       "entry_price": 9183.8,
+       "result": "loss",
+       "periods": 3,
+       "exit_date": "2026-04-13",
+       "exit_price": 8724.6
+      },
+      {
+       "signal_date": "2026-04-07",
+       "entry_date": "2026-04-08",
+       "entry_price": 8699.9,
+       "result": "loss",
+       "periods": 8,
+       "exit_date": "2026-04-08",
+       "exit_price": 8264.9
+      },
+      {
+       "signal_date": "2026-03-28",
+       "entry_date": "2026-03-29",
+       "entry_price": 8739.4,
+       "result": "loss",
+       "periods": 7,
+       "exit_date": "2026-03-29",
+       "exit_price": 8302.4
+      },
+      {
+       "signal_date": "2026-03-17",
+       "entry_date": "2026-03-18",
+       "entry_price": 10408.2,
+       "result": "win",
+       "periods": 11,
+       "exit_date": "2026-03-18",
+       "exit_price": 10928.6
+      },
+      {
+       "signal_date": "2026-03-13",
+       "entry_date": "2026-03-14",
+       "entry_price": 9440.5,
+       "result": "win",
+       "periods": 9,
+       "exit_date": "2026-03-14",
+       "exit_price": 9912.5
+      },
+      {
+       "signal_date": "2026-03-04",
+       "entry_date": "2026-03-05",
+       "entry_price": 10072.5,
+       "result": "win",
+       "periods": 12,
+       "exit_date": "2026-03-05",
+       "exit_price": 10576.1
+      },
+      {
+       "signal_date": "2026-02-21",
+       "entry_date": "2026-02-22",
+       "entry_price": 10121.9,
+       "result": "win",
+       "periods": 14,
+       "exit_date": "2026-02-22",
+       "exit_price": 10628.0
+      },
+      {
+       "signal_date": "2026-02-14",
+       "entry_date": "2026-02-15",
+       "entry_price": 9085.0,
+       "result": "win",
+       "periods": 7,
+       "exit_date": "2026-02-15",
+       "exit_price": 9539.2
+      }
+     ]
+    },
+    "50|off": {
+     "stats": {
+      "n_events": 5,
+      "win": 1,
+      "loss": 2,
+      "expired": 1,
+      "open": 1,
+      "win_rate": 0.3333,
+      "median_periods_win": 4,
+      "median_periods_loss": 8.5
+     },
+     "latest": {
+      "signal_date": "2026-10-06",
+      "entry_date": "2026-10-07",
+      "entry_price": 9963.9,
+      "entry_basis": "next_open",
+      "periods_since": 5,
+      "gain_since": -0.0089,
+      "result": "open",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-10-06",
+       "entry_date": "2026-10-07",
+       "entry_price": 9963.9,
+       "result": "open",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-03-12",
+       "entry_date": "2026-03-13",
+       "entry_price": 8769.0,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-03-02",
+       "entry_date": "2026-03-03",
+       "entry_price": 10092.2,
+       "result": "loss",
+       "periods": 6,
+       "exit_date": "2026-03-03",
+       "exit_price": 9587.6
+      },
+      {
+       "signal_date": "2026-02-25",
+       "entry_date": "2026-02-26",
+       "entry_price": 9075.1,
+       "result": "loss",
+       "periods": 11,
+       "exit_date": "2026-02-26",
+       "exit_price": 8621.3
+      },
+      {
+       "signal_date": "2026-02-16",
+       "entry_date": "2026-02-17",
+       "entry_price": 10072.5,
+       "result": "win",
+       "periods": 4,
+       "exit_date": "2026-02-17",
+       "exit_price": 10576.1
+      }
+     ]
+    }
+   }
+  },
+  "BMRI": {
+   "name": "Bank Mandiri",
+   "sector_code": "IDXFINANCE",
+   "close": 6100,
+   "ma": {
+    "10": 6686.0,
+    "20": 6271.0,
+    "50": 6002.0
+   },
+   "runs": {
+    "10|on": {
+     "stats": {
+      "n_events": 7,
+      "win": 4,
+      "loss": 3,
+      "expired": 0,
+      "open": 0,
+      "win_rate": 0.5714,
+      "median_periods_win": 10.0,
+      "median_periods_loss": 5
+     },
+     "latest": {
+      "signal_date": "2026-04-04",
+      "entry_date": "2026-04-05",
+      "entry_price": 6405.0,
+      "entry_basis": "next_open",
+      "periods_since": 9,
+      "gain_since": -0.0476,
+      "result": "loss",
+      "exit_date": "2026-04-05",
+      "exit_price": 6084.8,
+      "periods": 5
+     },
+     "events": [
+      {
+       "signal_date": "2026-04-04",
+       "entry_date": "2026-04-05",
+       "entry_price": 6405.0,
+       "result": "loss",
+       "periods": 5,
+       "exit_date": "2026-04-05",
+       "exit_price": 6084.8
+      },
+      {
+       "signal_date": "2026-03-26",
+       "entry_date": "2026-03-27",
+       "entry_price": 5624.2,
+       "result": "loss",
+       "periods": 12,
+       "exit_date": "2026-03-27",
+       "exit_price": 5343.0
+      },
+      {
+       "signal_date": "2026-03-20",
+       "entry_date": "2026-03-21",
+       "entry_price": 6045.1,
+       "result": "loss",
+       "periods": 5,
+       "exit_date": "2026-03-21",
+       "exit_price": 5742.8
+      },
+      {
+       "signal_date": "2026-03-09",
+       "entry_date": "2026-03-10",
+       "entry_price": 6087.8,
+       "result": "win",
+       "periods": 14,
+       "exit_date": "2026-03-10",
+       "exit_price": 6392.2
+      },
+      {
+       "signal_date": "2026-03-05",
+       "entry_date": "2026-03-06",
+       "entry_price": 6063.4,
+       "result": "win",
+       "periods": 10,
+       "exit_date": "2026-03-06",
+       "exit_price": 6366.6
+      },
+      {
+       "signal_date": "2026-02-23",
+       "entry_date": "2026-02-24",
+       "entry_price": 5703.5,
+       "result": "win",
+       "periods": 10,
+       "exit_date": "2026-02-24",
+       "exit_price": 5988.7
+      },
+      {
+       "signal_date": "2026-02-13",
+       "entry_date": "2026-02-14",
+       "entry_price": 5746.2,
+       "result": "win",
+       "periods": 7,
+       "exit_date": "2026-02-14",
+       "exit_price": 6033.5
+      }
+     ]
+    },
+    "10|off": {
+     "stats": {
+      "n_events": 11,
+      "win": 4,
+      "loss": 5,
+      "expired": 2,
+      "open": 0,
+      "win_rate": 0.4444,
+      "median_periods_win": 4.5,
+      "median_periods_loss": 8
+     },
+     "latest": {
+      "signal_date": "2026-05-06",
+      "entry_date": "2026-05-07",
+      "entry_price": 5965.8,
+      "entry_basis": "next_open",
+      "periods_since": 9,
+      "gain_since": 0.0225,
+      "result": "expired",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-05-06",
+       "entry_date": "2026-05-07",
+       "entry_price": 5965.8,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-04-28",
+       "entry_date": "2026-04-29",
+       "entry_price": 5429.0,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-04-21",
+       "entry_date": "2026-04-22",
+       "entry_price": 6045.1,
+       "result": "loss",
+       "periods": 7,
+       "exit_date": "2026-04-22",
+       "exit_price": 5742.8
+      },
+      {
+       "signal_date": "2026-04-12",
+       "entry_date": "2026-04-13",
+       "entry_price": 6459.9,
+       "result": "loss",
+       "periods": 8,
+       "exit_date": "2026-04-13",
+       "exit_price": 6136.9
+      },
+      {
+       "signal_date": "2026-04-02",
+       "entry_date": "2026-04-03",
+       "entry_price": 5941.4,
+       "result": "loss",
+       "periods": 11,
+       "exit_date": "2026-04-03",
+       "exit_price": 5644.3
+      },
+      {
+       "signal_date": "2026-03-22",
+       "entry_date": "2026-03-23",
+       "entry_price": 6270.8,
+       "result": "loss",
+       "periods": 10,
+       "exit_date": "2026-03-23",
+       "exit_price": 5957.3
+      },
+      {
+       "signal_date": "2026-03-14",
+       "entry_date": "2026-03-15",
+       "entry_price": 5953.6,
+       "result": "loss",
+       "periods": 5,
+       "exit_date": "2026-03-15",
+       "exit_price": 5655.9
+      },
+      {
+       "signal_date": "2026-03-09",
+       "entry_date": "2026-03-10",
+       "entry_price": 5673.0,
+       "result": "win",
+       "periods": 4,
+       "exit_date": "2026-03-10",
+       "exit_price": 5956.7
+      },
+      {
+       "signal_date": "2026-03-03",
+       "entry_date": "2026-03-04",
+       "entry_price": 6075.6,
+       "result": "win",
+       "periods": 7,
+       "exit_date": "2026-03-04",
+       "exit_price": 6379.4
+      },
+      {
+       "signal_date": "2026-02-19",
+       "entry_date": "2026-02-20",
+       "entry_price": 5563.2,
+       "result": "win",
+       "periods": 5,
+       "exit_date": "2026-02-20",
+       "exit_price": 5841.4
+      },
+      {
+       "signal_date": "2026-02-15",
+       "entry_date": "2026-02-16",
+       "entry_price": 6356.2,
+       "result": "win",
+       "periods": 4,
+       "exit_date": "2026-02-16",
+       "exit_price": 6674.0
+      }
+     ]
+    },
+    "20|on": {
+     "stats": {
+      "n_events": 7,
+      "win": 4,
+      "loss": 3,
+      "expired": 0,
+      "open": 0,
+      "win_rate": 0.5714,
+      "median_periods_win": 8.0,
+      "median_periods_loss": 7
+     },
+     "latest": {
+      "signal_date": "2026-03-28",
+      "entry_date": "2026-03-29",
+      "entry_price": 5398.5,
+      "entry_basis": "next_open",
+      "periods_since": 9,
+      "gain_since": 0.1299,
+      "result": "loss",
+      "exit_date": "2026-03-29",
+      "exit_price": 5128.6,
+      "periods": 8
+     },
+     "events": [
+      {
+       "signal_date": "2026-03-28",
+       "entry_date": "2026-03-29",
+       "entry_price": 5398.5,
+       "result": "loss",
+       "periods": 8,
+       "exit_date": "2026-03-29",
+       "exit_price": 5128.6
+      },
+      {
+       "signal_date": "2026-03-24",
+       "entry_date": "2026-03-25",
+       "entry_price": 5636.4,
+       "result": "loss",
+       "periods": 7,
+       "exit_date": "2026-03-25",
+       "exit_price": 5354.6
+      },
+      {
+       "signal_date": "2026-03-15",
+       "entry_date": "2026-03-16",
+       "entry_price": 5758.4,
+       "result": "loss",
+       "periods": 4,
+       "exit_date": "2026-03-16",
+       "exit_price": 5470.5
+      },
+      {
+       "signal_date": "2026-03-05",
+       "entry_date": "2026-03-06",
+       "entry_price": 6459.9,
+       "result": "win",
+       "periods": 9,
+       "exit_date": "2026-03-06",
+       "exit_price": 6782.9
+      },
+      {
+       "signal_date": "2026-02-25",
+       "entry_date": "2026-02-26",
+       "entry_price": 6081.7,
+       "result": "win",
+       "periods": 7,
+       "exit_date": "2026-02-26",
+       "exit_price": 6385.8
+      },
+      {
+       "signal_date": "2026-02-17",
+       "entry_date": "2026-02-18",
+       "entry_price": 5624.2,
+       "result": "win",
+       "periods": 12,
+       "exit_date": "2026-02-18",
+       "exit_price": 5905.4
+      },
+      {
+       "signal_date": "2026-02-12",
+       "entry_date": "2026-02-13",
+       "entry_price": 5410.7,
+       "result": "win",
+       "periods": 6,
+       "exit_date": "2026-02-13",
+       "exit_price": 5681.2
+      }
+     ]
+    },
+    "20|off": {
+     "stats": {
+      "n_events": 13,
+      "win": 8,
+      "loss": 3,
+      "expired": 2,
+      "open": 0,
+      "win_rate": 0.7273,
+      "median_periods_win": 9.5,
+      "median_periods_loss": 6
+     },
+     "latest": {
+      "signal_date": "2026-05-24",
+      "entry_date": "2026-05-25",
+      "entry_price": 6228.1,
+      "entry_basis": "next_open",
+      "periods_since": 9,
+      "gain_since": -0.0206,
+      "result": "expired",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-05-24",
+       "entry_date": "2026-05-25",
+       "entry_price": 6228.1,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-05-18",
+       "entry_date": "2026-05-19",
+       "entry_price": 6112.2,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-05-10",
+       "entry_date": "2026-05-11",
+       "entry_price": 6398.9,
+       "result": "loss",
+       "periods": 6,
+       "exit_date": "2026-05-11",
+       "exit_price": 6079.0
+      },
+      {
+       "signal_date": "2026-04-27",
+       "entry_date": "2026-04-28",
+       "entry_price": 5526.6,
+       "result": "loss",
+       "periods": 11,
+       "exit_date": "2026-04-28",
+       "exit_price": 5250.3
+      },
+      {
+       "signal_date": "2026-04-20",
+       "entry_date": "2026-04-21",
+       "entry_price": 6106.1,
+       "result": "loss",
+       "periods": 4,
+       "exit_date": "2026-04-21",
+       "exit_price": 5800.8
+      },
+      {
+       "signal_date": "2026-04-12",
+       "entry_date": "2026-04-13",
+       "entry_price": 5404.6,
+       "result": "win",
+       "periods": 6,
+       "exit_date": "2026-04-13",
+       "exit_price": 5674.8
+      },
+      {
+       "signal_date": "2026-04-07",
+       "entry_date": "2026-04-08",
+       "entry_price": 5532.7,
+       "result": "win",
+       "periods": 11,
+       "exit_date": "2026-04-08",
+       "exit_price": 5809.3
+      },
+      {
+       "signal_date": "2026-03-28",
+       "entry_date": "2026-03-29",
+       "entry_price": 5685.2,
+       "result": "win",
+       "periods": 10,
+       "exit_date": "2026-03-29",
+       "exit_price": 5969.5
+      },
+      {
+       "signal_date": "2026-03-17",
+       "entry_date": "2026-03-18",
+       "entry_price": 5666.9,
+       "result": "win",
+       "periods": 6,
+       "exit_date": "2026-03-18",
+       "exit_price": 5950.2
+      },
+      {
+       "signal_date": "2026-03-13",
+       "entry_date": "2026-03-14",
+       "entry_price": 6045.1,
+       "result": "win",
+       "periods": 12,
+       "exit_date": "2026-03-14",
+       "exit_price": 6347.4
+      },
+      {
+       "signal_date": "2026-03-04",
+       "entry_date": "2026-03-05",
+       "entry_price": 5587.6,
+       "result": "win",
+       "periods": 4,
+       "exit_date": "2026-03-05",
+       "exit_price": 5867.0
+      },
+      {
+       "signal_date": "2026-02-21",
+       "entry_date": "2026-02-22",
+       "entry_price": 5483.9,
+       "result": "win",
+       "periods": 9,
+       "exit_date": "2026-02-22",
+       "exit_price": 5758.1
+      },
+      {
+       "signal_date": "2026-02-14",
+       "entry_date": "2026-02-15",
+       "entry_price": 5422.9,
+       "result": "win",
+       "periods": 14,
+       "exit_date": "2026-02-15",
+       "exit_price": 5694.0
+      }
+     ]
+    },
+    "50|on": {
+     "stats": {
+      "n_events": 7,
+      "win": 4,
+      "loss": 3,
+      "expired": 0,
+      "open": 0,
+      "win_rate": 0.5714,
+      "median_periods_win": 9.0,
+      "median_periods_loss": 7
+     },
+     "latest": {
+      "signal_date": "2026-04-08",
+      "entry_date": "2026-04-09",
+      "entry_price": 5782.8,
+      "entry_basis": "next_open",
+      "periods_since": 9,
+      "gain_since": 0.0549,
+      "result": "loss",
+      "exit_date": "2026-04-09",
+      "exit_price": 5493.7,
+      "periods": 11
+     },
+     "events": [
+      {
+       "signal_date": "2026-04-08",
+       "entry_date": "2026-04-09",
+       "entry_price": 5782.8,
+       "result": "loss",
+       "periods": 11,
+       "exit_date": "2026-04-09",
+       "exit_price": 5493.7
+      },
+      {
+       "signal_date": "2026-03-26",
+       "entry_date": "2026-03-27",
+       "entry_price": 6179.3,
+       "result": "loss",
+       "periods": 6,
+       "exit_date": "2026-03-27",
+       "exit_price": 5870.3
+      },
+      {
+       "signal_date": "2026-03-16",
+       "entry_date": "2026-03-17",
+       "entry_price": 5404.6,
+       "result": "loss",
+       "periods": 7,
+       "exit_date": "2026-03-17",
+       "exit_price": 5134.4
+      },
+      {
+       "signal_date": "2026-03-09",
+       "entry_date": "2026-03-10",
+       "entry_price": 5459.5,
+       "result": "win",
+       "periods": 7,
+       "exit_date": "2026-03-10",
+       "exit_price": 5732.5
+      },
+      {
+       "signal_date": "2026-02-28",
+       "entry_date": "2026-02-29",
+       "entry_price": 6228.1,
+       "result": "win",
+       "periods": 11,
+       "exit_date": "2026-02-29",
+       "exit_price": 6539.5
+      },
+      {
+       "signal_date": "2026-02-23",
+       "entry_date": "2026-02-24",
+       "entry_price": 5477.8,
+       "result": "win",
+       "periods": 13,
+       "exit_date": "2026-02-24",
+       "exit_price": 5751.7
+      },
+      {
+       "signal_date": "2026-02-17",
+       "entry_date": "2026-02-18",
+       "entry_price": 5416.8,
+       "result": "win",
+       "periods": 5,
+       "exit_date": "2026-02-18",
+       "exit_price": 5687.6
+      }
+     ]
+    },
+    "50|off": {
+     "stats": {
+      "n_events": 9,
+      "win": 4,
+      "loss": 3,
+      "expired": 2,
+      "open": 0,
+      "win_rate": 0.5714,
+      "median_periods_win": 8.0,
+      "median_periods_loss": 7
+     },
+     "latest": {
+      "signal_date": "2026-04-22",
+      "entry_date": "2026-04-23",
+      "entry_price": 6106.1,
+      "entry_basis": "next_open",
+      "periods_since": 9,
+      "gain_since": -0.001,
+      "result": "expired",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-04-22",
+       "entry_date": "2026-04-23",
+       "entry_price": 6106.1,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-04-15",
+       "entry_date": "2026-04-16",
+       "entry_price": 5551.0,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-04-06",
+       "entry_date": "2026-04-07",
+       "entry_price": 5917.0,
+       "result": "loss",
+       "periods": 9,
+       "exit_date": "2026-04-07",
+       "exit_price": 5621.1
+      },
+      {
+       "signal_date": "2026-03-22",
+       "entry_date": "2026-03-23",
+       "entry_price": 5721.8,
+       "result": "loss",
+       "periods": 4,
+       "exit_date": "2026-03-23",
+       "exit_price": 5435.7
+      },
+      {
+       "signal_date": "2026-03-18",
+       "entry_date": "2026-03-19",
+       "entry_price": 6417.2,
+       "result": "loss",
+       "periods": 7,
+       "exit_date": "2026-03-19",
+       "exit_price": 6096.3
+      },
+      {
+       "signal_date": "2026-03-09",
+       "entry_date": "2026-03-10",
+       "entry_price": 6148.8,
+       "result": "win",
+       "periods": 8,
+       "exit_date": "2026-03-10",
+       "exit_price": 6456.2
+      },
+      {
+       "signal_date": "2026-02-26",
+       "entry_date": "2026-02-27",
+       "entry_price": 5734.0,
+       "result": "win",
+       "periods": 6,
+       "exit_date": "2026-02-27",
+       "exit_price": 6020.7
+      },
+      {
+       "signal_date": "2026-02-19",
+       "entry_date": "2026-02-20",
+       "entry_price": 6441.6,
+       "result": "win",
+       "periods": 8,
+       "exit_date": "2026-02-20",
+       "exit_price": 6763.7
+      },
+      {
+       "signal_date": "2026-02-11",
+       "entry_date": "2026-02-12",
+       "entry_price": 5429.0,
+       "result": "win",
+       "periods": 13,
+       "exit_date": "2026-02-12",
+       "exit_price": 5700.4
+      }
+     ]
+    }
+   }
+  },
+  "DCII": {
+   "name": "DCI Indonesia",
+   "sector_code": "IDXTECHNO",
+   "close": 42800,
+   "ma": {
+    "10": 44512.0,
+    "20": 45026.0,
+    "50": 43142.0
+   },
+   "runs": {}
+  },
+  "KLBF": {
+   "name": "Kalbe Farma",
+   "sector_code": "IDXHEALTH",
+   "close": 1520,
+   "ma": {
+    "10": 1477.0,
+    "20": 1695.0,
+    "50": 1628.0
+   },
+   "runs": {}
+  },
+  "TLKM": {
+   "name": "Telkom Indonesia",
+   "sector_code": "IDXINFRA",
+   "close": 3120,
+   "ma": {
+    "10": 2980.0,
+    "20": 3426.0,
+    "50": 3288.0
+   },
+   "runs": {
+    "10|on": {
+     "stats": {
+      "n_events": 9,
+      "win": 5,
+      "loss": 2,
+      "expired": 1,
+      "open": 1,
+      "win_rate": 0.7143,
+      "median_periods_win": 8,
+      "median_periods_loss": 5.5
+     },
+     "latest": {
+      "signal_date": "2026-10-06",
+      "entry_date": "2026-10-07",
+      "entry_price": 3076.3,
+      "entry_basis": "next_open",
+      "periods_since": 5,
+      "gain_since": 0.0142,
+      "result": "open",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-10-06",
+       "entry_date": "2026-10-07",
+       "entry_price": 3076.3,
+       "result": "open",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-04-11",
+       "entry_date": "2026-04-12",
+       "entry_price": 3026.4,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-04-05",
+       "entry_date": "2026-04-06",
+       "entry_price": 3297.8,
+       "result": "loss",
+       "periods": 6,
+       "exit_date": "2026-04-06",
+       "exit_price": 3132.9
+      },
+      {
+       "signal_date": "2026-03-24",
+       "entry_date": "2026-03-25",
+       "entry_price": 3116.9,
+       "result": "loss",
+       "periods": 5,
+       "exit_date": "2026-03-25",
+       "exit_price": 2961.1
+      },
+      {
+       "signal_date": "2026-03-19",
+       "entry_date": "2026-03-20",
+       "entry_price": 3051.4,
+       "result": "win",
+       "periods": 8,
+       "exit_date": "2026-03-20",
+       "exit_price": 3204.0
+      },
+      {
+       "signal_date": "2026-03-13",
+       "entry_date": "2026-03-14",
+       "entry_price": 2911.0,
+       "result": "win",
+       "periods": 7,
+       "exit_date": "2026-03-14",
+       "exit_price": 3056.6
+      },
+      {
+       "signal_date": "2026-03-02",
+       "entry_date": "2026-03-03",
+       "entry_price": 3294.7,
+       "result": "win",
+       "periods": 11,
+       "exit_date": "2026-03-03",
+       "exit_price": 3459.4
+      },
+      {
+       "signal_date": "2026-02-25",
+       "entry_date": "2026-02-26",
+       "entry_price": 3182.4,
+       "result": "win",
+       "periods": 13,
+       "exit_date": "2026-02-26",
+       "exit_price": 3341.5
+      },
+      {
+       "signal_date": "2026-02-16",
+       "entry_date": "2026-02-17",
+       "entry_price": 3166.8,
+       "result": "win",
+       "periods": 4,
+       "exit_date": "2026-02-17",
+       "exit_price": 3325.1
+      }
+     ]
+    },
+    "10|off": {
+     "stats": {
+      "n_events": 14,
+      "win": 7,
+      "loss": 6,
+      "expired": 0,
+      "open": 1,
+      "win_rate": 0.5385,
+      "median_periods_win": 10,
+      "median_periods_loss": 7.5
+     },
+     "latest": {
+      "signal_date": "2026-10-06",
+      "entry_date": "2026-10-07",
+      "entry_price": 3004.6,
+      "entry_basis": "next_open",
+      "periods_since": 5,
+      "gain_since": 0.0384,
+      "result": "open",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-10-06",
+       "entry_date": "2026-10-07",
+       "entry_price": 3004.6,
+       "result": "open",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-05-19",
+       "entry_date": "2026-05-20",
+       "entry_price": 3079.4,
+       "result": "loss",
+       "periods": 10,
+       "exit_date": "2026-05-20",
+       "exit_price": 2925.4
+      },
+      {
+       "signal_date": "2026-05-11",
+       "entry_date": "2026-05-12",
+       "entry_price": 3113.8,
+       "result": "loss",
+       "periods": 9,
+       "exit_date": "2026-05-12",
+       "exit_price": 2958.1
+      },
+      {
+       "signal_date": "2026-05-06",
+       "entry_date": "2026-05-07",
+       "entry_price": 2845.4,
+       "result": "loss",
+       "periods": 6,
+       "exit_date": "2026-05-07",
+       "exit_price": 2703.1
+      },
+      {
+       "signal_date": "2026-04-27",
+       "entry_date": "2026-04-28",
+       "entry_price": 3126.2,
+       "result": "loss",
+       "periods": 3,
+       "exit_date": "2026-04-28",
+       "exit_price": 2969.9
+      },
+      {
+       "signal_date": "2026-04-16",
+       "entry_date": "2026-04-17",
+       "entry_price": 3017.0,
+       "result": "loss",
+       "periods": 4,
+       "exit_date": "2026-04-17",
+       "exit_price": 2866.2
+      },
+      {
+       "signal_date": "2026-04-12",
+       "entry_date": "2026-04-13",
+       "entry_price": 2758.1,
+       "result": "loss",
+       "periods": 9,
+       "exit_date": "2026-04-13",
+       "exit_price": 2620.2
+      },
+      {
+       "signal_date": "2026-04-03",
+       "entry_date": "2026-04-04",
+       "entry_price": 3060.7,
+       "result": "win",
+       "periods": 5,
+       "exit_date": "2026-04-04",
+       "exit_price": 3213.7
+      },
+      {
+       "signal_date": "2026-03-20",
+       "entry_date": "2026-03-21",
+       "entry_price": 2882.9,
+       "result": "win",
+       "periods": 4,
+       "exit_date": "2026-03-21",
+       "exit_price": 3027.0
+      },
+      {
+       "signal_date": "2026-03-13",
+       "entry_date": "2026-03-14",
+       "entry_price": 3004.6,
+       "result": "win",
+       "periods": 10,
+       "exit_date": "2026-03-14",
+       "exit_price": 3154.8
+      },
+      {
+       "signal_date": "2026-03-05",
+       "entry_date": "2026-03-06",
+       "entry_price": 3004.6,
+       "result": "win",
+       "periods": 10,
+       "exit_date": "2026-03-06",
+       "exit_price": 3154.8
+      },
+      {
+       "signal_date": "2026-02-27",
+       "entry_date": "2026-02-28",
+       "entry_price": 3301.0,
+       "result": "win",
+       "periods": 6,
+       "exit_date": "2026-02-28",
+       "exit_price": 3466.1
+      },
+      {
+       "signal_date": "2026-02-21",
+       "entry_date": "2026-02-22",
+       "entry_price": 3110.6,
+       "result": "win",
+       "periods": 10,
+       "exit_date": "2026-02-22",
+       "exit_price": 3266.1
+      },
+      {
+       "signal_date": "2026-02-10",
+       "entry_date": "2026-02-11",
+       "entry_price": 3173.0,
+       "result": "win",
+       "periods": 10,
+       "exit_date": "2026-02-11",
+       "exit_price": 3331.7
+      }
+     ]
+    },
+    "20|on": {
+     "stats": {
+      "n_events": 9,
+      "win": 5,
+      "loss": 2,
+      "expired": 1,
+      "open": 1,
+      "win_rate": 0.7143,
+      "median_periods_win": 6,
+      "median_periods_loss": 9.5
+     },
+     "latest": {
+      "signal_date": "2026-10-06",
+      "entry_date": "2026-10-07",
+      "entry_price": 3026.4,
+      "entry_basis": "next_open",
+      "periods_since": 5,
+      "gain_since": 0.0309,
+      "result": "open",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-10-06",
+       "entry_date": "2026-10-07",
+       "entry_price": 3026.4,
+       "result": "open",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-04-07",
+       "entry_date": "2026-04-08",
+       "entry_price": 3051.4,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-04-02",
+       "entry_date": "2026-04-03",
+       "entry_price": 3088.8,
+       "result": "loss",
+       "periods": 9,
+       "exit_date": "2026-04-03",
+       "exit_price": 2934.4
+      },
+      {
+       "signal_date": "2026-03-22",
+       "entry_date": "2026-03-23",
+       "entry_price": 3123.1,
+       "result": "loss",
+       "periods": 10,
+       "exit_date": "2026-03-23",
+       "exit_price": 2966.9
+      },
+      {
+       "signal_date": "2026-03-14",
+       "entry_date": "2026-03-15",
+       "entry_price": 2904.7,
+       "result": "win",
+       "periods": 6,
+       "exit_date": "2026-03-15",
+       "exit_price": 3049.9
+      },
+      {
+       "signal_date": "2026-03-09",
+       "entry_date": "2026-03-10",
+       "entry_price": 2842.3,
+       "result": "win",
+       "periods": 4,
+       "exit_date": "2026-03-10",
+       "exit_price": 2984.4
+      },
+      {
+       "signal_date": "2026-03-03",
+       "entry_date": "2026-03-04",
+       "entry_price": 3304.1,
+       "result": "win",
+       "periods": 8,
+       "exit_date": "2026-03-04",
+       "exit_price": 3469.3
+      },
+      {
+       "signal_date": "2026-02-19",
+       "entry_date": "2026-02-20",
+       "entry_price": 2882.9,
+       "result": "win",
+       "periods": 6,
+       "exit_date": "2026-02-20",
+       "exit_price": 3027.0
+      },
+      {
+       "signal_date": "2026-02-15",
+       "entry_date": "2026-02-16",
+       "entry_price": 3254.2,
+       "result": "win",
+       "periods": 14,
+       "exit_date": "2026-02-16",
+       "exit_price": 3416.9
+      }
+     ]
+    },
+    "20|off": {
+     "stats": {
+      "n_events": 10,
+      "win": 3,
+      "loss": 6,
+      "expired": 0,
+      "open": 1,
+      "win_rate": 0.3333,
+      "median_periods_win": 12,
+      "median_periods_loss": 5.5
+     },
+     "latest": {
+      "signal_date": "2026-10-06",
+      "entry_date": "2026-10-07",
+      "entry_price": 3101.3,
+      "entry_basis": "next_open",
+      "periods_since": 5,
+      "gain_since": 0.006,
+      "result": "open",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-10-06",
+       "entry_date": "2026-10-07",
+       "entry_price": 3101.3,
+       "result": "open",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-04-23",
+       "entry_date": "2026-04-24",
+       "entry_price": 3048.2,
+       "result": "loss",
+       "periods": 11,
+       "exit_date": "2026-04-24",
+       "exit_price": 2895.8
+      },
+      {
+       "signal_date": "2026-04-12",
+       "entry_date": "2026-04-13",
+       "entry_price": 2783.0,
+       "result": "loss",
+       "periods": 4,
+       "exit_date": "2026-04-13",
+       "exit_price": 2643.8
+      },
+      {
+       "signal_date": "2026-04-08",
+       "entry_date": "2026-04-09",
+       "entry_price": 2851.7,
+       "result": "loss",
+       "periods": 5,
+       "exit_date": "2026-04-09",
+       "exit_price": 2709.1
+      },
+      {
+       "signal_date": "2026-03-26",
+       "entry_date": "2026-03-27",
+       "entry_price": 3148.1,
+       "result": "loss",
+       "periods": 8,
+       "exit_date": "2026-03-27",
+       "exit_price": 2990.7
+      },
+      {
+       "signal_date": "2026-03-16",
+       "entry_date": "2026-03-17",
+       "entry_price": 2857.9,
+       "result": "loss",
+       "periods": 5,
+       "exit_date": "2026-03-17",
+       "exit_price": 2715.0
+      },
+      {
+       "signal_date": "2026-03-09",
+       "entry_date": "2026-03-10",
+       "entry_price": 3194.9,
+       "result": "loss",
+       "periods": 6,
+       "exit_date": "2026-03-10",
+       "exit_price": 3035.2
+      },
+      {
+       "signal_date": "2026-02-28",
+       "entry_date": "2026-02-29",
+       "entry_price": 3051.4,
+       "result": "win",
+       "periods": 14,
+       "exit_date": "2026-02-29",
+       "exit_price": 3204.0
+      },
+      {
+       "signal_date": "2026-02-23",
+       "entry_date": "2026-02-24",
+       "entry_price": 2811.1,
+       "result": "win",
+       "periods": 12,
+       "exit_date": "2026-02-24",
+       "exit_price": 2951.7
+      },
+      {
+       "signal_date": "2026-02-17",
+       "entry_date": "2026-02-18",
+       "entry_price": 3260.4,
+       "result": "win",
+       "periods": 11,
+       "exit_date": "2026-02-18",
+       "exit_price": 3423.4
+      }
+     ]
+    },
+    "50|on": {
+     "stats": {
+      "n_events": 9,
+      "win": 5,
+      "loss": 2,
+      "expired": 1,
+      "open": 1,
+      "win_rate": 0.7143,
+      "median_periods_win": 12,
+      "median_periods_loss": 10.5
+     },
+     "latest": {
+      "signal_date": "2026-10-06",
+      "entry_date": "2026-10-07",
+      "entry_price": 3032.6,
+      "entry_basis": "next_open",
+      "periods_since": 5,
+      "gain_since": 0.0288,
+      "result": "open",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-10-06",
+       "entry_date": "2026-10-07",
+       "entry_price": 3032.6,
+       "result": "open",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-04-11",
+       "entry_date": "2026-04-12",
+       "entry_price": 3126.2,
+       "result": "expired",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-03-28",
+       "entry_date": "2026-03-29",
+       "entry_price": 3285.4,
+       "result": "loss",
+       "periods": 12,
+       "exit_date": "2026-03-29",
+       "exit_price": 3121.1
+      },
+      {
+       "signal_date": "2026-03-24",
+       "entry_date": "2026-03-25",
+       "entry_price": 2836.1,
+       "result": "loss",
+       "periods": 9,
+       "exit_date": "2026-03-25",
+       "exit_price": 2694.3
+      },
+      {
+       "signal_date": "2026-03-15",
+       "entry_date": "2026-03-16",
+       "entry_price": 3288.5,
+       "result": "win",
+       "periods": 13,
+       "exit_date": "2026-03-16",
+       "exit_price": 3452.9
+      },
+      {
+       "signal_date": "2026-03-05",
+       "entry_date": "2026-03-06",
+       "entry_price": 3154.3,
+       "result": "win",
+       "periods": 11,
+       "exit_date": "2026-03-06",
+       "exit_price": 3312.0
+      },
+      {
+       "signal_date": "2026-02-25",
+       "entry_date": "2026-02-26",
+       "entry_price": 2814.2,
+       "result": "win",
+       "periods": 12,
+       "exit_date": "2026-02-26",
+       "exit_price": 2954.9
+      },
+      {
+       "signal_date": "2026-02-17",
+       "entry_date": "2026-02-18",
+       "entry_price": 3067.0,
+       "result": "win",
+       "periods": 5,
+       "exit_date": "2026-02-18",
+       "exit_price": 3220.3
+      },
+      {
+       "signal_date": "2026-02-12",
+       "entry_date": "2026-02-13",
+       "entry_price": 3257.3,
+       "result": "win",
+       "periods": 13,
+       "exit_date": "2026-02-13",
+       "exit_price": 3420.2
+      }
+     ]
+    },
+    "50|off": {
+     "stats": {
+      "n_events": 12,
+      "win": 7,
+      "loss": 4,
+      "expired": 0,
+      "open": 1,
+      "win_rate": 0.6364,
+      "median_periods_win": 10,
+      "median_periods_loss": 7.0
+     },
+     "latest": {
+      "signal_date": "2026-10-06",
+      "entry_date": "2026-10-07",
+      "entry_price": 3151.2,
+      "entry_basis": "next_open",
+      "periods_since": 5,
+      "gain_since": -0.0099,
+      "result": "open",
+      "exit_date": null,
+      "exit_price": null,
+      "periods": null
+     },
+     "events": [
+      {
+       "signal_date": "2026-10-06",
+       "entry_date": "2026-10-07",
+       "entry_price": 3151.2,
+       "result": "open",
+       "periods": null,
+       "exit_date": null,
+       "exit_price": null
+      },
+      {
+       "signal_date": "2026-05-10",
+       "entry_date": "2026-05-11",
+       "entry_price": 2857.9,
+       "result": "loss",
+       "periods": 8,
+       "exit_date": "2026-05-11",
+       "exit_price": 2715.0
+      },
+      {
+       "signal_date": "2026-04-27",
+       "entry_date": "2026-04-28",
+       "entry_price": 2808.0,
+       "result": "loss",
+       "periods": 5,
+       "exit_date": "2026-04-28",
+       "exit_price": 2667.6
+      },
+      {
+       "signal_date": "2026-04-20",
+       "entry_date": "2026-04-21",
+       "entry_price": 3141.8,
+       "result": "loss",
+       "periods": 6,
+       "exit_date": "2026-04-21",
+       "exit_price": 2984.7
+      },
+      {
+       "signal_date": "2026-04-12",
+       "entry_date": "2026-04-13",
+       "entry_price": 2857.9,
+       "result": "loss",
+       "periods": 9,
+       "exit_date": "2026-04-13",
+       "exit_price": 2715.0
+      },
+      {
+       "signal_date": "2026-04-07",
+       "entry_date": "2026-04-08",
+       "entry_price": 3048.2,
+       "result": "win",
+       "periods": 7,
+       "exit_date": "2026-04-08",
+       "exit_price": 3200.6
+      },
+      {
+       "signal_date": "2026-03-28",
+       "entry_date": "2026-03-29",
+       "entry_price": 3166.8,
+       "result": "win",
+       "periods": 13,
+       "exit_date": "2026-03-29",
+       "exit_price": 3325.1
+      },
+      {
+       "signal_date": "2026-03-17",
+       "entry_date": "2026-03-18",
+       "entry_price": 3241.7,
+       "result": "win",
+       "periods": 4,
+       "exit_date": "2026-03-18",
+       "exit_price": 3403.8
+      },
+      {
+       "signal_date": "2026-03-13",
+       "entry_date": "2026-03-14",
+       "entry_price": 2942.2,
+       "result": "win",
+       "periods": 14,
+       "exit_date": "2026-03-14",
+       "exit_price": 3089.3
+      },
+      {
+       "signal_date": "2026-03-04",
+       "entry_date": "2026-03-05",
+       "entry_price": 3126.2,
+       "result": "win",
+       "periods": 7,
+       "exit_date": "2026-03-05",
+       "exit_price": 3282.5
+      },
+      {
+       "signal_date": "2026-02-21",
+       "entry_date": "2026-02-22",
+       "entry_price": 2995.2,
+       "result": "win",
+       "periods": 13,
+       "exit_date": "2026-02-22",
+       "exit_price": 3145.0
+      },
+      {
+       "signal_date": "2026-02-14",
+       "entry_date": "2026-02-15",
+       "entry_price": 3263.5,
+       "result": "win",
+       "periods": 10,
+       "exit_date": "2026-02-15",
+       "exit_price": 3426.7
+      }
+     ]
+    }
+   }
+  },
+  "MIKA": {
+   "name": "Mitra Keluarga Karyasehat",
+   "sector_code": "IDXHEALTH",
+   "close": 2870,
+   "ma": {
+    "10": 2962.0,
+    "20": 2996.0,
+    "50": 2870.0
+   },
+   "runs": {}
+  },
+  "ANTM": {
+   "name": "Aneka Tambang",
+   "sector_code": "IDXBASIC",
+   "close": 1585,
+   "ma": {
+    "10": 1593.0,
+    "20": 1612.0,
+    "50": 1542.0
+   },
+   "runs": {
+    "10|on": {
+     "stats": {
+      "n_events": 0,
+      "win": 0,
+      "loss": 0,
+      "expired": 0,
+      "open": 0,
+      "win_rate": null,
+      "median_periods_win": null,
+      "median_periods_loss": null
+     },
+     "latest": null,
+     "events": []
+    },
+    "10|off": {
+     "stats": {
+      "n_events": 0,
+      "win": 0,
+      "loss": 0,
+      "expired": 0,
+      "open": 0,
+      "win_rate": null,
+      "median_periods_win": null,
+      "median_periods_loss": null
+     },
+     "latest": null,
+     "events": []
+    },
+    "20|on": {
+     "stats": {
+      "n_events": 0,
+      "win": 0,
+      "loss": 0,
+      "expired": 0,
+      "open": 0,
+      "win_rate": null,
+      "median_periods_win": null,
+      "median_periods_loss": null
+     },
+     "latest": null,
+     "events": []
+    },
+    "20|off": {
+     "stats": {
+      "n_events": 0,
+      "win": 0,
+      "loss": 0,
+      "expired": 0,
+      "open": 0,
+      "win_rate": null,
+      "median_periods_win": null,
+      "median_periods_loss": null
+     },
+     "latest": null,
+     "events": []
+    },
+    "50|on": {
+     "stats": {
+      "n_events": 0,
+      "win": 0,
+      "loss": 0,
+      "expired": 0,
+      "open": 0,
+      "win_rate": null,
+      "median_periods_win": null,
+      "median_periods_loss": null
+     },
+     "latest": null,
+     "events": []
+    },
+    "50|off": {
+     "stats": {
+      "n_events": 0,
+      "win": 0,
+      "loss": 0,
+      "expired": 0,
+      "open": 0,
+      "win_rate": null,
+      "median_periods_win": null,
+      "median_periods_loss": null
+     },
+     "latest": null,
+     "events": []
+    }
+   }
+  },
+  "BBNI": {
+   "name": "Bank Negara Indonesia",
+   "sector_code": "IDXFINANCE",
+   "close": 5400,
+   "ma": {
+    "10": 5827.0,
+    "20": 5891.0,
+    "50": 5654.0
+   },
+   "runs": {}
+  },
+  "ASSA": {
+   "name": "Adi Sarana Armada",
+   "sector_code": "IDXTRANS",
+   "close": 745,
+   "ma": {
+    "10": 785.0,
+    "20": 794.0,
+    "50": 761.0
+   },
+   "runs": {}
+  },
+  "AMRT": {
+   "name": "Sumber Alfaria Trijaya",
+   "sector_code": "IDXNONCYC",
+   "close": 2980,
+   "ma": {
+    "10": 2900.0,
+    "20": 3326.0,
+    "50": 3195.0
+   },
+   "runs": {}
+  },
+  "ASII": {
+   "name": "Astra International",
+   "sector_code": "IDXINDUST",
+   "close": 4650,
+   "ma": {
+    "10": 4306.0,
+    "20": 4362.0,
+    "50": 5138.0
+   },
+   "runs": {}
+  },
+  "ACES": {
+   "name": "Ace Hardware Indonesia",
+   "sector_code": "IDXCYCLIC",
+   "close": 795,
+   "ma": {
+    "10": 726.0,
+    "20": 735.0,
+    "50": 868.0
+   },
+   "runs": {}
+  },
+  "TOWR": {
+   "name": "Sarana Menara Nusantara",
+   "sector_code": "IDXINFRA",
+   "close": 745,
+   "ma": {
+    "10": 743.0,
+    "20": 752.0,
+    "50": 719.0
+   },
+   "runs": {}
+  },
+  "ICBP": {
+   "name": "Indofood CBP Sukses Makmur",
+   "sector_code": "IDXNONCYC",
+   "close": 11500,
+   "ma": {
+    "10": 12754.0,
+    "20": 11972.0,
+    "50": 11466.0
+   },
+   "runs": {}
+  },
+  "SIDO": {
+   "name": "Sido Muncul",
+   "sector_code": "IDXHEALTH",
+   "close": 645,
+   "ma": {
+    "10": 661.0,
+    "20": 617.0,
+    "50": 589.0
+   },
+   "runs": {}
+  },
+  "BSDE": {
+   "name": "Bumi Serpong Damai",
+   "sector_code": "IDXPROPERT",
+   "close": 1085,
+   "ma": {
+    "10": 1071.0,
+    "20": 1084.0,
+    "50": 1036.0
+   },
+   "runs": {}
+  },
+  "JSMR": {
+   "name": "Jasa Marga",
+   "sector_code": "IDXINFRA",
+   "close": 4680,
+   "ma": {
+    "10": 4544.0,
+    "20": 4600.0,
+    "50": 4395.0
+   },
+   "runs": {}
+  },
+  "MAPA": {
+   "name": "Map Aktif Adiperkasa",
+   "sector_code": "IDXCYCLIC",
+   "close": 875,
+   "ma": {
+    "10": 947.0,
+    "20": 887.0,
+    "50": 849.0
+   },
+   "runs": {}
+  },
+  "PWON": {
+   "name": "Pakuwon Jati",
+   "sector_code": "IDXPROPERT",
+   "close": 402,
+   "ma": {
+    "10": 385.0,
+    "20": 390.0,
+    "50": 372.0
+   },
+   "runs": {}
+  },
+  "SMGR": {
+   "name": "Semen Indonesia",
+   "sector_code": "IDXBASIC",
+   "close": 3650,
+   "ma": {
+    "10": 4041.0,
+    "20": 4084.0,
+    "50": 3924.0
+   },
+   "runs": {}
+  },
+  "EMTK": {
+   "name": "Elang Mahkota Teknologi",
+   "sector_code": "IDXTECHNO",
+   "close": 512,
+   "ma": {
+    "10": 515.0,
+    "20": 521.0,
+    "50": 498.0
+   },
+   "runs": {}
+  },
+  "GIAA": {
+   "name": "Garuda Indonesia",
+   "sector_code": "IDXTRANS",
+   "close": 232,
+   "ma": {
+    "10": 250.0,
+    "20": 234.0,
+    "50": 224.0
+   },
+   "runs": {}
+  },
+  "MAPI": {
+   "name": "Mitra Adiperkasa",
+   "sector_code": "IDXCYCLIC",
+   "close": 1425,
+   "ma": {
+    "10": 1311.0,
+    "20": 1515.0,
+    "50": 1452.0
+   },
+   "runs": {}
+  },
+  "GOTO": {
+   "name": "GoTo Gojek Tokopedia",
+   "sector_code": "IDXTECHNO",
+   "close": 68,
+   "ma": {
+    "10": 63.0,
+    "20": 64.0,
+    "50": 75.0
+   },
+   "runs": {}
+  },
+  "ADRO": {
+   "name": "Adaro Energy",
+   "sector_code": "IDXENERGY",
+   "close": 2410,
+   "ma": {
+    "10": 2569.0,
+    "20": 2598.0,
+    "50": 2492.0
+   },
+   "runs": {}
+  },
+  "UNVR": {
+   "name": "Unilever Indonesia",
+   "sector_code": "IDXNONCYC",
+   "close": 1920,
+   "ma": {
+    "10": 2074.0,
+    "20": 2097.0,
+    "50": 2012.0
+   },
+   "runs": {}
+  },
+  "INCO": {
+   "name": "Vale Indonesia",
+   "sector_code": "IDXBASIC",
+   "close": 3870,
+   "ma": {
+    "10": 4183.0,
+    "20": 4230.0,
+    "50": 4060.0
+   },
+   "runs": {}
+  },
+  "PTBA": {
+   "name": "Bukit Asam",
+   "sector_code": "IDXENERGY",
+   "close": 2760,
+   "ma": {
+    "10": 2661.0,
+    "20": 3055.0,
+    "50": 2934.0
+   },
+   "runs": {}
+  },
+  "MEDC": {
+   "name": "Medco Energi Internasional",
+   "sector_code": "IDXENERGY",
+   "close": 1305,
+   "ma": {
+    "10": 1419.0,
+    "20": 1330.0,
+    "50": 1272.0
+   },
+   "runs": {}
+  }
+ }
+}

@@ -23,6 +23,11 @@ import {
   type SectorSummaryParams,
   type SectorSummaryResponse,
   type StockDetailResponse,
+  type TaDetailParams,
+  type TaDetailResponse,
+  type TaScope,
+  type TaSummaryParams,
+  type TaSummaryResponse,
   type StocksParams,
   type StocksResponse,
   type WeeklyPicksParams,
@@ -112,6 +117,19 @@ export const useBriefing = (params: BriefingParams = {}) =>
 
 export const useRuns = (limit = 20) =>
   useApi<RunsResponse, { limit: number }>("runs", "/admin/runs", { limit });
+
+/** Ringkasan TA satu halaman (`docs/08` F17: **satu** permintaan untuk semua baris tabel). */
+export const useTaSummary = (params: TaSummaryParams) =>
+  useApi<TaSummaryResponse, TaSummaryParams>("ta-summary", "/ta/summary", params);
+
+/** Detail TA satu entitas (`docs/06` §5.1); `refId` kosong → query tidak jalan. */
+export const useTaDetail = (scope: TaScope, refId: string, params: TaDetailParams = {}) =>
+  useApi<TaDetailResponse, TaDetailParams>(
+    `ta:${scope}:${refId}`,
+    `/ta/${scope}/${refId}`,
+    params,
+    Boolean(refId),
+  );
 
 /** Poll 1 s selama status belum final; berhenti sendiri saat `ok|partial|failed|skipped` (docs/05 §5.1). */
 export function useRun(runId: number | null) {

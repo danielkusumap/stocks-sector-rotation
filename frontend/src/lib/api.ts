@@ -125,6 +125,17 @@ export interface MetaConfigResponse {
   timeframes: Timeframe[];
   windows: Window[];
   midday_gate_min_bar_time: string;
+  /** Analisa teknikal (`config.ta`) — default kontrol panel TA (docs/06 §5.1). */
+  ta?: {
+    ma_periods: number[];
+    ma_default: number;
+    trend_filter: boolean;
+    trend_filter_period: number;
+    target_pct: number;
+    timeout_periods: number;
+    min_history: number;
+    entry_basis: string;
+  } | null;
   /** Kutipan IHSG (docs/05 §1 `meta/market`): UI membaca `poll_seconds` untuk interval poll. */
   market?: { live_enabled?: boolean; live_ttl_seconds?: number; poll_seconds?: number } | null;
   last_ingest: {
@@ -445,6 +456,139 @@ export interface SectorSeriesResponse {
   }[];
 }
 
+// ── §2b Analisa teknikal — `/ta/*` (docs/05 §2, rumus docs/03 §10) ────────────
+// Frontend TIDAK menghitung apa pun di sini: win rate, median periode, event, dan
+// `gain_since` semuanya datang jadi dari backend. Yang dirakit di UI hanya label.
+
+/** Kunci `sort` yang diterima `/ta/summary` (docs/05 §2). */
+export const TA_SORTS = [
+  "win_rate",
+  "median_periods",
+  "events",
+  "last_breakout",
+  "gain_since_breakout",
+  "ref_id",
+] as const;
+export type TaSort = (typeof TA_SORTS)[number];
+
+export type TaScope = "sector" | "stock";
+
+/** Hasil satu event: menang/kalah ±`target_pct`; `expired`/`open` bukan kekalahan (docs/05 §2). */
+export type TaResult = "win" | "loss" | "expired" | "open";
+
+export interface TaStats {
+  n_events: number;
+  win: number;
+  loss: number;
+  expired: number;
+  open: number;
+  /** `win / (win + loss)`; `null` = belum ada event yang selesai → UI menulis `—`, bukan `0%`. */
+  win_rate: number | null;
+  median_periods_win: number | null;
+  median_periods_loss: number | null;
+}
+
+/** Statistik saat semua angka belum tersedia (`min_events`) — tetap `null`, bukan 0. */
+export type TaStatsMaybe = { [K in keyof TaStats]: TaStats[K] | null };
+
+/** Konteks event terbaru "sampai sekarang" (docs/03 §10.6): dihitung backend per permintaan. */
+export interface TaBreakout {
+  signal_date: string;
+  entry_date: string;
+  /** Harga **penyesuaian** (`adj_close`/indeks) — wajib berlabel "harga penyesuaian" di UI. */
+  entry_price: number;
+  entry_basis: string;
+  periods_since: number;
+  gain_since: number | null;
+  result: TaResult;
+  exit_date: string | null;
+  exit_price: number | null;
+  periods: number | null;
+}
+
+export interface TaSummaryItem extends TaStatsMaybe {
+  ref_id: string;
+  name: string;
+  sector_code: string | null;
+  close: number | null;
+  ma: number | null;
+  above_ma: boolean | null;
+  last_breakout: TaBreakout | null;
+}
+
+/** Cakupan data (docs/05 §2: **wajib** ada) — DB dev masih universe parsial. */
+export interface TaCoverage {
+  refs_tested: number;
+  refs_skipped_short_history: number;
+  bars_from: string | null;
+  bars_to: string | null;
+  price_basis: string;
+}
+
+export interface TaSummaryParams extends CommonParams {
+  scope?: TaScope;
+  ma_period?: number;
+  trend_filter?: boolean;
+  q?: string;
+  min_events?: number;
+  sort?: TaSort;
+  dir?: Dir;
+  limit?: number;
+  offset?: number;
+}
+
+export interface TaSummaryResponse {
+  api_version: string;
+  scope: TaScope;
+  timeframe: Timeframe;
+  ma_period: number;
+  trend_filter: boolean;
+  total: number;
+  limit: number;
+  offset: number;
+  items: TaSummaryItem[];
+  coverage: TaCoverage;
+  data_status: DataStatus;
+}
+
+/** Satu baris tabel event (`events` di `/ta/{scope}/{ref_id}`). */
+export interface TaEventRow {
+  signal_date: string;
+  entry_date: string;
+  entry_price: number;
+  result: TaResult;
+  periods: number | null;
+  exit_date: string | null;
+  exit_price: number | null;
+}
+
+export interface TaDetailParams {
+  timeframe?: Timeframe;
+  weighting?: Weighting;
+  ma_period?: number;
+  trend_filter?: boolean;
+  window?: Window;
+  as_of?: string;
+  events?: number;
+}
+
+export interface TaDetailResponse {
+  api_version: string;
+  scope: TaScope;
+  ref_id: string;
+  name: string;
+  ma_period: number;
+  trend_filter: boolean;
+  price_basis: string;
+  ma_series: { date: string; close: number; ma: number }[];
+  /** **Selalu** dua varian (docs/05 §2) → perbandingan filter tidak butuh dua permintaan. */
+  stats: { filter_on: TaStats; filter_off: TaStats };
+  latest: TaBreakout | null;
+  events: TaEventRow[];
+  coverage: TaCoverage;
+  data_status: DataStatus;
+}
+
 // ── §3 Weekly picks & briefing ───────────────────────────────────────────────
 
 export interface WeeklySectorPick {
@@ -653,9 +797,19 @@ export interface IngestPricesBody {
 }
 
 export interface ComputeBody {
-  stage: "index" | "rrg" | "signals" | "all";
+  stage: "index" | "rrg" | "signals" | "all" | "ta";
   timeframe?: Timeframe;
   as_of?: string | null;
+}
+
+/** `result_json` `compute_ta` (docs/05 §4.6) — ditampilkan di panel riwayat run. */
+export interface ComputeTaResult {
+  events: number;
+  refs: number;
+  ma_periods: number[];
+  variants: string[];
+  win_rate: number | null;
+  duration_s: number;
 }
 
 export interface MiddayResult {
