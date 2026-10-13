@@ -260,6 +260,7 @@ CREATE TABLE IF NOT EXISTS stock_plan (
   p_tp1_first   REAL,
   p_sl_first    REAL,
   p_timeout     REAL,
+  p_tp2_first   REAL,
   median_periods_tp1 INTEGER,
   median_periods_sl  INTEGER,
   n_events      INTEGER,

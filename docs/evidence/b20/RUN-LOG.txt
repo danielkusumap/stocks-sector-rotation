@@ -1,0 +1,11 @@
+plan_for_all: {"rows": 921, "refs": 962, "skipped_short_history": 0, "scenario_null_refs": 485} · durasi 31.4 s
+rezim tersedia: range, tipis, tren_naik, turun
+sampel: [["tren_naik", "AYLS"], ["range", "AADI"], ["tipis", "ABBA"]]
+uji silang stock_plan vs signal_weekly: 0/0 baris identik (stop ±0,01 & rezim)
+AYLS (tren_naik): plan_ok=True · skenario=True · kalimat=3 · level_baris=9
+AYLS: candles=120 · ma20=120 · kanal=2 · event=16 · lapisan=['indicators']
+AADI (range): plan_ok=False · skenario=False · kalimat=3 · level_baris=9
+AADI: candles=120 · ma20=120 · kanal=1 · event=12 · lapisan=['indicators']
+ABBA (tipis): plan_ok=True · skenario=False · kalimat=3 · level_baris=9
+ABBA: candles=120 · ma20=120 · kanal=4 · event=4 · lapisan=['indicators']
+perf semua lapisan aktif (AYLS, bars=400): 621 ms · ursi=122 · vwap=122 · poc=211.94 · bos=9 · fvg=69 · elliott=invalidated · stop_grafik=sama_dengan_plan:True

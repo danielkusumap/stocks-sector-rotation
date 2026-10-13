@@ -1,0 +1,151 @@
+{
+ "api_version": "1.0",
+ "as_of": "2026-10-13",
+ "stock": {
+  "ticker": "AADI",
+  "name": "Adaro Andalan Indonesia Tbk.",
+  "sector_code": "IDXENERGY",
+  "board": "Utama"
+ },
+ "price": {
+  "close": 11600.0,
+  "prev_close": 11800.0,
+  "ret_1d": -0.0169,
+  "price_basis": "adj_close"
+ },
+ "regime": {
+  "code": "range",
+  "label": "Menyamping",
+  "reason": "Penyangga 20 & 50 hari berdekatan (pasar menyamping) — alat utama level pantulan di kanal.",
+  "active_tools": []
+ },
+ "summary_lines": [
+  "Harga 11.600 di bawah penyangga 20 hari (11.654) dan di atas penyangga 50 hari (10.824); rezim: Menyamping.",
+  "Belum cukup riwayat untuk menaksir peluang pada level ini (baru 0 penembusan).",
+  "Harga menyentuh batas bawah kanal tetapi momentum harian 53 belum di tepi bawah — belum ada konfirmasi pantulan, jadi tidak ambil posisi."
+ ],
+ "plan": {
+  "regime": "range",
+  "entry_tool": "none",
+  "entry_tool_reason": "Harga menyentuh batas bawah kanal tetapi momentum harian 53 belum di tepi bawah — belum ada konfirmasi pantulan, jadi tidak ambil posisi.",
+  "confirm_tool": "none",
+  "confirm_reason": null,
+  "entry_mode": "no_trade",
+  "entry_zone": {
+   "low": null,
+   "high": null,
+   "reason": "Level belum bisa dihitung; jangan pasang posisi dulu."
+  },
+  "stop": {
+   "level": null,
+   "pct": null,
+   "basis": null,
+   "reason": "Harga menyentuh batas bawah kanal tetapi momentum harian 53 belum di tepi bawah — belum ada konfirmasi pantulan, jadi tidak ambil posisi."
+  },
+  "tp1": {
+   "level": null,
+   "pct": null,
+   "rr": null,
+   "basis": null,
+   "reason": "Harga menyentuh batas bawah kanal tetapi momentum harian 53 belum di tepi bawah — belum ada konfirmasi pantulan, jadi tidak ambil posisi."
+  },
+  "tp2": {
+   "level": null,
+   "pct": null,
+   "rr": null,
+   "basis": null,
+   "reason": "Harga menyentuh batas bawah kanal tetapi momentum harian 53 belum di tepi bawah — belum ada konfirmasi pantulan, jadi tidak ambil posisi."
+  },
+  "hold": {
+   "median_periods": null,
+   "n_events": null,
+   "win_rate": null,
+   "hit_tp1": null,
+   "hit_tp2": null,
+   "reason": null
+  },
+  "invalidation": null,
+  "plan_ok": false,
+  "notes": [
+   "Harga menyentuh batas bawah kanal tetapi momentum harian 53 belum di tepi bawah — belum ada konfirmasi pantulan, jadi tidak ambil posisi.",
+   "Sinyal bertentangan (struktur vs momentum) → seri; aturan: seri = tidak ambil posisi."
+  ],
+  "risk_pct": null
+ },
+ "scenario": null,
+ "levels_table": [
+  {
+   "label": "Zona beli",
+   "level": null,
+   "low": null,
+   "high": null
+  },
+  {
+   "label": "Batas rugi",
+   "level": null,
+   "low": null,
+   "high": null
+  },
+  {
+   "label": "Target 1",
+   "level": null,
+   "low": null,
+   "high": null
+  },
+  {
+   "label": "Target 2",
+   "level": null,
+   "low": null,
+   "high": null
+  },
+  {
+   "label": "Penyangga 20 hari",
+   "level": 11653.75,
+   "low": null,
+   "high": null
+  },
+  {
+   "label": "Penyangga 50 hari",
+   "level": 10823.5,
+   "low": null,
+   "high": null
+  },
+  {
+   "label": "Puncak 20 hari",
+   "level": 12475.0,
+   "low": null,
+   "high": null
+  },
+  {
+   "label": "Puncak 40 hari",
+   "level": 12925.0,
+   "low": null,
+   "high": null
+  },
+  {
+   "label": "Terendah 10 hari",
+   "level": 10725.0,
+   "low": null,
+   "high": null
+  }
+ ],
+ "coverage": {
+  "bars_available": 436,
+  "bars_from": "2024-12-05",
+  "bars_to": "2026-10-13",
+  "n_events": 0,
+  "price_basis": "adj_close"
+ },
+ "data_status": {
+  "as_of": "2026-10-13",
+  "timeframe": "d1",
+  "status": "stale",
+  "last_data_at": "2026-10-13T17:47:46+07:00",
+  "computed_at": "2026-10-13T17:54:08+07:00",
+  "range_from": "2026-10-13",
+  "range_to": "2026-10-13",
+  "range_label": "13 Okt 2026",
+  "partial_sectors": [],
+  "detail": null
+ }
+}

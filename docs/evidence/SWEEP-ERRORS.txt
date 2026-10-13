@@ -1,0 +1,7 @@
+  … 200/962 emiten, gagal 0
+  … 400/962 emiten, gagal 0
+  … 600/962 emiten, gagal 0
+  … 800/962 emiten, gagal 0
+plan_for_all per emiten: 962 ok, 0 gagal, 32.0 s
+
+(tanpa kegagalan)

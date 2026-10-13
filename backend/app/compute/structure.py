@@ -161,7 +161,7 @@ def elliott_layers(bars, cfg) -> dict:
             if extreme:
                 zigzag[-1] = point
             continue
-        if zigzag and abs(point["price"] - zigzag[-1]["price"]) / zigzag[-1]["price"] < min_move:
+        if zigzag and zigzag[-1]["price"] and abs(point["price"] - zigzag[-1]["price"]) / zigzag[-1]["price"] < min_move:
             continue  # gerakan < `chart.elliott.min_move` bukan gelombang baru
         zigzag.append(point)
 

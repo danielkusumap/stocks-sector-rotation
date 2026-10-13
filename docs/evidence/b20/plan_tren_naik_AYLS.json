@@ -1,0 +1,161 @@
+{
+ "api_version": "1.0",
+ "as_of": "2026-10-13",
+ "stock": {
+  "ticker": "AYLS",
+  "name": "Arkayana Lestari Grup Tbk.",
+  "sector_code": "IDXBASIC",
+  "board": "Pengembangan"
+ },
+ "price": {
+  "close": 212.0,
+  "prev_close": 190.0,
+  "ret_1d": 0.1158,
+  "price_basis": "adj_close"
+ },
+ "regime": {
+  "code": "tren_naik",
+  "label": "Tren naik",
+  "reason": "Harga di atas penyangga 20 & 50 hari dan penyangganya menanjak — alat utama pantulan ke penyangga.",
+  "active_tools": [
+   "pullback_ma20",
+   "volume"
+  ]
+ },
+ "summary_lines": [
+  "Harga 212 di atas penyangga 20 hari (189) dan di atas penyangga 50 hari (169); rezim: Tren naik.",
+  "Zona beli 182–195, batas rugi 161 (15%), target 238 (26%) dan 275 (46%); imbal hasil terhadap risiko 3:1.",
+  "Dari 16 penembusan sebelumnya: target pertama kena 62% (median 23 bar), batas rugi kena lebih dulu 25%."
+ ],
+ "plan": {
+  "regime": "tren_naik",
+  "entry_tool": "pullback_ma20",
+  "entry_tool_reason": "Harga dekat penyangga 20 hari saat tren masih naik — beli di penyangga membuat batas rugi lebih dekat.",
+  "confirm_tool": "volume",
+  "confirm_reason": "Volume bar terakhir 0,8 kali rata-rata 20 hari (minimal 1,5 kali).",
+  "entry_mode": "pullback",
+  "entry_zone": {
+   "low": 181.87676557519157,
+   "high": 195.32323442480842,
+   "reason": "Harga masih dekat penyangga 20 hari; beli di penyangga membuat batas rugi lebih dekat dan imbal hasil lebih baik."
+  },
+  "stop": {
+   "level": 160.79460929198595,
+   "pct": -0.14743049155892918,
+   "basis": "struktur_swing_low",
+   "reason": "Batas rugi di bawah titik terendah 10 hari (172) ditambah penyangga 0,5 kali volatilitas — di situ skenario naik batal."
+  },
+  "tp1": {
+   "level": 238.0,
+   "pct": 0.261930010604454,
+   "rr": 1.7032897928887751,
+   "basis": "resistance_20",
+   "reason": "Puncak 20 hari terakhir adalah tempat penjual menumpuk — ambil sebagian di situ."
+  },
+  "tp2": {
+   "level": 275.0337721240421,
+   "pct": 0.45829147467678744,
+   "rr": 2.9999999999999996,
+   "basis": "target_terukur_minimal",
+   "reason": "Target terukur dari level 275; imbal hasil terhadap risiko setelah biaya 0,40% masih 3,00:1."
+  },
+  "hold": {
+   "median_periods": 1.5,
+   "n_events": 16,
+   "win_rate": 0.375,
+   "hit_tp1": 0.0,
+   "hit_tp2": 0.0,
+   "reason": "Dari 16 penembusan terakhir: target pertama historis kena 0%, lama tahan median 2 hari."
+  },
+  "invalidation": "Batal bila tutup harian di bawah penyangga 20 hari (189) atau di bawah batas rugi (161); pasar: IHSG tutup di bawah 5.829 → tunda entry baru.",
+  "plan_ok": true,
+  "notes": [],
+  "risk_pct": 0.14743049155892918
+ },
+ "scenario": {
+  "p_tp1_first": 0.625,
+  "p_sl_first": 0.25,
+  "p_timeout": 0.125,
+  "p_tp2_first": 0.3125,
+  "median_periods_tp1": 23.0,
+  "median_periods_sl": 1.5,
+  "n_events": 16,
+  "n_open_dikeluarkan": 0,
+  "basis": "penembusan penyangga 20 hari (filter tren aktif), horizon 60 bar"
+ },
+ "levels_table": [
+  {
+   "label": "Zona beli",
+   "level": null,
+   "low": 181.87676557519157,
+   "high": 195.32323442480842
+  },
+  {
+   "label": "Batas rugi",
+   "level": 160.79460929198595,
+   "low": null,
+   "high": null
+  },
+  {
+   "label": "Target 1",
+   "level": 238.0,
+   "low": null,
+   "high": null
+  },
+  {
+   "label": "Target 2",
+   "level": 275.0337721240421,
+   "low": null,
+   "high": null
+  },
+  {
+   "label": "Penyangga 20 hari",
+   "level": 188.6,
+   "low": null,
+   "high": null
+  },
+  {
+   "label": "Penyangga 50 hari",
+   "level": 169.12,
+   "low": null,
+   "high": null
+  },
+  {
+   "label": "Puncak 20 hari",
+   "level": 238.0,
+   "low": null,
+   "high": null
+  },
+  {
+   "label": "Puncak 40 hari",
+   "level": 238.0,
+   "low": null,
+   "high": null
+  },
+  {
+   "label": "Terendah 10 hari",
+   "level": 172.0,
+   "low": null,
+   "high": null
+  }
+ ],
+ "coverage": {
+  "bars_available": 473,
+  "bars_from": "2024-10-14",
+  "bars_to": "2026-10-13",
+  "n_events": 16,
+  "price_basis": "adj_close"
+ },
+ "data_status": {
+  "as_of": "2026-10-13",
+  "timeframe": "d1",
+  "status": "stale",
+  "last_data_at": "2026-10-13T17:47:46+07:00",
+  "computed_at": "2026-10-13T17:54:08+07:00",
+  "range_from": "2026-10-13",
+  "range_to": "2026-10-13",
+  "range_label": "13 Okt 2026",
+  "partial_sectors": [],
+  "detail": null
+ }
+}

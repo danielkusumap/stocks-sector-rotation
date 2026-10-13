@@ -1,0 +1,150 @@
+{
+ "api_version": "1.0",
+ "as_of": "2026-10-09",
+ "stock": {
+  "ticker": "ABBA",
+  "name": "Mahaka Media Tbk.",
+  "sector_code": "IDXCYCLIC",
+  "board": "Pemantauan Khusus"
+ },
+ "price": {
+  "close": 30.0,
+  "prev_close": 30.0,
+  "ret_1d": 0.0,
+  "price_basis": "adj_close"
+ },
+ "regime": {
+  "code": "tipis",
+  "label": "Tipis",
+  "reason": "Transaksi harian jarang atau banyak bar tanpa volume — hanya level pantulan, tanpa konfirmasi volume.",
+  "active_tools": [
+   "pivot_level"
+  ]
+ },
+ "summary_lines": [
+  "Harga 30 di atas penyangga 20 hari (30) dan di atas penyangga 50 hari (30); rezim: Tipis.",
+  "Zona beli 30–30, batas rugi 30 (0%), target 30 (0%) dan 31 (2%); imbal hasil terhadap risiko 3:1.",
+  "Belum cukup riwayat untuk menaksir peluang pada level ini (baru 4 penembusan)."
+ ],
+ "plan": {
+  "regime": "tipis",
+  "entry_tool": "pivot_level",
+  "entry_tool_reason": "Saham jarang transaksi: hanya level pantulan yang bisa dipercaya, tanpa konfirmasi volume.",
+  "confirm_tool": "none",
+  "confirm_reason": "Tanpa konfirmasi: volume di saham tipis tidak bisa dipercaya.",
+  "entry_mode": "pullback",
+  "entry_zone": {
+   "low": 29.997735504917205,
+   "high": 30.002264495082795,
+   "reason": "Saham jarang transaksi: pakai level pantulan saja tanpa konfirmasi volume, karena volume mudah menipu di saham tipis."
+  },
+  "stop": {
+   "level": 29.99245168305735,
+   "pct": -0.00025161056475497823,
+   "basis": "lantai_atr",
+   "reason": "Batas rugi di bawah struktur terlalu ketat (kurang dari satu kali volatilitas harian) sehingga rawan kena gerak acak; dipakai lantai…"
+  },
+  "tp1": {
+   "level": 30.0,
+   "pct": 0.0,
+   "rr": -0.9408199408382333,
+   "basis": "pivot_berikutnya",
+   "reason": "Belum ada level penjual nyata di atas harga; target pertama ditaruh pada jarak aman dari volatilitas harian."
+  },
+  "tp2": {
+   "level": 30.50264495082795,
+   "pct": 0.01675483169426495,
+   "rr": 3.0000000000000036,
+   "basis": "target_terukur_minimal",
+   "reason": "Target terukur dari level 31; imbal hasil terhadap risiko setelah biaya 0,40% masih 3,00:1."
+  },
+  "hold": {
+   "median_periods": null,
+   "n_events": 4,
+   "win_rate": 0.75,
+   "hit_tp1": null,
+   "hit_tp2": null,
+   "reason": "Belum cukup riwayat (4 kejadian) untuk menilai peluang target ini."
+  },
+  "invalidation": "Batal bila tutup harian di bawah penyangga 20 hari (30) atau di bawah batas rugi (30); pasar: IHSG tutup di bawah 5.829 → tunda entry baru.",
+  "plan_ok": true,
+  "notes": [],
+  "risk_pct": 0.00025161056475497823
+ },
+ "scenario": null,
+ "levels_table": [
+  {
+   "label": "Zona beli",
+   "level": null,
+   "low": 29.997735504917205,
+   "high": 30.002264495082795
+  },
+  {
+   "label": "Batas rugi",
+   "level": 29.99245168305735,
+   "low": null,
+   "high": null
+  },
+  {
+   "label": "Target 1",
+   "level": 30.0,
+   "low": null,
+   "high": null
+  },
+  {
+   "label": "Target 2",
+   "level": 30.50264495082795,
+   "low": null,
+   "high": null
+  },
+  {
+   "label": "Penyangga 20 hari",
+   "level": 30.0,
+   "low": null,
+   "high": null
+  },
+  {
+   "label": "Penyangga 50 hari",
+   "level": 30.0,
+   "low": null,
+   "high": null
+  },
+  {
+   "label": "Puncak 20 hari",
+   "level": 30.0,
+   "low": null,
+   "high": null
+  },
+  {
+   "label": "Puncak 40 hari",
+   "level": 30.0,
+   "low": null,
+   "high": null
+  },
+  {
+   "label": "Terendah 10 hari",
+   "level": 30.0,
+   "low": null,
+   "high": null
+  }
+ ],
+ "coverage": {
+  "bars_available": 472,
+  "bars_from": "2024-10-14",
+  "bars_to": "2026-10-09",
+  "n_events": 4,
+  "price_basis": "adj_close"
+ },
+ "data_status": {
+  "as_of": "2026-10-09",
+  "timeframe": "d1",
+  "status": "stale",
+  "last_data_at": "2026-10-13T17:47:46+07:00",
+  "computed_at": "2026-10-13T17:54:08+07:00",
+  "range_from": "2026-10-09",
+  "range_to": "2026-10-09",
+  "range_label": "9 Okt 2026",
+  "partial_sectors": [],
+  "detail": null
+ }
+}

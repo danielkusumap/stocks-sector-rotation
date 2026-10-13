@@ -308,6 +308,7 @@ CREATE TABLE stock_plan (
   p_tp1_first   REAL,                     -- skenario (docs/03 §6.5.2)
   p_sl_first    REAL,
   p_timeout     REAL,
+  p_tp2_first   REAL,                     -- migrasi 007: terlewat di DDL awal, ada di kontrak docs/03 §6.5.2
   median_periods_tp1 INTEGER,
   median_periods_sl  INTEGER,
   n_events      INTEGER,

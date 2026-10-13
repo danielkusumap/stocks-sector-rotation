@@ -1,0 +1,1099 @@
+{
+ "smc": {
+  "bos": [
+   {
+    "date": "2024-12-20",
+    "direction": "up",
+    "level": 71.0
+   },
+   {
+    "date": "2025-05-07",
+    "direction": "up",
+    "level": 78.0
+   },
+   {
+    "date": "2025-05-27",
+    "direction": "up",
+    "level": 113.0
+   },
+   {
+    "date": "2025-07-22",
+    "direction": "up",
+    "level": 113.0
+   },
+   {
+    "date": "2025-09-17",
+    "direction": "up",
+    "level": 113.0
+   },
+   {
+    "date": "2025-10-08",
+    "direction": "up",
+    "level": 129.0
+   },
+   {
+    "date": "2026-01-14",
+    "direction": "up",
+    "level": 250.0
+   },
+   {
+    "date": "2026-06-30",
+    "direction": "up",
+    "level": 139.0
+   },
+   {
+    "date": "2026-09-17",
+    "direction": "up",
+    "level": 167.0
+   }
+  ],
+  "choch": [
+   {
+    "date": "2024-12-02",
+    "direction": "down",
+    "level": 59.0
+   },
+   {
+    "date": "2025-02-28",
+    "direction": "down",
+    "level": 79.0
+   },
+   {
+    "date": "2025-03-18",
+    "direction": "down",
+    "level": 71.0
+   },
+   {
+    "date": "2025-12-30",
+    "direction": "down",
+    "level": 250.0
+   },
+   {
+    "date": "2026-01-12",
+    "direction": "down",
+    "level": 204.0
+   },
+   {
+    "date": "2026-03-17",
+    "direction": "down",
+    "level": 174.0
+   },
+   {
+    "date": "2026-05-13",
+    "direction": "down",
+    "level": 178.0
+   },
+   {
+    "date": "2026-06-05",
+    "direction": "down",
+    "level": 114.0
+   }
+  ],
+  "order_blocks": [
+   {
+    "kind": "bullish",
+    "from": "2024-12-18",
+    "to": "2024-12-18",
+    "low": 56.0,
+    "high": 59.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "from": "2025-05-06",
+    "to": "2025-05-06",
+    "low": 70.0,
+    "high": 72.0,
+    "mitigated": false
+   },
+   {
+    "kind": "bullish",
+    "from": "2025-05-20",
+    "to": "2025-05-20",
+    "low": 85.0,
+    "high": 90.0,
+    "mitigated": false
+   },
+   {
+    "kind": "bullish",
+    "from": "2025-07-17",
+    "to": "2025-07-17",
+    "low": 99.0,
+    "high": 105.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "from": "2025-09-16",
+    "to": "2025-09-16",
+    "low": 109.0,
+    "high": 129.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "from": "2025-10-06",
+    "to": "2025-10-06",
+    "low": 114.0,
+    "high": 118.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "from": "2026-01-13",
+    "to": "2026-01-13",
+    "low": 183.0,
+    "high": 208.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "from": "2026-06-26",
+    "to": "2026-06-26",
+    "low": 111.0,
+    "high": 121.0,
+    "mitigated": false
+   },
+   {
+    "kind": "bullish",
+    "from": "2026-09-16",
+    "to": "2026-09-16",
+    "low": 144.0,
+    "high": 159.0,
+    "mitigated": false
+   },
+   {
+    "kind": "bearish",
+    "from": "2024-11-29",
+    "to": "2024-11-29",
+    "low": 57.0,
+    "high": 64.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "from": "2025-02-26",
+    "to": "2025-02-26",
+    "low": 84.0,
+    "high": 87.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "from": "2025-03-14",
+    "to": "2025-03-14",
+    "low": 71.0,
+    "high": 75.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "from": "2026-01-06",
+    "to": "2026-01-06",
+    "low": 236.0,
+    "high": 246.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "from": "2026-03-12",
+    "to": "2026-03-12",
+    "low": 214.0,
+    "high": 224.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "from": "2026-05-12",
+    "to": "2026-05-12",
+    "low": 178.0,
+    "high": 184.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "from": "2026-05-29",
+    "to": "2026-05-29",
+    "low": 133.0,
+    "high": 156.0,
+    "mitigated": true
+   }
+  ],
+  "fvg": [
+   {
+    "kind": "bearish",
+    "date": "2024-10-17",
+    "low": 99.0,
+    "high": 100.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "date": "2024-10-31",
+    "low": 85.0,
+    "high": 89.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2024-12-20",
+    "low": 59.0,
+    "high": 61.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2024-12-23",
+    "low": 59.0,
+    "high": 85.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2024-12-24",
+    "low": 78.0,
+    "high": 112.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2024-12-27",
+    "low": 105.0,
+    "high": 141.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "date": "2025-01-15",
+    "low": 109.0,
+    "high": 111.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "date": "2025-01-24",
+    "low": 94.0,
+    "high": 97.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "date": "2025-02-10",
+    "low": 86.0,
+    "high": 87.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "date": "2025-02-28",
+    "low": 83.0,
+    "high": 84.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "date": "2025-03-19",
+    "low": 68.0,
+    "high": 71.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "date": "2025-04-09",
+    "low": 59.0,
+    "high": 62.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2025-04-11",
+    "low": 59.0,
+    "high": 60.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2025-04-23",
+    "low": 65.0,
+    "high": 68.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2025-05-08",
+    "low": 72.0,
+    "high": 83.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2025-05-26",
+    "low": 86.0,
+    "high": 87.0,
+    "mitigated": false
+   },
+   {
+    "kind": "bullish",
+    "date": "2025-05-28",
+    "low": 116.0,
+    "high": 121.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "date": "2025-06-10",
+    "low": 114.0,
+    "high": 116.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "date": "2025-06-11",
+    "low": 112.0,
+    "high": 118.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "date": "2025-06-16",
+    "low": 106.0,
+    "high": 107.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2025-06-26",
+    "low": 101.0,
+    "high": 102.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "date": "2025-07-15",
+    "low": 99.0,
+    "high": 100.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2025-07-23",
+    "low": 105.0,
+    "high": 106.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "date": "2025-09-01",
+    "low": 103.0,
+    "high": 107.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2025-09-15",
+    "low": 103.0,
+    "high": 106.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2025-10-08",
+    "low": 118.0,
+    "high": 128.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2025-10-09",
+    "low": 126.0,
+    "high": 131.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2025-10-10",
+    "low": 144.0,
+    "high": 181.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2025-10-13",
+    "low": 163.0,
+    "high": 204.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2025-10-14",
+    "low": 220.0,
+    "high": 242.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "date": "2025-10-16",
+    "low": 197.0,
+    "high": 242.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "date": "2025-10-17",
+    "low": 191.0,
+    "high": 206.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2025-10-23",
+    "low": 196.0,
+    "high": 230.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2025-10-24",
+    "low": 236.0,
+    "high": 250.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "date": "2025-12-30",
+    "low": 226.0,
+    "high": 250.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "date": "2026-01-02",
+    "low": 246.0,
+    "high": 250.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2026-01-05",
+    "low": 226.0,
+    "high": 236.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "date": "2026-01-13",
+    "low": 208.0,
+    "high": 232.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2026-01-15",
+    "low": 208.0,
+    "high": 268.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2026-01-19",
+    "low": 258.0,
+    "high": 274.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "date": "2026-01-29",
+    "low": 228.0,
+    "high": 252.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2026-02-02",
+    "low": 228.0,
+    "high": 240.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "date": "2026-02-19",
+    "low": 264.0,
+    "high": 274.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2026-03-11",
+    "low": 204.0,
+    "high": 206.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "date": "2026-03-16",
+    "low": 197.0,
+    "high": 214.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "date": "2026-03-17",
+    "low": 183.0,
+    "high": 194.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "date": "2026-03-25",
+    "low": 169.0,
+    "high": 182.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2026-03-27",
+    "low": 169.0,
+    "high": 195.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2026-04-16",
+    "low": 174.0,
+    "high": 176.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2026-04-17",
+    "low": 181.0,
+    "high": 194.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2026-04-23",
+    "low": 198.0,
+    "high": 200.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "date": "2026-05-05",
+    "low": 190.0,
+    "high": 194.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "date": "2026-05-22",
+    "low": 140.0,
+    "high": 150.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "date": "2026-06-04",
+    "low": 125.0,
+    "high": 138.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "date": "2026-06-05",
+    "low": 116.0,
+    "high": 120.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2026-06-10",
+    "low": 106.0,
+    "high": 110.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "date": "2026-06-19",
+    "low": 128.0,
+    "high": 129.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2026-06-30",
+    "low": 121.0,
+    "high": 143.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "date": "2026-07-27",
+    "low": 151.0,
+    "high": 152.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2026-08-03",
+    "low": 150.0,
+    "high": 154.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2026-08-04",
+    "low": 155.0,
+    "high": 161.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2026-09-03",
+    "low": 152.0,
+    "high": 153.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2026-09-09",
+    "low": 158.0,
+    "high": 160.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "date": "2026-09-11",
+    "low": 154.0,
+    "high": 160.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2026-09-18",
+    "low": 159.0,
+    "high": 174.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2026-09-25",
+    "low": 188.0,
+    "high": 193.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bearish",
+    "date": "2026-10-02",
+    "low": 189.0,
+    "high": 195.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2026-10-06",
+    "low": 189.0,
+    "high": 191.0,
+    "mitigated": true
+   },
+   {
+    "kind": "bullish",
+    "date": "2026-10-07",
+    "low": 187.0,
+    "high": 188.0,
+    "mitigated": true
+   }
+  ],
+  "equal_levels": [
+   {
+    "kind": "high",
+    "level": 93.0,
+    "count": 3
+   },
+   {
+    "kind": "high",
+    "level": 113.17,
+    "count": 6
+   },
+   {
+    "kind": "high",
+    "level": 166.0,
+    "count": 2
+   },
+   {
+    "kind": "high",
+    "level": 237.0,
+    "count": 2
+   },
+   {
+    "kind": "high",
+    "level": 250.0,
+    "count": 40
+   },
+   {
+    "kind": "high",
+    "level": 322.0,
+    "count": 2
+   },
+   {
+    "kind": "low",
+    "level": 53.25,
+    "count": 4
+   },
+   {
+    "kind": "low",
+    "level": 95.67,
+    "count": 3
+   },
+   {
+    "kind": "low",
+    "level": 100.0,
+    "count": 5
+   },
+   {
+    "kind": "low",
+    "level": 107.0,
+    "count": 3
+   },
+   {
+    "kind": "low",
+    "level": 111.0,
+    "count": 2
+   },
+   {
+    "kind": "low",
+    "level": 145.0,
+    "count": 3
+   },
+   {
+    "kind": "low",
+    "level": 156.0,
+    "count": 2
+   },
+   {
+    "kind": "low",
+    "level": 173.0,
+    "count": 2
+   },
+   {
+    "kind": "low",
+    "level": 250.0,
+    "count": 35
+   }
+  ],
+  "range": {
+   "low": 172.0,
+   "high": 238.0,
+   "premium_from": 205.0,
+   "discount_to": 205.0
+  }
+ },
+ "elliott": {
+  "status": "invalidated",
+  "invalidated": true,
+  "zigzag": [
+   {
+    "date": "2024-10-25",
+    "price": 114.0,
+    "kind": "high"
+   },
+   {
+    "date": "2024-10-30",
+    "price": 59.0,
+    "kind": "low"
+   },
+   {
+    "date": "2024-11-05",
+    "price": 93.0,
+    "kind": "high"
+   },
+   {
+    "date": "2024-12-04",
+    "price": 52.0,
+    "kind": "low"
+   },
+   {
+    "date": "2024-12-30",
+    "price": 179.0,
+    "kind": "high"
+   },
+   {
+    "date": "2025-02-10",
+    "price": 79.0,
+    "kind": "low"
+   },
+   {
+    "date": "2025-02-19",
+    "price": 95.0,
+    "kind": "high"
+   },
+   {
+    "date": "2025-03-18",
+    "price": 53.0,
+    "kind": "low"
+   },
+   {
+    "date": "2025-04-22",
+    "price": 78.0,
+    "kind": "high"
+   },
+   {
+    "date": "2025-05-02",
+    "price": 68.0,
+    "kind": "low"
+   },
+   {
+    "date": "2025-05-08",
+    "price": 113.0,
+    "kind": "high"
+   },
+   {
+    "date": "2025-05-22",
+    "price": 82.0,
+    "kind": "low"
+   },
+   {
+    "date": "2025-05-28",
+    "price": 165.0,
+    "kind": "high"
+   },
+   {
+    "date": "2025-06-23",
+    "price": 95.0,
+    "kind": "low"
+   },
+   {
+    "date": "2025-07-01",
+    "price": 113.0,
+    "kind": "high"
+   },
+   {
+    "date": "2025-07-15",
+    "price": 95.0,
+    "kind": "low"
+   },
+   {
+    "date": "2025-07-22",
+    "price": 117.0,
+    "kind": "high"
+   },
+   {
+    "date": "2025-08-05",
+    "price": 100.0,
+    "kind": "low"
+   },
+   {
+    "date": "2025-08-08",
+    "price": 114.0,
+    "kind": "high"
+   },
+   {
+    "date": "2025-08-08",
+    "price": 100.0,
+    "kind": "low"
+   },
+   {
+    "date": "2025-08-22",
+    "price": 113.0,
+    "kind": "high"
+   },
+   {
+    "date": "2025-09-01",
+    "price": 97.0,
+    "kind": "low"
+   },
+   {
+    "date": "2025-09-16",
+    "price": 129.0,
+    "kind": "high"
+   },
+   {
+    "date": "2025-09-26",
+    "price": 107.0,
+    "kind": "low"
+   },
+   {
+    "date": "2025-10-13",
+    "price": 274.0,
+    "kind": "high"
+   },
+   {
+    "date": "2025-10-17",
+    "price": 162.0,
+    "kind": "low"
+   },
+   {
+    "date": "2025-10-23",
+    "price": 284.0,
+    "kind": "high"
+   },
+   {
+    "date": "2026-01-13",
+    "price": 183.0,
+    "kind": "low"
+   },
+   {
+    "date": "2026-01-15",
+    "price": 322.0,
+    "kind": "high"
+   },
+   {
+    "date": "2026-01-29",
+    "price": 194.0,
+    "kind": "low"
+   },
+   {
+    "date": "2026-02-06",
+    "price": 322.0,
+    "kind": "high"
+   },
+   {
+    "date": "2026-03-09",
+    "price": 174.0,
+    "kind": "low"
+   },
+   {
+    "date": "2026-03-11",
+    "price": 244.0,
+    "kind": "high"
+   },
+   {
+    "date": "2026-03-17",
+    "price": 157.0,
+    "kind": "low"
+   },
+   {
+    "date": "2026-03-27",
+    "price": 258.0,
+    "kind": "high"
+   },
+   {
+    "date": "2026-04-08",
+    "price": 155.0,
+    "kind": "low"
+   },
+   {
+    "date": "2026-04-16",
+    "price": 236.0,
+    "kind": "high"
+   },
+   {
+    "date": "2026-06-08",
+    "price": 91.0,
+    "kind": "low"
+   },
+   {
+    "date": "2026-06-15",
+    "price": 139.0,
+    "kind": "high"
+   },
+   {
+    "date": "2026-06-25",
+    "price": 111.0,
+    "kind": "low"
+   },
+   {
+    "date": "2026-07-01",
+    "price": 208.0,
+    "kind": "high"
+   },
+   {
+    "date": "2026-07-09",
+    "price": 141.0,
+    "kind": "low"
+   },
+   {
+    "date": "2026-07-10",
+    "price": 170.0,
+    "kind": "high"
+   },
+   {
+    "date": "2026-07-24",
+    "price": 145.0,
+    "kind": "low"
+   },
+   {
+    "date": "2026-08-03",
+    "price": 190.0,
+    "kind": "high"
+   },
+   {
+    "date": "2026-08-27",
+    "price": 145.0,
+    "kind": "low"
+   },
+   {
+    "date": "2026-09-02",
+    "price": 167.0,
+    "kind": "high"
+   },
+   {
+    "date": "2026-09-11",
+    "price": 135.0,
+    "kind": "low"
+   },
+   {
+    "date": "2026-09-25",
+    "price": 238.0,
+    "kind": "high"
+   },
+   {
+    "date": "2026-10-02",
+    "price": 172.0,
+    "kind": "low"
+   }
+  ],
+  "waves": [
+   {
+    "label": "1",
+    "from": "2026-08-03",
+    "to": "2026-08-27",
+    "price_from": 190.0,
+    "price_to": 145.0
+   },
+   {
+    "label": "2",
+    "from": "2026-08-27",
+    "to": "2026-09-02",
+    "price_from": 145.0,
+    "price_to": 167.0
+   },
+   {
+    "label": "3",
+    "from": "2026-09-02",
+    "to": "2026-09-11",
+    "price_from": 167.0,
+    "price_to": 135.0
+   },
+   {
+    "label": "4",
+    "from": "2026-09-11",
+    "to": "2026-09-25",
+    "price_from": 135.0,
+    "price_to": 238.0
+   },
+   {
+    "label": "5",
+    "from": "2026-09-25",
+    "to": "2026-10-02",
+    "price_from": 238.0,
+    "price_to": 172.0
+   }
+  ],
+  "fib_zones": [
+   {
+    "ratio": 0.382,
+    "level": 197.21
+   },
+   {
+    "ratio": 0.5,
+    "level": 205.0
+   },
+   {
+    "ratio": 0.618,
+    "level": 212.79
+   }
+  ],
+  "note": "kandidat, bisa berubah saat bar baru masuk"
+ }
+}

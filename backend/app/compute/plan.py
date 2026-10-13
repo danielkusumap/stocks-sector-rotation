@@ -106,7 +106,7 @@ def regime_of(bars: pd.DataFrame, metrics: dict, *, sector_quadrant: str | None,
         return "range"
     if close < sma20 < sma50:
         return "turun"
-    if abs(sma20 - sma50) / close <= plan["range_ma_gap"]:
+    if close and abs(sma20 - sma50) / close <= plan["range_ma_gap"]:
         return "range"
     period, offset = cfg.ta["ma_default"], plan["ma_slope_bars"]
     sma20_prev = float(bars["close"].iloc[-period - offset : -offset].mean()) if len(bars) > period + offset else None
@@ -248,7 +248,7 @@ def plan_levels(bars: pd.DataFrame, metrics: dict, regime: str, ta_stats: dict, 
     """Level + alasan satu pick (docs/03 §6.4.1–§6.4.6). **Fungsi murni, tanpa DB** supaya mudah diuji."""
     plan = cfg.weekly["plan"]
     needed = plan["donchian_slow"] + 1
-    if metrics.get("atr14") is None:
+    if not metrics.get("atr14"):  # ATR `None` **atau** 0 (harga datar/suspend) → tidak ada level, hindari bagi nol
         return _empty_plan(regime, "Volatilitas harian belum tersedia; level tidak dihitung supaya tidak mengarang angka.")
     if len(bars) < needed:
         return _empty_plan(regime, f"Butuh minimal {needed} bar riwayat untuk menyusun level; data belum cukup.")
@@ -317,6 +317,8 @@ def plan_levels(bars: pd.DataFrame, metrics: dict, regime: str, ta_stats: dict, 
 
     zone_low, zone_high = level - plan["zone_atr"] * atr, level + plan["zone_atr"] * atr
     entry_mid = (zone_low + zone_high) / 2
+    if not entry_mid:  # harga acuan 0 → tidak ada level yang bisa dihitung
+        return _empty_plan(regime, "Harga acuan tidak terbaca; level tidak dihitung supaya tidak mengarang angka.")
     stop = _stop(features, entry_mid, regime, cfg)
     stop["pct"] = _pct(stop["level"], entry_mid)
     tp1, tp2 = _targets(features, entry_mid, stop["level"], regime, levels, cfg)
@@ -514,7 +516,7 @@ def build_plans(conn, week_end: str, picks: list[dict], cfg, *, weighting: str |
             found = conn.execute(SECTOR_QUADRANT_SQL, (weighting, sector_code[0], week_end)).fetchone()
             quadrant = found[0] if found else None
         regime = regime_of(bars, metrics, sector_quadrant=quadrant, cfg=cfg)
-        if metrics.get("atr14") is None:
+        if not metrics.get("atr14"):  # ATR `None` **atau** 0 (harga datar/suspend) → tidak ada level, hindari bagi nol
             out[ticker] = None
             continue
         out[ticker] = plan_levels(
@@ -584,7 +586,7 @@ STOCK_PLAN_COLUMNS = (
     "as_of_date", "ticker", "regime", "entry_tool", "confirm_tool", "entry_mode",
     "entry_zone_low", "entry_zone_high", "stop", "stop_pct", "stop_basis", "tp1", "tp2",
     "rr_tp1", "rr_tp2", "volume_ratio", "hold_median_periods", "hit_tp1", "hit_tp2",
-    "p_tp1_first", "p_sl_first", "p_timeout", "median_periods_tp1", "median_periods_sl",
+    "p_tp1_first", "p_sl_first", "p_timeout", "p_tp2_first", "median_periods_tp1", "median_periods_sl",
     "n_events", "invalidation", "summary_lines", "plan_ok", "notes", "plan_json", "computed_at",
 )
 STOCK_PLAN_SQL = (
@@ -622,6 +624,8 @@ def first_touch(
     if window.empty:
         return "open", None
     base = float(entry_price) if entry_price else float(window["close"].iloc[0])
+    if not base:  # harga entry 0 (data rusak/suspend) → tidak ada perubahan % yang bisa dihitung
+        return "open", None
     closes = window["close"].tolist()
     for period, close in enumerate(closes[: horizon + 1]):
         change = close / base - 1
@@ -760,7 +764,7 @@ def plan_for_all(conn, cfg, report=None) -> dict:
                 conn.execute(SECTOR_QUADRANT_SQL, (cfg.universe["weighting"], sector[0], as_of)).fetchone() if sector else None
             )
             regime = regime_of(bars, metrics, sector_quadrant=quadrant[0] if quadrant else None, cfg=cfg)
-            if metrics.get("atr14") is None:
+            if not metrics.get("atr14"):  # ATR `None` **atau** 0 (harga datar/suspend) → tidak ada level, hindari bagi nol
                 plan = None
             else:
                 plan = plan_levels(bars, metrics, regime, ta_stats_for(conn, ticker, cfg), cfg, support_ihsg=support_ihsg)
@@ -798,6 +802,7 @@ def plan_for_all(conn, cfg, report=None) -> dict:
                 "p_tp1_first": stats["p_tp1_first"] if stats else None,
                 "p_sl_first": stats["p_sl_first"] if stats else None,
                 "p_timeout": stats["p_timeout"] if stats else None,
+                "p_tp2_first": stats["p_tp2_first"] if stats else None,
                 "median_periods_tp1": stats["median_periods_tp1"] if stats else None,
                 "median_periods_sl": stats["median_periods_sl"] if stats else None,
                 "n_events": stats["n_events"] if stats else (plan["hold"]["n_events"] if plan else 0),

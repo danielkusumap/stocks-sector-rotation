@@ -357,9 +357,9 @@ def stock_series(
                     "high": _num(bar["high"]),
                     "low": _num(bar["low"]),
                     "close": _num(bar["close"]),
-                    "volume": int(bar["volume"]) if bar["volume"] is not None else None,
+                    "volume": int(bar["volume"]) if bar["volume"] is not None and not pd.isna(bar["volume"]) else None,
                 }
-                for _, bar in visible.iterrows()
+                for bar in visible.to_dict("records")  # `iterrows()` jauh lebih mahal untuk 400 bar
             ],
             "overlays": overlays,
             "levels": (
