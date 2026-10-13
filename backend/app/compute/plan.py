@@ -16,6 +16,7 @@ import pandas as pd
 from ..config import get_settings
 from ..db import connect
 from ..labels import format_id_number
+from . import indicators
 
 ENTRY_TOOLS = ("pullback_ma20", "breakout_donchian", "sr_channel", "pivot_level", "none")
 CONFIRM_TOOLS = ("volume", "rsi_tepi_range", "none")
@@ -30,8 +31,10 @@ BARS_SQL = """
     WHERE ticker = ? AND date <= ? AND adj_close IS NOT NULL AND close IS NOT NULL
     ORDER BY date
 """
+# `stock_metrics` hanya untuk `median_turnover_20d_idr` (gerbang rezim `tipis`, docs/03 §6.4.0) —
+# level plan (sma/rsi/atr) dihitung dari bar `<= week_end` (B18b), bukan snapshot metrik terakhir.
 METRICS_SQL = """
-    SELECT sma20, sma50, rsi14, atr14, median_turnover_20d_idr
+    SELECT median_turnover_20d_idr
     FROM stock_metrics WHERE ticker = ? AND timeframe = 'd1'
     ORDER BY as_of_date DESC LIMIT 1
 """
@@ -490,7 +493,9 @@ def build_plans(conn, week_end: str, picks: list[dict], cfg, *, weighting: str |
         row = pick["row"]
         ticker = row["ticker"]
         bars = load_bars(conn, ticker, week_end)
+        # Level plan dari bar `<= week_end` (B18b); `stock_metrics` hanya menyumbang turnover (gerbang `tipis`).
         metrics = metrics_for(conn, ticker, week_end)
+        metrics.update(indicators_from_bars(bars, cfg))
         sector_code = conn.execute("SELECT code FROM sector WHERE id = ?", (row["sector_id"],)).fetchone()
         quadrant = None
         if sector_code:
@@ -512,7 +517,31 @@ def load_bars(conn, ticker: str, week_end: str) -> pd.DataFrame:
     return pd.read_sql(BARS_SQL, conn, params=(ticker, week_end))
 
 
+def indicators_from_bars(bars: pd.DataFrame, cfg) -> dict:
+    """SMA20/50, RSI14 (Wilder), ATR14 (Wilder), vol20 dari bar `date <= week_end` (docs/03 §6.4.1).
+
+    Bukan dari `stock_metrics`: snapshot itu hanya punya `as_of` terakhir (ADR-021) sehingga pekan
+    lama tak bisa direplay dan pekan terakhir bisa membaca bar **setelah** `week_end` (look-ahead).
+    Rumusnya sama dengan `metrics.py` (rolling mean + Wilder) → nilainya konsisten bila `close == adj_close`.
+    """
+    close = bars["close"].astype(float)
+
+    def _last(series: pd.Series) -> float | None:
+        value = series.iloc[-1] if len(series) else None
+        return None if value is None or pd.isna(value) else float(value)
+
+    volume = bars["volume"].astype(float).iloc[-cfg.chart["volume_ma"] :]
+    volume = volume[volume > 0]
+    return {
+        "sma20": _last(close.rolling(20).mean()),
+        "sma50": _last(close.rolling(50).mean()),
+        "rsi14": _last(indicators.rsi(close)),
+        "atr14": _last(indicators.atr(bars["high"].astype(float), bars["low"].astype(float), close)),
+        "vol20": float(volume.mean()) if len(volume) else None,
+    }
+
+
 def metrics_for(conn, ticker: str, _week_end: str | None = None) -> dict:
-    """Metrik harian terakhir yang tersedia (skor/metrik d1 hanya dihitung untuk `as_of` terakhir, ADR-021)."""
+    """Turnover median terakhir dari `stock_metrics` — gerbang rezim `tipis` saja (level plan dari bar, B18b)."""
     row = conn.execute(METRICS_SQL, (ticker,)).fetchone()
     return dict(row) if row else {}

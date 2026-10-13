@@ -1,0 +1,48 @@
+{
+ "regime": "range",
+ "entry_tool": "none",
+ "confirm_tool": "none",
+ "entry_mode": "no_trade",
+ "entry_zone": {
+  "low": null,
+  "high": null,
+  "reason": "Level belum bisa dihitung; jangan pasang posisi dulu."
+ },
+ "stop": {
+  "level": null,
+  "pct": null,
+  "basis": null,
+  "reason": "Harga menyentuh batas bawah kanal tetapi momentum harian 70 belum di tepi bawah — belum ada konfirmasi pantulan, jadi tidak ambil posisi."
+ },
+ "tp1": {
+  "level": null,
+  "pct": null,
+  "rr": null,
+  "basis": null,
+  "reason": "Harga menyentuh batas bawah kanal tetapi momentum harian 70 belum di tepi bawah — belum ada konfirmasi pantulan, jadi tidak ambil posisi."
+ },
+ "tp2": {
+  "level": null,
+  "pct": null,
+  "rr": null,
+  "basis": null,
+  "reason": "Harga menyentuh batas bawah kanal tetapi momentum harian 70 belum di tepi bawah — belum ada konfirmasi pantulan, jadi tidak ambil posisi."
+ },
+ "hold": {
+  "median_periods": null,
+  "n_events": null,
+  "win_rate": null,
+  "hit_tp1": null,
+  "hit_tp2": null,
+  "reason": null
+ },
+ "invalidation": null,
+ "plan_ok": false,
+ "notes": [
+  "Harga menyentuh batas bawah kanal tetapi momentum harian 70 belum di tepi bawah — belum ada konfirmasi pantulan, jadi tidak ambil posisi.",
+  "Sinyal bertentangan (struktur vs momentum) → seri; aturan: seri = tidak ambil posisi."
+ ],
+ "volume_ratio": null,
+ "entry_tool_reason": "Harga menyentuh batas bawah kanal tetapi momentum harian 70 belum di tepi bawah — belum ada konfirmasi pantulan, jadi tidak ambil posisi.",
+ "confirm_reason": null
+}

@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 from backend.app import db
 from backend.app.compute import plan, signals, ta as ta_compute
 from backend.app.config import DEFAULT_CONFIG, get_settings
-from backend.tests.test_b7_signals import DATES, signal_inputs, weekly_db  # noqa: F401 (fixture)
+from backend.tests.test_b7_signals import DATES, _seed, _wiggle, signal_inputs, weekly_db  # noqa: F401 (fixture)
 
 RAW_TERMS = ("SMA20", "SMA50", "ATR", "R:R", "RSI", "breakout", "Donchian", "MFE", "MAE", "stop loss")
 
@@ -357,3 +357,124 @@ def test_weekly_picks_kirim_plan(coherent_inputs, monkeypatch):
         conn.close()
     legacy = client.get("/api/v1/weekly/picks").json()
     assert legacy["stocks"][0]["plan"] is None and legacy["api_version"] == "1.2"
+
+
+# --- B18b: basis bar plan = bar `date <= week_end`, bukan snapshot `stock_metrics` terakhir --------
+
+
+def _upto(day: str) -> int:
+    return DATES.index(day) + 1
+
+
+def _add_bar(conn, ticker: str, date: str, close: float, volume: int = 2_000_000) -> None:
+    conn.execute(
+        "INSERT INTO price_daily (ticker, date, open, high, low, close, adj_close, volume, value_idr, source, ingested_at)"
+        " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'test', '2026-10-14')",
+        (ticker, date, close, close * 1.01, close * 0.99, close, close, volume, int(close * volume)),
+    )
+
+
+def test_plan_pakai_bar_sampai_week_end(tmp_db):
+    """`atr14`/`sma20`/`rsi14` plan = hitungan dari bar ≤ pekan, bukan snapshot metrik setelahnya."""
+    closes = _wiggle(0.0035, ramp=0.00002)
+    conn = db.connect(tmp_db)
+    try:
+        _seed(conn, "AAAA", closes[: _upto("2026-10-09")])
+        conn.commit()
+    finally:
+        conn.close()
+
+    cfg = get_settings()
+    conn = db.connect(tmp_db)
+    try:
+        bars = plan.load_bars(conn, "AAAA", "2026-10-09")
+        indicators_week = plan.indicators_from_bars(bars, cfg)
+    finally:
+        conn.close()
+    assert bars["date"].max() == "2026-10-09"  # bar setelah Jumat tidak ikut
+    assert indicators_week["sma20"] == pytest.approx(float(bars["close"].rolling(20).mean().iloc[-1]), abs=1e-6)
+
+    conn = db.connect(tmp_db)
+    try:
+        _add_bar(conn, "AAAA", "2026-10-12", 5000.0)
+        _add_bar(conn, "AAAA", "2026-10-13", 5000.0)
+        conn.commit()
+        indicators_future = plan.indicators_from_bars(plan.load_bars(conn, "AAAA", "2026-10-13"), cfg)
+    finally:
+        conn.close()
+    # dua angka berbeda → kalau kode membaca snapshot terakhir, plan pekan 9 Okt akan memakai yang ini
+    assert abs(indicators_future["sma20"] - indicators_week["sma20"]) > 1.0
+    assert abs(indicators_future["atr14"] - indicators_week["atr14"]) > 1.0
+
+
+def test_plan_tidak_baca_metrik_masa_depan(tmp_db):
+    """Plan pekan 9 Okt identik walau bar 12–13 Okt ditambahkan (docs/07 B18b AC 2)."""
+    cfg = get_settings()
+    conn = db.connect(tmp_db)
+    try:
+        _seed(conn, "AAAA", _wiggle(0.0035, ramp=0.00002)[: _upto("2026-10-09")])
+        sid = conn.execute("SELECT id FROM sector WHERE code = 'IDXFINANCE'").fetchone()[0]
+        # kuadran sektor `leading` → regime plan `tren_naik` (kalau tidak, rezim jatuh ke `range` → no_trade)
+        conn.execute(
+            "INSERT INTO rrg_daily (as_of_date, scope, ref_id, timeframe, weighting, rs_ratio, rs_momentum,"
+            " quadrant, quadrant_age_periods, bench_ref, computed_at)"
+            " VALUES ('2026-10-09', 'sector', 'IDXFINANCE', 'w1_fri', 'equal', 105.0, 101.0, 'leading', 3, 'IHSG', '2026-10-09')"
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+    pick = {"row": {"ticker": "AAAA", "sector_id": sid}}
+    conn = db.connect(tmp_db)
+    try:
+        before = plan.build_plans(conn, "2026-10-09", [pick], cfg)["AAAA"]
+    finally:
+        conn.close()
+    assert before is not None and before["stop"]["level"] is not None
+
+    conn = db.connect(tmp_db)
+    try:
+        _add_bar(conn, "AAAA", "2026-10-12", 3000.0)
+        _add_bar(conn, "AAAA", "2026-10-13", 3000.0)
+        conn.commit()
+        after = plan.build_plans(conn, "2026-10-09", [pick], cfg)["AAAA"]
+    finally:
+        conn.close()
+    assert after == before
+
+
+def test_indicators_sama_dengan_stock_metrics(weekly_db):
+    """`week_end` = `as_of` terakhir → indikator dari bar = `stock_metrics` (toleransi 1e-6)."""
+    conn = db.connect(weekly_db)
+    try:
+        row = dict(
+            conn.execute(
+                "SELECT as_of_date, sma20, sma50, rsi14, atr14 FROM stock_metrics"
+                " WHERE ticker = 'AAAA' AND timeframe = 'd1'"
+            ).fetchone()
+        )
+        got = plan.indicators_from_bars(plan.load_bars(conn, "AAAA", row["as_of_date"]), get_settings())
+    finally:
+        conn.close()
+    for key in ("sma20", "sma50", "rsi14", "atr14"):
+        assert got[key] == pytest.approx(row[key], abs=1e-6), key
+
+
+def test_plan_pekan_lama_tetap_ada_level(tmp_db):
+    """Pekan lama tetap punya level walau `stock_metrics` tidak punya baris tanggal itu (docs/07 B18b AC 4)."""
+    cfg = get_settings()
+    last = _upto("2026-06-19")
+    conn = db.connect(tmp_db)
+    try:
+        _seed(conn, "AAAA", _wiggle(0.0035, ramp=0.00002)[:last])
+        sid = conn.execute("SELECT id FROM sector WHERE code = 'IDXFINANCE'").fetchone()[0]
+        # 5 dari 20 bar terakhir tanpa volume → rezim `tipis`: tetap punya level, tak butuh kuadran sektor
+        conn.execute("UPDATE price_daily SET volume = 0 WHERE ticker = 'AAAA' AND date >= ?", (DATES[last - 5],))
+        stale = conn.execute("SELECT COUNT(*) FROM stock_metrics WHERE ticker = 'AAAA'").fetchone()[0]
+        conn.commit()
+        built = plan.build_plans(conn, "2026-06-19", [{"row": {"ticker": "AAAA", "sector_id": sid}}], cfg)["AAAA"]
+    finally:
+        conn.close()
+    assert stale == 0  # memang tak ada snapshot metrik sama sekali di DB ini
+    assert built is not None and built["regime"] == "tipis"
+    assert built["stop"]["level"] is not None and built["tp1"]["level"] is not None

@@ -1,0 +1,45 @@
+{
+ "regime": "tipis",
+ "entry_tool": "pivot_level",
+ "confirm_tool": "none",
+ "entry_mode": "pullback",
+ "entry_zone": {
+  "low": 27.500934432297928,
+  "high": 28.499065567702072,
+  "reason": "Saham jarang transaksi: pakai level pantulan saja tanpa konfirmasi volume, karena volume mudah menipu di saham tipis."
+ },
+ "stop": {
+  "level": 26.336448107659763,
+  "basis": "lantai_atr",
+  "reason": "Batas rugi di bawah struktur terlalu ketat (kurang dari satu kali volatilitas harian) sehingga rawan kena gerak acak; dipakai lantai…",
+  "pct": -0.059412567583579934
+ },
+ "tp1": {
+  "level": 37.0,
+  "pct": 0.3214285714285714,
+  "rr": 5.005767524082507,
+  "basis": "pivot_berikutnya",
+  "reason": "Belum ada level penjual nyata di atas harga; target pertama ditaruh pada jarak aman dari volatilitas harian."
+ },
+ "tp2": {
+  "level": 47.0,
+  "pct": 0.6785714285714286,
+  "rr": 10.637819193842304,
+  "basis": "puncak_40",
+  "reason": "Target terukur dari level 47; imbal hasil terhadap risiko setelah biaya 0,40% masih 10,64:1."
+ },
+ "hold": {
+  "median_periods": null,
+  "n_events": 4,
+  "win_rate": 0.75,
+  "hit_tp1": null,
+  "hit_tp2": null,
+  "reason": "Belum cukup riwayat (4 kejadian) untuk menilai peluang target ini."
+ },
+ "invalidation": "Batal bila tutup harian di bawah penyangga 20 hari (35) atau di bawah batas rugi (26); pasar: IHSG tutup di bawah 5.318 → tunda entry baru.",
+ "plan_ok": true,
+ "notes": [],
+ "volume_ratio": 0.04607783267640038,
+ "entry_tool_reason": "Saham jarang transaksi: hanya level pantulan yang bisa dipercaya, tanpa konfirmasi volume.",
+ "confirm_reason": "Tanpa konfirmasi: volume di saham tipis tidak bisa dipercaya."
+}
