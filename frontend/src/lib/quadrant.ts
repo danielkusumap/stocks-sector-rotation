@@ -39,6 +39,18 @@ export function quadrantLabel(quadrant: Quadrant | null | undefined): string {
   return quadrant ? QUADRANT_LABEL[quadrant] : "—";
 }
 
+/**
+ * Saring item per kuadran **sebelum** digambar/dikirim (docs/06 §6.4: chip kuadran saham
+ * di `SectorDrawer`). `null` = semua (perilaku lama). Item tanpa kuadran (`null`) hanya
+ * ikut saat "Semua" — dia tidak bisa diklaim milik salah satu kuadran.
+ */
+export function filterByQuadrant<T extends { quadrant: Quadrant | null }>(
+  items: readonly T[],
+  quadrant: Quadrant | null,
+): T[] {
+  return quadrant === null ? [...items] : items.filter((item) => item.quadrant === quadrant);
+}
+
 export function isQuadrant(value: string): value is Quadrant {
   return (QUADRANTS as readonly string[]).includes(value);
 }

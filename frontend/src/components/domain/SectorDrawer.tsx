@@ -1,14 +1,19 @@
 import { useState } from "react";
-import type { Dir, StockSort, Timeframe, Weighting, Window } from "../../lib/api";
+import type { Dir, Quadrant, StockSort, Timeframe, Weighting, Window } from "../../lib/api";
+import { QUADRANTS } from "../../lib/api";
 import { formatNum, formatRp, formatRpCompact } from "../../lib/format";
+import { QUADRANT_LABEL, filterByQuadrant } from "../../lib/quadrant";
 import { nextSort } from "../../lib/sectorTable";
 import { useRrg, useSector, useSectorSeries, useStocks } from "../../hooks/useApiQuery";
 import { QuadrantBadge } from "../ui/QuadrantBadge";
 import { StreakBadge } from "../ui/StreakBadge";
 import { Table, Td, Th } from "../ui/Table";
+import { Button } from "../ui/Button";
 import { Delta } from "../ui/Delta";
 import { Drawer } from "../ui/Drawer";
+import { EmptyState } from "../ui/EmptyState";
 import { ErrorState } from "../ui/ErrorState";
+import { Segmented } from "../ui/Segmented";
 import { QuadrantChart } from "../charts/QuadrantChart";
 import { SectorSeries } from "../charts/SectorSeries";
 import { TableSkeleton } from "../ui/Skeleton";
@@ -50,18 +55,30 @@ export function SectorDrawer({
   const series = useSectorSeries(code ?? "", { timeframe, weighting });
   const [sort, setSort] = useState<StockSort>("stock_score");
   const [dir, setDir] = useState<Dir>("desc");
+  // Chip kuadran saham = state lokal drawer, bukan URL (docs/06 §6.4: `?quadrant=` sudah milik FilterBar)
+  const [quadrant, setQuadrant] = useState<Quadrant | null>(null);
   const stocks = useStocks({
     sector: code ? [code] : [],
     timeframe,
     as_of: asOf,
+    quadrant: quadrant ? [quadrant] : undefined,
     sort,
     dir,
     limit: 20,
   });
-  const rrg = useRrg({ scope: "stock", sector: code ? [code] : undefined, timeframe, window, weighting });
+  const rrg = useRrg({
+    scope: "stock",
+    sector: code ? [code] : undefined,
+    timeframe,
+    window,
+    weighting,
+    as_of: asOf,
+  });
   const [pickedStock, setPickedStock] = useState<string | null>(null);
 
   const metrics = detail.data?.metrics;
+  const chartItems = rrg.data ? filterByQuadrant(rrg.data.items, quadrant) : [];
+  const showAll = () => setQuadrant(null);
 
   return (
     <Drawer
@@ -150,7 +167,18 @@ export function SectorDrawer({
                 </tr>
               </thead>
               <tbody>
-                {stocks.data.items.map((row) => (
+                {stocks.data.items.length === 0 ? (
+                  <tr>
+                    <Td colSpan={CONSTITUENT_COLUMNS.length}>
+                      <EmptyState
+                        title="Tidak ada konstituen di kuadran ini"
+                        hint="Coba kuadran lain, atau tampilkan semua."
+                        action={<Button onClick={showAll}>Tampilkan semua</Button>}
+                      />
+                    </Td>
+                  </tr>
+                ) : (
+                  stocks.data.items.map((row) => (
                   <tr key={row.ticker} data-testid={`constituent-${row.ticker}`}>
                     <Td>
                       <span className="font-medium">{row.ticker}</span>
@@ -172,7 +200,8 @@ export function SectorDrawer({
                       {formatNum(row.stock_score, 1)}
                     </Td>
                   </tr>
-                ))}
+                  ))
+                )}
               </tbody>
             </Table>
           )}
@@ -187,14 +216,42 @@ export function SectorDrawer({
           ) : rrg.isError ? (
             <ErrorState error={rrg.error} onRetry={() => void rrg.refetch()} />
           ) : (
-            <QuadrantChart
-              items={rrg.data.items}
-              scope="stock"
-              selectedRefId={pickedStock}
-              onSelect={setPickedStock}
-              label={`RRG saham ${detail.data?.sector.name_id ?? code}`}
-              showAllHref={`/stocks?sector=${code}`}
-            />
+            <>
+              {/* satu baris chip, satu state untuk chart + tabel; angka dari respons /rrg (docs/06 §6.4) */}
+              <div data-testid="drawer-quadrant-chips" className="mb-2 flex flex-wrap items-center gap-2">
+                <Segmented
+                  label="Filter kuadran saham"
+                  value={quadrant ?? "all"}
+                  onChange={(value) => {
+                    setQuadrant(value === "all" ? null : value);
+                    setPickedStock(null);
+                  }}
+                  options={[
+                    { value: "all" as const, label: `Semua (${rrg.data.items.length})` },
+                    ...QUADRANTS.map((code) => ({
+                      value: code,
+                      label: `${QUADRANT_LABEL[code]} (${rrg.data.quadrants[code]})`,
+                    })),
+                  ]}
+                />
+              </div>
+              {chartItems.length === 0 ? (
+                <EmptyState
+                  title="Tidak ada saham di kuadran ini"
+                  hint="Pilih kuadran lain, atau tampilkan semua."
+                  action={<Button onClick={showAll}>Tampilkan semua</Button>}
+                />
+              ) : (
+                <QuadrantChart
+                  items={chartItems}
+                  scope="stock"
+                  selectedRefId={pickedStock}
+                  onSelect={setPickedStock}
+                  label={`RRG saham ${detail.data?.sector.name_id ?? code}`}
+                  showAllHref={`/stocks?sector=${code}`}
+                />
+              )}
+            </>
           )}
         </section>
       </div>
