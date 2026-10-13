@@ -4,6 +4,7 @@ import { QuadrantChart } from "../components/charts/QuadrantChart";
 import { RotationMatrix } from "../components/charts/RotationMatrix";
 import { ChangeList } from "../components/domain/ChangeList";
 import { FilterBar } from "../components/domain/FilterBar";
+import { IhsgCard } from "../components/domain/IhsgCard";
 import { MarketSummary } from "../components/domain/MarketSummary";
 import { PeriodNote } from "../components/domain/PeriodNote";
 import { SectorDrawer } from "../components/domain/SectorDrawer";
@@ -136,6 +137,7 @@ export default function OverviewPage() {
             ) : (
               <MarketSummary
                 briefing={briefing.data}
+                ihsg={<IhsgCard />}
                 series={series.data && series.data.code === topSector ? series.data : undefined}
               />
             )}

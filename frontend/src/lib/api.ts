@@ -134,6 +134,35 @@ export interface MetaConfigResponse {
   };
 }
 
+/**
+ * `GET /meta/market` (docs/05 §1) — kutipan **IHSG saja** untuk kartu Overview.
+ * `delayed` selalu `true` di feed IDX: UI wajib menampilkan "per <waktu>" + kata "delay".
+ */
+export interface MarketResponse {
+  api_version: string;
+  benchmark: string;
+  symbol: string;
+  close: number | null;
+  prev_close: number | null;
+  ret_1d: number | null;
+  ret_1w: number | null;
+  /** `null` bila `session != "open"` (docs/05 §1) → barisnya tidak ditampilkan. */
+  ret_intraday: number | null;
+  open: number | null;
+  high: number | null;
+  low: number | null;
+  volume: number | null;
+  as_of: string | null;
+  last_bar_at: string | null;
+  session: "open" | "break" | "closed";
+  /** `live` = dari Yahoo, `db` = data tersimpan (live gagal / `live=false`). */
+  source: "live" | "db";
+  delayed: boolean;
+  cached: boolean;
+  cache_age_s: number;
+  data_status: DataStatus;
+}
+
 export interface FreshnessProbe {
   ticker: string;
   last_bar_at: string | null;

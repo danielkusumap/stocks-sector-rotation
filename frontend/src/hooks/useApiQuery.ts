@@ -5,6 +5,7 @@ import {
   type BriefingResponse,
   type FreshnessResponse,
   type HeatmapResponse,
+  type MarketResponse,
   type MetaConfigResponse,
   type MetaDatesParams,
   type MetaDatesResponse,
@@ -51,6 +52,25 @@ export const useMetaDates = (params: MetaDatesParams) =>
 export const useMetaConfig = () => useApi<MetaConfigResponse, object>("meta-config", "/meta/config");
 
 export const useFreshness = () => useApi<FreshnessResponse, object>("freshness", "/freshness");
+
+/**
+ * Kutipan IHSG (`docs/05` §1). Dipoll selama tab terlihat saja (`refetchIntervalInBackground:
+ * false`) dengan interval dari `/meta/config` → `market.poll_seconds`, plus refetch saat tab
+ * kembali fokus. `keepPreviousData`: kartu mempertahankan angka terakhir saat fetch gagal
+ * (docs/08 F13c: "matikan backend → kartu bertahan", bukan kotak error kosong).
+ */
+export function useMarket(live = true, pollSeconds = 60) {
+  return useQuery({
+    queryKey: keyFor("market", { live }),
+    queryFn: ({ signal }) =>
+      apiGet<MarketResponse, { live?: boolean }>("/meta/market", live ? { live: true } : undefined, signal),
+    // interval dari config (`market.poll_seconds`); lantai 1 s hanya penjaga salah konfigurasi
+    refetchInterval: Math.max(1, pollSeconds) * 1000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    placeholderData: keepPreviousData,
+  });
+}
 
 export const useRrg = (params: RrgParams) => useApi<RrgResponse, RrgParams>("rrg", "/rrg", params);
 

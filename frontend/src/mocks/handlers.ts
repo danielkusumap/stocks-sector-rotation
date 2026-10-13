@@ -4,6 +4,7 @@ import type {
   DataStatus,
   FreshnessResponse,
   HeatmapResponse,
+  MarketResponse,
   MetaConfigResponse,
   MetaDatesResponse,
   MetaSectorsResponse,
@@ -265,6 +266,72 @@ function padStockItems(items: RrgItem[], sectorCode: string | null, upto = 60): 
   return padded;
 }
 
+/**
+ * Kutipan IHSG (`docs/05` §1) — mock berperan sebagai backend:
+ * `?mock=stale` → kutipan live "gagal" → `source: "db"` + `session: "closed"` + status `stale`;
+ * `?mock=down` → panggilan pertama ok, **panggilan berikutnya 500** (meniru backend dimatikan:
+ * kartu harus bertahan dengan angka terakhir, bukan jadi kosong);
+ * `?mock=fail` → 500 sejak awal; `?mock=fast` (lihat `/meta/config`) → `poll_seconds: 1`.
+ * `last_bar_at` = waktu sekarang supaya label "per …" ikut bergerak tiap poll.
+ */
+let marketCalls = 0;
+/** Waktu panggilan pertama `?mock=down` — burst mount (StrictMode) harus lolos dulu. */
+let marketFirstAt = 0;
+
+function marketHandler(request: Request) {
+  const sp = new URL(request.url).searchParams;
+  marketCalls += 1;
+  const knob = sp.get("mock");
+  // `down` = backend "mati" setelah burst mount pertama: panggilan ≥ 800 ms setelah panggilan
+  // pertama gagal 500 (mount StrictMode mengirim dua request dalam milidetik yang sama).
+  const now = Date.now();
+  if (knob === "down") {
+    if (marketFirstAt === 0) marketFirstAt = now;
+    else if (now - marketFirstAt > 800) return marketUnavailable();
+  }
+  if (knob === "fail") return marketUnavailable();
+  const stored = knob === "stale";
+  const status = dataStatus(sp);
+  const body: MarketResponse = {
+    api_version: "1.1",
+    benchmark: "IHSG",
+    symbol: "^JKSE",
+    close: 5936.15,
+    prev_close: 6093.76,
+    ret_1d: -0.0259,
+    ret_1w: -0.0204,
+    // di luar jam bursa backend mengirim null (docs/05 §1) → baris intraday tidak ditampilkan
+    ret_intraday: stored ? null : -0.0134,
+    open: 6010.2,
+    high: 6021.7,
+    low: 5920.4,
+    volume: 11_840_000_000,
+    as_of: status.as_of,
+    last_bar_at: stored ? "2026-10-12T16:00:00+07:00" : nowWibIso(marketCalls),
+    session: stored ? "closed" : "open",
+    source: stored ? "db" : "live",
+    delayed: true,
+    cached: false,
+    cache_age_s: 0,
+    data_status: { ...status, status: stored ? "stale" : status.status },
+  };
+  return HttpResponse.json(body);
+}
+
+/** Respons 500 untuk kutipan (mock "backend mati") — envelope error kontrak. */
+function marketUnavailable() {
+  return HttpResponse.json(
+    { api_version: "1.0", error: { code: "market_unavailable", message: "Mock: kutipan gagal", detail: null } },
+    { status: 500 },
+  );
+}
+
+/** Waktu WIB sekarang + `minutes` — mock "backend": label "per …" bergerak tiap poll
+ *  (label hanya menampilkan menit, sedangkan poll di dev bisa 1 detik). */
+function nowWibIso(minutes = 0): string {
+  return new Date(Date.now() + (7 * 60 + minutes) * 60_000).toISOString().replace("Z", "+07:00");
+}
+
 export const handlers = [
   http.get(`${API}/meta/dates`, ({ request }) => {
     const sp = new URL(request.url).searchParams;
@@ -304,6 +371,10 @@ export const handlers = [
   http.get(`${API}/meta/config`, ({ request }) => {
     // `?mock=empty` = belum pernah ingest apa pun → `last_ingest` null (docs/08 F13 A)
     const empty = new URL(request.url).searchParams.get("mock") === "empty";
+    // `?mock=fast` = interval poll 1 s supaya dua poll bisa diamati cepat (dev/e2e kartu IHSG);
+    // `?mock=down` ikut cepat supaya kegagalan poll kedua terlihat tanpa menunggu 60 s
+    const knob = new URL(request.url).searchParams.get("mock");
+    const fast = knob === "fast" || knob === "down";
     // Salinan nilai aktif dari config/default.yaml (mock; sumber asli tetap backend).
     const body: MetaConfigResponse = {
       api_version: "1.0",
@@ -324,10 +395,14 @@ export const handlers = [
             intraday: "2026-10-12T16:31:40+07:00",
             signals_weekly: "2026-10-09T17:02:11+07:00",
           },
-      market: empty ? { poll_seconds: 60, live_enabled: false } : { poll_seconds: 60, live_enabled: true },
+      market: empty
+        ? { poll_seconds: 60, live_enabled: false }
+        : { poll_seconds: fast ? 1 : 60, live_enabled: true },
     };
     return HttpResponse.json(body);
   }),
+
+  http.get(`${API}/meta/market`, ({ request }) => marketHandler(request)),
 
   http.get(`${API}/freshness`, ({ request }) => {
     const sp = new URL(request.url).searchParams;
