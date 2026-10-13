@@ -14,7 +14,7 @@ import { useMetaSectors, useRrg, useStock, useStocks } from "../hooks/useApiQuer
 import { useFilterState } from "../hooks/useFilterState";
 import { formatNum, formatRp, formatRpCompact, formatDate } from "../lib/format";
 import { polyline } from "../lib/seriesChart";
-import { stockSortOf } from "../lib/stockTable";
+import { nextSort, stockSortOf } from "../lib/stockTable";
 
 /** Debounce pencarian (docs/08 F8): 300 ms setelah ketikan terakhir. */
 const SEARCH_DEBOUNCE_MS = 300;
@@ -112,7 +112,7 @@ function StockList() {
           offset={stocks.data.offset}
           sort={filters.sort}
           dir={filters.dir}
-          onSort={(next) => setFilters({ sort: next.sort, dir: next.dir })}
+          onSort={(column) => setFilters((prev) => nextSort(prev, column) ?? {})}
           onPage={(offset) => setFilters({ offset })}
           onResetFilters={resetFilters}
         />

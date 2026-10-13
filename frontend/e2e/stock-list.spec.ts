@@ -58,11 +58,12 @@ test.describe("Halaman Saham", () => {
     expect(calls.every((url) => !url.includes("q="))).toBe(true);
 
     const search = page.getByLabel("Cari ticker atau nama");
+    // debounce 300 ms: ukur sebagai batas BAWAH (bukan jendela 150 ms yang bisa meleset saat
+    // mesin sibuk menjalankan 4 worker — asersi waktu atas selalu rapuh, ini tidak).
+    const started = Date.now();
     await search.fill("bbr");
-    // debounce: param belum masuk sebelum 300 ms
-    await page.waitForTimeout(150);
-    expect(params(page).get("q")).toBeNull();
     await expect.poll(() => params(page).get("q")).toBe("bbr");
+    expect(Date.now() - started).toBeGreaterThanOrEqual(250);
     await expect(rows(page)).toHaveCount(1);
     await expect(page.getByTestId("stock-row-BBRI")).toBeVisible();
     expect(calls.at(-1)).toContain("q=bbr");

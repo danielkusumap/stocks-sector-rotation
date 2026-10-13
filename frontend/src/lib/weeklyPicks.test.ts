@@ -82,7 +82,7 @@ describe("ruleRows — semua rule_hits, yang gagal tidak disembunyikan", () => {
   it("sektor: 4 aturan + baris info kuadran berlabel Indonesia", () => {
     const rows = ruleRows(sector({}));
     expect(rows).toHaveLength(5);
-    expect(rows[0]).toEqual({ key: "quadrant", label: "kuadran Memimpin", ok: null });
+    expect(rows[0]).toEqual({ key: "quadrant", label: "kuadran Memimpin", ok: null, known: true });
     expect(rows.slice(1).map((r) => r.key)).toEqual([
       "age_ok",
       "momentum_ok",
@@ -126,6 +126,48 @@ describe("ruleRows — semua rule_hits, yang gagal tidak disembunyikan", () => {
     ]);
     expect(rows.every((r) => r.ok === false)).toBe(true);
     expect(rows.every((r) => r.label.length > 0)).toBe(true);
+  });
+
+  it("key baru dari backend tampil apa adanya (bukan hilang/blank), ditandai known=false", () => {
+    const sectorRows = ruleRows({
+      ...sector({}),
+      board_ok: true,
+      value_ok: false,
+    } as WeeklySectorPick["rule_hits"]);
+    expect(sectorRows).toHaveLength(7);
+    const extra = sectorRows.slice(5);
+    expect(extra).toEqual([
+      { key: "board_ok", label: "board_ok", ok: true, known: false },
+      { key: "value_ok", label: "value_ok", ok: false, known: false },
+    ]);
+
+    const stockRows = ruleRows({
+      ...stock({}),
+      board_ok: false,
+    } as WeeklyStockPick["rule_hits"]);
+    expect(stockRows).toHaveLength(8);
+    expect(stockRows[7]).toEqual({
+      key: "board_ok",
+      label: "board_ok",
+      ok: false,
+      known: false,
+    });
+  });
+
+  it("field non-boolean pada rule_hits tidak jadi baris aturan", () => {
+    const rows = ruleRows({
+      ...stock({}),
+      note: "dari backend",
+    } as unknown as WeeklyStockPick["rule_hits"]);
+    expect(rows.map((r) => r.key)).toEqual([
+      "liquidity_ok",
+      "price_ok",
+      "trend_ok",
+      "rs_ok",
+      "momentum_ok",
+      "rsi_ok",
+      "no_suspension",
+    ]);
   });
 });
 

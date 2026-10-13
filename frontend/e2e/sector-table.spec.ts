@@ -98,14 +98,14 @@ test.describe("SectorTable & FilterBar", () => {
 
     await page.getByTestId("sector-row-IDXHEALTH").click();
     await expect(page.getByTestId("sector-row-IDXHEALTH")).toHaveAttribute("data-selected", "true");
-    await expect(page.getByTestId("rrg-chart")).toHaveAttribute("data-pinned", "IDXHEALTH");
-    await expect(page.getByTestId("point-IDXENERGY")).toHaveAttribute("opacity", "0.22");
 
-    // klik baris juga membuka drawer detail (F7) → tutup dulu; pin harus tetap menempel
+    // klik baris juga membuka drawer detail (F7) → tutup dulu, baru periksa chart: drawer punya
+    // mini-RRG dengan `data-testid` sama (`rrg-chart`), jadi selama drawer terbuka locator ambigu.
     await expect(page.getByRole("dialog")).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(page.getByRole("dialog")).toHaveCount(0);
     await expect(page.getByTestId("rrg-chart")).toHaveAttribute("data-pinned", "IDXHEALTH");
+    await expect(page.getByTestId("point-IDXENERGY")).toHaveAttribute("opacity", "0.22");
 
     // arah sebaliknya: klik titik chart → baris tabel ikut ter-highlight
     // (hover dulu: kartu PointCard mengikuti titik aktif, jadi harus pindah sebelum klik)

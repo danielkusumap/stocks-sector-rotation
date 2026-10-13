@@ -2,7 +2,7 @@ import type { Dir, SectorSort, SectorSummaryItem } from "../../lib/api";
 import { cn } from "../../lib/cn";
 import { formatNum, formatRpCompact } from "../../lib/format";
 import { streakLabel } from "../../lib/labels";
-import { SECTOR_COLUMNS, nextSort } from "../../lib/sectorTable";
+import { SECTOR_COLUMNS, nextSort, type SectorColumn } from "../../lib/sectorTable";
 import { Delta } from "../ui/Delta";
 import { Button } from "../ui/Button";
 import { EmptyState } from "../ui/EmptyState";
@@ -29,7 +29,7 @@ export function SectorTable({
   total: number;
   sort: SectorSort | string;
   dir: Dir;
-  onSort: (next: { sort: SectorSort; dir: Dir }) => void;
+  onSort: (column: SectorColumn) => void;
   selectedRefId: string | null;
   onSelect: (code: string) => void;
   onResetFilters: () => void;
@@ -48,7 +48,7 @@ export function SectorTable({
                 sortable={Boolean(next)}
                 active={column.sort === sort}
                 dir={dir}
-                onSort={next ? () => onSort(next) : undefined}
+                onSort={next ? () => onSort(column) : undefined}
                 className="sticky top-0 z-10"
               >
                 {column.label}

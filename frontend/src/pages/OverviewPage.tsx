@@ -21,7 +21,7 @@ import {
   useSectorSummary,
 } from "../hooks/useApiQuery";
 import { useFilterState } from "../hooks/useFilterState";
-import { sectorSortOf } from "../lib/sectorTable";
+import { nextSort, sectorSortOf } from "../lib/sectorTable";
 
 /**
  * Overview: diagram RRG + tabel sektor. Satu `selectedRefId` dipakai chart dan tabel
@@ -193,7 +193,7 @@ export default function OverviewPage() {
             total={summary.data.total}
             sort={filters.sort}
             dir={filters.dir}
-            onSort={(next) => setFilters({ sort: next.sort, dir: next.dir })}
+            onSort={(column) => setFilters((prev) => nextSort(prev, column) ?? {})}
             selectedRefId={selectedRefId}
             onSelect={openDetail}
             onResetFilters={resetFilters}

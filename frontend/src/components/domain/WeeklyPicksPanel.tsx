@@ -176,10 +176,12 @@ function RuleList({ hits }: { hits: WeeklySectorPick["rule_hits"] | WeeklyStockP
           key={rule.key}
           data-rule={rule.key}
           data-ok={rule.ok === null ? "info" : String(rule.ok)}
+          data-known={rule.known}
           className="flex items-baseline gap-2 text-sm"
         >
           <RuleIcon ok={rule.ok} />
-          <span className={rule.ok === false ? "text-warn" : "text-fg-muted"}>
+          {/* key asing dari backend: tampil apa adanya, tanpa warna peringatan */}
+          <span className={rule.ok === false && rule.known ? "text-warn" : "text-fg-muted"}>
             {rule.label}
             {rule.ok !== null && (
               <span className="sr-only">{rule.ok ? " — lolos" : " — belum lolos"}</span>

@@ -14,6 +14,7 @@ import {
 } from "../../lib/filters";
 import { QUADRANT_LABEL } from "../../lib/quadrant";
 import type { FilterState } from "../../lib/urlFilters";
+import type { FilterPatch } from "../../hooks/useFilterState";
 import { Button } from "../ui/Button";
 import { Popover } from "../ui/Popover";
 import { Segmented } from "../ui/Segmented";
@@ -54,7 +55,7 @@ export function FilterBar({
   className,
 }: {
   filters: FilterState;
-  setFilters: (patch: Partial<FilterState>) => void;
+  setFilters: (patch: FilterPatch) => void;
   resetFilters: () => void;
   sectors: SectorMeta[];
   shown: number;
@@ -114,7 +115,7 @@ export function FilterBar({
                     key={quadrant}
                     type="button"
                     aria-pressed={on}
-                    onClick={() => setFilters(toggleQuadrant(filters, quadrant))}
+                    onClick={() => setFilters((prev) => toggleQuadrant(prev, quadrant))}
                     className={cn(
                       "h-7 rounded-sm border px-2.5 text-base",
                       on
@@ -183,7 +184,7 @@ export function FilterBar({
                     <input
                       type="checkbox"
                       checked={filters.sector.includes(sector.code)}
-                      onChange={() => setFilters(toggleSector(filters, sector.code))}
+                      onChange={() => setFilters((prev) => toggleSector(prev, sector.code))}
                     />
                     {sector.name_id}
                   </label>

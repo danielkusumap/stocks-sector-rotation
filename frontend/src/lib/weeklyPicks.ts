@@ -72,6 +72,8 @@ export interface RuleRow {
   label: string;
   /** `null` = baris informasi (kuadran), bukan aturan yang bisa lolos/gagal. */
   ok: boolean | null;
+  /** `false` = key baru dari backend: label = key apa adanya, gaya netral (docs/08 F11). */
+  known: boolean;
 }
 
 // Label Indonesia dari nama aturan docs/03 §6.1 & §6.2. Ambangnya tidak ditulis
@@ -95,17 +97,41 @@ const STOCK_RULES: readonly (readonly [keyof WeeklyStockPick["rule_hits"], strin
   ["no_suspension", "tidak suspend (ada bar di 5 hari bursa terakhir)"],
 ];
 
+/** Key baru dari backend tidak boleh hilang: label = key apa adanya, gaya netral. */
+function foreignRows(
+  entries: [string, unknown][],
+  known: readonly string[],
+): RuleRow[] {
+  return entries
+    .filter(([key, value]) => !known.includes(key) && typeof value === "boolean")
+    .map(([key, value]) => ({ key, label: key, ok: value as boolean, known: false }));
+}
+
 /** SEMUA `rule_hits` apa adanya — yang `false` ikut tampil (docs/08 F9 AC). */
 export function ruleRows(
   hits: WeeklySectorPick["rule_hits"] | WeeklyStockPick["rule_hits"],
 ): RuleRow[] {
+  const entries = Object.entries(hits) as [string, unknown][];
   if ("quadrant" in hits) {
+    const sectorKeys = SECTOR_RULES.map(([key]) => key);
     return [
-      { key: "quadrant", label: `kuadran ${QUADRANT_LABEL[hits.quadrant]}`, ok: null },
-      ...SECTOR_RULES.map(([key, label]) => ({ key, label, ok: hits[key] })),
+      {
+        key: "quadrant",
+        label: `kuadran ${QUADRANT_LABEL[hits.quadrant]}`,
+        ok: null,
+        known: true,
+      },
+      ...SECTOR_RULES.map(([key, label]) => ({ key, label, ok: hits[key], known: true })),
+      ...foreignRows(entries, ["quadrant", ...sectorKeys]),
     ];
   }
-  return STOCK_RULES.map(([key, label]) => ({ key, label, ok: hits[key] }));
+  return [
+    ...STOCK_RULES.map(([key, label]) => ({ key, label, ok: hits[key], known: true })),
+    ...foreignRows(
+      entries,
+      STOCK_RULES.map(([key]) => key),
+    ),
+  ];
 }
 
 const DAY_MS = 86_400_000;

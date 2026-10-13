@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router";
 import type { Dir, StockRow, StockSort } from "../../lib/api";
 import { formatNum, formatRp, formatRpCompact } from "../../lib/format";
-import { STOCK_COLUMNS, nextSort, pageOf, pageCount, rangeLabel } from "../../lib/stockTable";
+import { STOCK_COLUMNS, nextSort, pageOf, pageCount, rangeLabel, type StockColumn } from "../../lib/stockTable";
 import { Button } from "../ui/Button";
 import { Delta } from "../ui/Delta";
 import { EmptyState } from "../ui/EmptyState";
@@ -29,7 +29,7 @@ export function StockTable({
   offset: number;
   sort: StockSort | string;
   dir: Dir;
-  onSort: (next: { sort: StockSort; dir: Dir }) => void;
+  onSort: (column: StockColumn) => void;
   onPage: (offset: number) => void;
   onResetFilters: () => void;
 }) {
@@ -55,7 +55,7 @@ export function StockTable({
                   sortable={Boolean(next)}
                   active={column.sort === sort}
                   dir={dir}
-                  onSort={next ? () => onSort(next) : undefined}
+                  onSort={next ? () => onSort(column) : undefined}
                   className="sticky top-0 z-10"
                 >
                   {column.label}

@@ -8,7 +8,7 @@ import { Panel } from "../components/ui/Panel";
 import { TableSkeleton } from "../components/ui/Skeleton";
 import { useMetaSectors, useSectorSummary } from "../hooks/useApiQuery";
 import { useFilterState } from "../hooks/useFilterState";
-import { sectorSortOf } from "../lib/sectorTable";
+import { nextSort, sectorSortOf } from "../lib/sectorTable";
 
 /**
  * Halaman Sektor: tabel penuh selebar halaman (tanpa diagram RRG).
@@ -67,7 +67,7 @@ export default function SectorPage() {
             total={summary.data.total}
             sort={filters.sort}
             dir={filters.dir}
-            onSort={(next) => setFilters({ sort: next.sort, dir: next.dir })}
+            onSort={(column) => setFilters((prev) => nextSort(prev, column) ?? {})}
             selectedRefId={selectedRefId}
             onSelect={openDetail}
             onResetFilters={resetFilters}
