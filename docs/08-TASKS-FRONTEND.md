@@ -355,6 +355,30 @@ Commit: `F22: lapisan SMC & Elliott (toggle, konteks bukan sinyal)`.
 **Bukti:** screenshot 3 tingkat zoom + hasil uji rect hover + 4 perintah gate.
 Commit: `F23: zoom & pan grafik candle`.
 
+## F24 — Gate cepat: paralel, tag `@a11y`, dan script gate
+
+**Kenapa ada:** user mengeluh testing terlalu lama. Datanya sudah mock (MSW + fixture) — yang mahal adalah **konfigurasi**: `fullyParallel: false` (110 test jalan berurutan satu worker), spec a11y 16 test (7 halaman × 2 tema) selalu ikut, dan `npm run build` (tsc seluruh proyek) dipanggil di loop mikro-edit.
+
+**Deliverable:**
+1. `frontend/playwright.config.ts`: `fullyParallel: true`, `workers: process.env.CI ? 2 : "75%"`, `timeout: 30_000`, `expect: { timeout: 5_000 }`, tetap **satu project** (chromium). Jangan mengubah `reuseExistingServer` (dev server dipakai bersama sesi lain).
+2. Tag: spec `e2e/a11y.spec.ts` → setiap test memakai judul ber-tag `@a11y` (dan/atau `test.describe("@a11y", …)`); spec berat lain yang > 30 s diberi tag `@slow`. Tidak ada tag untuk spec fungsional biasa.
+3. `frontend/package.json` script baru:
+   - `"gate"`: `npm run typecheck && vitest run && playwright test --grep-invert "@a11y|@slow"` (dipakai tiap task, cepat);
+   - `"gate:full"`: `npm run typecheck && vitest run && playwright test && npm run build` (dipakai **sekali** saat task ditutup);
+   - `"spec": "playwright test"` (dipakai dengan argumen file: `npm run spec -- e2e/candle-chart.spec.ts`).
+4. `docs/08` bagian "Aturan tambahan": tulis urutan verifikasi baru (loop = `npm run typecheck` + `npx vitest run <file>` + `npm run spec -- e2e/<file>.spec.ts`; penutup = `npm run gate:full`).
+5. `docs/CHEATSHEET-FRONTEND.md`: perbarui daftar perintah (tambahkan `gate`, `gate:full`, `spec`, tag `@a11y`).
+
+**AC:**
+1. Ukur dan tempel **sebelum/sesudah**: durasi `npx playwright test` penuh pada commit sebelum perubahan vs sesudah (angka nyata, bukan perkiraan) — target: turun ≥ 50%.
+2. `npm run gate` **tidak** menjalankan test `@a11y`/`@slow` (bukti: output hanya spec fungsional + hitungan test lebih kecil).
+3. `npm run gate:full` tetap menjalankan semuanya dan hijau.
+4. Paralel tidak membuat test rapuh: jalankan `npm run gate:full` **2×** berturut-turut, keduanya hijau (kalau ada flake karena state mock, tandai spec itu `@slow` dan sebut di laporan — jangan menaikkan retries).
+5. Tidak ada test yang dihapus/dilonggarkan asersinya; jumlah test `gate:full` **sama** dengan sebelum perubahan.
+
+**Bukti:** 4 angka durasi (before/after untuk penuh & gate) + output `gate:full` 2× + diff jumlah test.
+Commit: `F24: gate cepat (paralel, tag a11y/slow, script gate)`.
+
 ---
 
 ## Aturan tambahan untuk agen frontend

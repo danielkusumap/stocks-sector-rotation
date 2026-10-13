@@ -323,6 +323,26 @@ Commit: `B21: lapisan indicators di series/stock (Ultimate RSI, VWAP, POC)`.
 **Bukti:** dump JSON 2 ticker (1 `range`, 1 `tren_naik`) dengan semua lapisan ke `docs/evidence/b22/` + verifikasi manual satu FVG & satu BOS (tempel bar-nya) + `pytest -q backend`.
 Commit: `B22: lapisan konteks smc & elliott di series/stock`.
 
+## B23 — Backend test lebih cepat: marker `slow` + template DB sesi
+
+**Kenapa ada:** `pytest -q backend` ±70 s karena tiap berkas uji membangun DB sendiri (init + import fixture) dan modul berat (pandas/yfinance) diimpor ulang per berkas. Datanya kecil — yang mahal setup berulang.
+
+**Deliverable:**
+1. Marker pytest: `slow` untuk uji yang menjalankan pipeline penuh (`stage=all`, ingest multi-batch, run nyata kecil) dan `integration` bila perlu; didaftarkan di `pyproject.toml`/`pytest.ini` (`markers = [...]`) supaya tidak ada warning.
+2. Fixture **session-scoped** `template_db` (di `backend/tests/conftest.py`): bangun sekali DB berisi skema + fixture universe, lalu tiap test menyalinnya (`shutil.copy` / `VACUUM INTO`) alih-alih `init_db` + `import_excel` ulang.
+3. `pytest -q -m "not slow"` = jalur cepat untuk loop per task; `pytest -q` tetap menjalankan semuanya (gerbang penutup).
+4. `docs/07` "Aturan tambahan": tulis urutan verifikasi baru (loop: `pytest backend/tests/<file> -q`; penutup: `pytest -q backend`).
+
+**AC:**
+1. Ukur dan tempel **sebelum/sesudah**: `python -m pytest -q backend` dan `python -m pytest -q -m "not slow" backend` (angka nyata) — target: jalur cepat ≤ 50% dari durasi sekarang.
+2. Jumlah test di `pytest -q` **tidak berkurang** (tempel ringkasan `N passed`); `-m "not slow"` hanya mengecualikan yang ditandai.
+3. Tidak ada test yang dilonggarkan asersinya atau dihapus; test yang tadinya hijau tetap hijau.
+4. Fixture `template_db` dipakai ≥ 80% berkas uji (grep `tmp_db` yang tersisa + sebutkan alasannya kalau ada yang belum).
+5. `pytest -q backend` 2× berturut-turut hijau (tidak ada ketergantungan urutan/cache).
+
+**Bukti:** 4 angka durasi + ringkasan `N passed` sebelum/sesudah + daftar test ber-marker `slow`.
+Commit: `B23: test backend lebih cepat (marker slow + template DB sesi)`.
+
 ---
 
 ## Aturan tambahan untuk agen backend
