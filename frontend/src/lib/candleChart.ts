@@ -1,4 +1,4 @@
-import type { Candle, Layer } from "./api";
+import type { Candle, ElliottLayers, Layer, SmcLayers } from "./api";
 import { formatNum, formatRp } from "./format";
 
 /**
@@ -296,4 +296,179 @@ export const LAYER_HINT: Record<Layer, string> = {
 /** Nyalakan/matikan satu lapisan, urutan tetap (docs/06 §6.6). */
 export function toggleLayer(layers: readonly Layer[], layer: Layer): Layer[] {
   return layers.includes(layer) ? layers.filter((item) => item !== layer) : [...layers, layer];
+}
+
+// ── F22: lapisan konteks SMC & Elliott (docs/06 §6.7) ────────────────────────
+
+/** Pemetaan tanggal/harga → koordinat SVG; disuntik supaya helper bisa diuji tanpa DOM. */
+export interface ShapeScale {
+  x: (date: string) => number | null;
+  y: (price: number) => number;
+  /** Tepi kiri/kanan area plot (dari komponen) — garis level penuh memakai ini. */
+  left: number;
+  right: number;
+}
+
+/** Gaya siap pakai: `opacity` + `dashed` (pola termitigasi/batal → lebih redup + putus). */
+export interface ShapeStyle {
+  opacity: number;
+  dashed: boolean;
+  /** Pola garis putus khusus (mis. equal level → titik `1 3`); default `3 3`. */
+  dash?: string;
+}
+
+export interface SmcShape {
+  kind: "box" | "line" | "band";
+  x1: number;
+  x2: number;
+  /** garis: harga level; kotak/pita: tepi atas. */
+  y1: number;
+  /** kotak/pita: tepi bawah; garis: sama dengan `y1`. */
+  y2: number;
+  tone: "up" | "down" | "border";
+  label?: string;
+  style: ShapeStyle;
+}
+
+/** Teks wajib legenda: kedua lapisan konteks tidak boleh terbaca sebagai sinyal (docs/06 §6.7). */
+export function layerNotice(layer: Layer): string | null {
+  return layer === "indicators" ? null : "lapisan konteks, bukan sinyal";
+}
+
+const box = (x1: number, x2: number, y1: number, y2: number, tone: SmcShape["tone"], style: ShapeStyle, label?: string): SmcShape => ({
+  kind: "box",
+  x1,
+  x2,
+  y1: Math.min(y1, y2),
+  y2: Math.max(y1, y2),
+  tone,
+  label,
+  style,
+});
+
+/**
+ * SMC → bentuk siap render (docs/06 §6.7): BOS/CHoCH garis putus + label, order block kotak
+ * `--up`/`--down` (termitigasi lebih redup + putus), FVG kotak `--border`, equal level garis
+ * titik + label `N×`, premium/discount dua pita + garis tengah 50%. Semua opacity dari sini —
+ * komponen tidak menghitung gaya sendiri.
+ */
+export function smcShapes(smc: SmcLayers | undefined, scale: ShapeScale): SmcShape[] {
+  if (!smc) return [];
+  const shapes: SmcShape[] = [];
+  const push = (shape: SmcShape) => {
+    if (Number.isFinite(shape.x1) && Number.isFinite(shape.x2)) shapes.push(shape);
+  };
+
+  for (const { list, label } of [
+    { list: smc.bos, label: "BOS" },
+    { list: smc.choch, label: "CHoCH" },
+  ]) {
+    for (const point of list) {
+      const x = scale.x(point.date);
+      if (x === null) continue;
+      push({ kind: "line", x1: x, x2: scale.right, y1: scale.y(point.level), y2: scale.y(point.level), tone: "border", label, style: { opacity: 1, dashed: true } });
+    }
+  }
+
+  for (const block of smc.order_blocks) {
+    push(
+      box(
+        scale.x(block.from) ?? NaN,
+        scale.x(block.to) ?? NaN,
+        scale.y(block.high),
+        scale.y(block.low),
+        block.kind === "bullish" ? "up" : "down",
+        block.mitigated ? { opacity: 0.04, dashed: true } : { opacity: 0.08, dashed: false },
+      ),
+    );
+  }
+
+  for (const gap of smc.fvg) {
+    push(
+      box(
+        scale.x(gap.date) ?? NaN,
+        scale.right,
+        scale.y(gap.high),
+        scale.y(gap.low),
+        "border",
+        gap.mitigated ? { opacity: 0.04, dashed: true } : { opacity: 0.08, dashed: false },
+      ),
+    );
+  }
+
+  for (const level of smc.equal_levels) {
+    push({
+      kind: "line",
+      x1: scale.left,
+      x2: scale.right,
+      y1: scale.y(level.level),
+      y2: scale.y(level.level),
+      tone: "border",
+      label: `${formatNum(level.count, 0)}×`,
+      style: { opacity: 1, dashed: true, dash: "1 3" },
+    });
+  }
+
+  if (smc.range) {
+    const { low, high, premium_from, discount_to } = smc.range;
+    push(box(scale.left, scale.right, scale.y(high), scale.y(premium_from), "up", { opacity: 0.04, dashed: false }, "premium"));
+    push(box(scale.left, scale.right, scale.y(discount_to), scale.y(low), "down", { opacity: 0.04, dashed: false }, "discount"));
+    push({
+      kind: "line",
+      x1: scale.left,
+      x2: scale.right,
+      y1: scale.y((high + low) / 2),
+      y2: scale.y((high + low) / 2),
+      tone: "border",
+      label: "50%",
+      style: { opacity: 1, dashed: true },
+    });
+  }
+
+  return shapes;
+}
+
+export interface ElliottShape {
+  kind: "zigzag" | "label" | "fib";
+  points?: { x: number; y: number }[];
+  x?: number;
+  y?: number;
+  label?: string;
+  style: ShapeStyle;
+}
+
+/**
+ * Elliott → ZigZag + label wave + zona Fib (docs/06 §6.7). Pola `invalidated` digambar
+ * putus-putus + opacity 0,5; `note` dari API ditampilkan apa adanya di legenda.
+ */
+export function elliottShapes(elliott: ElliottLayers | undefined, scale: ShapeScale): ElliottShape[] {
+  if (!elliott) return [];
+  const shapes: ElliottShape[] = [];
+  const zigStyle: ShapeStyle = elliott.invalidated ? { opacity: 0.5, dashed: true } : { opacity: 1, dashed: false };
+
+  const points = elliott.zigzag
+    .map((pivot) => {
+      const x = scale.x(pivot.date);
+      return x === null ? null : { x, y: scale.y(pivot.price) };
+    })
+    .filter((point): point is { x: number; y: number } => point !== null);
+  if (points.length > 1) shapes.push({ kind: "zigzag", points, style: zigStyle });
+
+  for (const wave of elliott.waves) {
+    const x = scale.x(wave.to);
+    if (x === null) continue;
+    shapes.push({ kind: "label", x, y: scale.y(wave.price_to), label: wave.label, style: zigStyle });
+  }
+
+  for (const zone of elliott.fib_zones) {
+    shapes.push({
+      kind: "fib",
+      x: scale.right,
+      y: scale.y(zone.level),
+      label: `${formatNum(zone.ratio * 100, 1)}%`,
+      style: { opacity: 1, dashed: true },
+    });
+  }
+
+  return shapes;
 }

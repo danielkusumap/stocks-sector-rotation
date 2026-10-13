@@ -11,6 +11,9 @@ import {
   needsBorder,
   overlayVisibility,
   pocLabel,
+  elliottShapes,
+  layerNotice,
+  smcShapes,
   priceDomain,
   scaleY,
   ursiGuides,
@@ -111,6 +114,12 @@ export function CandleChart({ data }: { data: StockSeriesResponse }) {
       .filter((pair): pair is string => pair !== null)
       .join(" ");
 
+  // lapisan konteks SMC/Elliott (F22): digambar **hanya** bila toggle di URL diminta (backend
+  // menggemakan `layers`); respons yang memuat lapisannya saja tidak cukup untuk menampilkannya
+  const shapeScale = { x: xOfDate, y: (price: number) => scaleY(price, domain, PLOT), left: PAD_LEFT, right: VB_W - PAD_RIGHT };
+  const smcFigure = data.layers.includes("smc") && data.smc ? smcShapes(data.smc, shapeScale) : [];
+  const elliottFigure = data.layers.includes("elliott") && data.elliott ? elliottShapes(data.elliott, shapeScale) : [];
+
   const hovered = hover === null ? null : candles[hover];
   // Kotak angka tidak menutupi 20 bar terakhir (docs/06 §6.3): hover di area itu → kotak ke kiri
   const boxLeft = hover === null ? 0 : hover >= count - 20;
@@ -154,6 +163,24 @@ export function CandleChart({ data }: { data: StockSeriesResponse }) {
         {ursiRangeNote(data.regime) && (
           <span className="text-fg-faint" data-testid="ursi-range-note">
             {ursiRangeNote(data.regime)}
+          </span>
+        )}
+        {/* SMC/Elliott = lapisan konteks: wajib disebut, plus catatan API apa adanya (docs/06 §6.7) */}
+        {(["smc", "elliott"] as const).map((layer) =>
+          data.layers.includes(layer) ? (
+            <span key={layer} className="text-fg-faint" data-testid={`layer-notice-${layer}`}>
+              {layerNotice(layer)}
+            </span>
+          ) : null,
+        )}
+        {elliottFigure.length > 0 && data.elliott?.invalidated && (
+          <span className="text-warn" data-testid="elliott-invalidated">
+            pola batal
+          </span>
+        )}
+        {elliottFigure.length > 0 && data.elliott?.note && (
+          <span className="text-warn" data-testid="elliott-note">
+            {data.elliott.note}
           </span>
         )}
       </div>
@@ -421,6 +448,101 @@ export function CandleChart({ data }: { data: StockSeriesResponse }) {
             <text x={PAD_LEFT - 4} y={ursiTop + 10} textAnchor="end" fontSize={10} fill="var(--fg-faint)">
               {ursiTitle(ursi.len, ursi.method)}
             </text>
+          </g>
+        )}
+
+        {/* lapisan konteks SMC (F22): pointer-events none supaya hover bar tetap jalan */}
+        {smcFigure.length > 0 && (
+          <g data-layer="smc" pointerEvents="none">
+            {smcFigure.map((shape, index) =>
+              shape.kind === "box" ? (
+                <g key={`${shape.kind}-${index}`}>
+                  <rect
+                    x={shape.x1}
+                    y={shape.y1}
+                    width={Math.max(0, shape.x2 - shape.x1)}
+                    height={Math.max(1, shape.y2 - shape.y1)}
+                    fill={shape.tone === "up" ? "var(--up)" : shape.tone === "down" ? "var(--down)" : "var(--border)"}
+                    fillOpacity={shape.style.opacity}
+                    stroke="var(--border-strong)"
+                    strokeWidth={1}
+                    strokeOpacity={shape.style.dashed ? 0.4 : 1}
+                    strokeDasharray={shape.style.dashed ? (shape.style.dash ?? "3 3") : undefined}
+                  />
+                  {shape.label && (
+                    <text x={shape.x1 + 3} y={shape.y1 - 2} fontSize={9} fill="var(--fg-faint)">
+                      {shape.label}
+                    </text>
+                  )}
+                </g>
+              ) : (
+                <g key={`${shape.kind}-${index}`}>
+                  <line
+                    x1={shape.x1}
+                    x2={shape.x2}
+                    y1={shape.y1}
+                    y2={shape.y2}
+                    stroke="var(--border-strong)"
+                    strokeWidth={1}
+                    strokeDasharray={shape.style.dashed ? (shape.style.dash ?? "3 3") : undefined}
+                    opacity={shape.style.opacity}
+                  />
+                  {shape.label && (
+                    <text x={shape.x2 - 2} y={shape.y1 - 3} textAnchor="end" fontSize={9} fill="var(--fg-faint)">
+                      {shape.label}
+                    </text>
+                  )}
+                </g>
+              ),
+            )}
+          </g>
+        )}
+
+        {/* lapisan konteks Elliott (F22): ZigZag + label wave + zona Fib */}
+        {elliottFigure.length > 0 && (
+          <g data-layer="elliott" pointerEvents="none">
+            {elliottFigure.map((shape, index) =>
+              shape.kind === "zigzag" ? (
+                <polyline
+                  key={`zigzag-${index}`}
+                  points={(shape.points ?? []).map((point) => `${point.x},${point.y}`).join(" ")}
+                  fill="none"
+                  stroke="var(--fg-faint)"
+                  strokeWidth={1}
+                  opacity={shape.style.opacity}
+                  strokeDasharray={shape.style.dashed ? "4 3" : undefined}
+                />
+              ) : shape.kind === "label" ? (
+                <text
+                  key={`label-${index}`}
+                  x={shape.x}
+                  y={shape.y}
+                  dx={3}
+                  dy={-3}
+                  fontSize={10}
+                  fill="var(--fg-muted)"
+                  opacity={shape.style.opacity}
+                >
+                  {shape.label}
+                </text>
+              ) : (
+                <g key={`fib-${index}`}>
+                  <line
+                    x1={PAD_LEFT}
+                    x2={shape.x}
+                    y1={shape.y}
+                    y2={shape.y}
+                    stroke="var(--fg-faint)"
+                    strokeWidth={1}
+                    strokeDasharray="3 3"
+                    opacity={shape.style.opacity}
+                  />
+                  <text x={shape.x} y={(shape.y ?? 0) - 2} textAnchor="end" fontSize={9} fill="var(--fg-faint)">
+                    {shape.label}
+                  </text>
+                </g>
+              ),
+            )}
           </g>
         )}
 

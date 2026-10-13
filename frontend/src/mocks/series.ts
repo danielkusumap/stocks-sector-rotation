@@ -126,6 +126,93 @@ function indicatorsFor(candles: Candle[]): NonNullable<StockSeriesResponse["indi
   };
 }
 
+/**
+ * Lapisan `smc` (F22): BOS/CHoCH, order block, FVG, equal level, range premium/discount —
+ * diturunkan mock dari bar terakhir (mock berperan backend; frontend tidak menghitung).
+ */
+function smcFor(candles: Candle[]): NonNullable<StockSeriesResponse["smc"]> {
+  const recent = candles.slice(-40);
+  if (recent.length < 5) {
+    return { bos: [], choch: [], order_blocks: [], fvg: [], equal_levels: [], range: null };
+  }
+  const highs = recent.map((c) => c.high);
+  const lows = recent.map((c) => c.low);
+  const max = Math.max(...highs);
+  const min = Math.min(...lows);
+  const bosDate = recent[recent.length - 8];
+  const chochDate = recent[recent.length - 3];
+  const blocks = recent.slice(-6, -3).map((candle, index) => ({
+    kind: index % 2 === 0 ? "bullish" : "bearish",
+    from: candle.date,
+    to: recent[recent.length - 2].date,
+    low: Math.min(candle.open, candle.close),
+    high: Math.max(candle.open, candle.close),
+    mitigated: index === 1,
+  }));
+  const gaps = recent
+    .map((candle, index) => {
+      const before = recent[index - 1];
+      const after = recent[index + 1];
+      if (!before || !after || before.high >= after.low) return null;
+      return { kind: "bullish", date: candle.date, low: before.high, high: after.low, mitigated: index % 3 === 0 };
+    })
+    .filter((gap): gap is { kind: string; date: string; low: number; high: number; mitigated: boolean } => gap !== null);
+  const rounded = (value: number) => Math.round(value);
+  const equalHigh = rounded(Math.max(...highs.slice(-10)));
+  const equalLow = rounded(Math.min(...lows.slice(-10)));
+
+  return {
+    bos: [{ date: bosDate.date, direction: "up", level: rounded(bosDate.high) }],
+    choch: [{ date: chochDate.date, direction: "down", level: rounded(chochDate.low) }],
+    order_blocks: blocks,
+    fvg: gaps,
+    equal_levels: [
+      { kind: "high", level: equalHigh, count: 2 },
+      { kind: "low", level: equalLow, count: 3 },
+    ],
+    range: {
+      low: rounded(min),
+      high: rounded(max),
+      premium_from: rounded(min + (max - min) * 0.7),
+      discount_to: rounded(min + (max - min) * 0.3),
+    },
+  };
+}
+
+/**
+ * Lapisan `elliott` (F22): ZigZag 6 pivot, wave `1..5`, zona Fib dari rentang; `invalidated`
+ * hanya saat diminta (knob `?mock=smc`) supaya gaya putus + catatan bisa diperiksa.
+ */
+function elliottFor(candles: Candle[], invalidated: boolean): NonNullable<StockSeriesResponse["elliott"]> {
+  const step = Math.max(1, Math.floor(candles.length / 6));
+  const zigzag = Array.from({ length: 6 }, (_, index) => candles[Math.max(0, candles.length - 1 - index * step)])
+    .filter((candle): candle is Candle => candle !== undefined)
+    .reverse()
+    .map((candle) => ({ date: candle.date, price: candle.high, kind: "high" }));
+  const highs = candles.map((c) => c.high);
+  const lows = candles.map((c) => c.low);
+  const top = Math.max(...highs);
+  const bottom = Math.min(...lows);
+
+  return {
+    status: invalidated ? "invalidated" : "candidate",
+    invalidated,
+    zigzag,
+    waves: zigzag.slice(0, 5).map((pivot, index) => ({
+      label: String(index + 1),
+      from: zigzag[index].date,
+      to: pivot.date,
+      price_from: zigzag[index].price,
+      price_to: pivot.price,
+    })),
+    fib_zones: [0.382, 0.5, 0.618].map((ratio) => ({
+      ratio,
+      level: Math.round(bottom + (top - bottom) * ratio),
+    })),
+    note: "kandidat, bisa berubah",
+  };
+}
+
 /** Bar harian mundur dari harga penutupan fixture; rentang wajar (bukan simulasi pasar nyata). */
 function candlesFor(ticker: string, lastClose: number): Candle[] {
   const rnd = rng(ticker);
@@ -163,6 +250,10 @@ function bodyFor({ ticker, lastClose, name, knob, layers }: SeriesQuery): StockS
   const closes = candles.map((c) => c.close);
   // lapisan indikator (F21) hanya dibuat bila diminta — mock berperan backend
   const indicators = layers.includes("indicators") ? indicatorsFor(candles) : undefined;
+  // lapisan konteks (F22): `?mock=smc` mengirim smc+elliott **walau tidak diminta** (AC 1: UI
+  // harus tetap 0 elemen saat toggle mati); elliott `invalidated` untuk menguji gaya putus
+  const smc = knob === "smc" || layers.includes("smc") ? smcFor(candles) : undefined;
+  const elliott = knob === "smc" || layers.includes("elliott") ? elliottFor(candles, knob === "smc") : undefined;
   const maSeries = (period: number) =>
     sma(closes, period)
       .map((value, index) => (value === null ? null : { date: candles[index].date, value: Math.round(value * 10) / 10 }))
@@ -233,6 +324,8 @@ function bodyFor({ ticker, lastClose, name, knob, layers }: SeriesQuery): StockS
     // lapisan sesuai permintaan URL (`layers`); kosong = hanya lapisan dasar (F19)
     layers,
     indicators,
+    smc,
+    elliott,
     data_status: {
       // `as_of` wajib string di kontrak; saat `candles: []` pakai tanggal hasil hitung terakhir
       as_of: last?.date ?? "2026-10-12",
