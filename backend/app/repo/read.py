@@ -55,7 +55,9 @@ def data_status(conn, *, as_of: str | None, timeframe: str, weighting: str) -> d
         "SELECT MAX(computed_at) FROM rrg_daily WHERE as_of_date = ? AND timeframe = ?", (as_of, timeframe)
     ).fetchone()[0]
     daily = freshness.read(conn).get("daily_ingest") or {}
-    if partial_sectors:
+    if as_of is None:
+        status = "stale"  # belum ada hasil hitung untuk timeframe ini — jangan bilang "ok"
+    elif partial_sectors:
         status = "partial"
     elif daily.get("status") in ("stale", "partial", "failed"):
         status = "stale"

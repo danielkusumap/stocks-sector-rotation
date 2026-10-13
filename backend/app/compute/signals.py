@@ -289,6 +289,10 @@ def week_picks(conn, week_end: str, *, weighting: str, trading_dates: list[str],
     conn.execute("CREATE TEMP TABLE IF NOT EXISTS _candidate_sector (code TEXT PRIMARY KEY)")
     conn.execute("DELETE FROM _candidate_sector")  # tabel temp bertahan sepanjang koneksi (dipakai per minggu)
     conn.executemany("INSERT OR IGNORE INTO _candidate_sector (code) VALUES (?)", [(code,) for code in stock_sectors])
+    # Jangan tahan transaksi panjang: `report()` (koneksi worker) menulis & commit di tengah loop,
+    # sehingga koneksi ini jadi snapshot basi dan `upsert` di akhir gagal "database is locked"
+    # (SQLITE_BUSY_SNAPSHOT). Commit di sini melepas snapshot sebelum membaca baris sektor.
+    conn.commit()
     cutoff = _cutoff_date(trading_dates, week_end, bars=5)
 
     stock_rows = []

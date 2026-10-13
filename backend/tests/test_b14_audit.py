@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 
 import pandas as pd
 import pytest
@@ -12,6 +13,7 @@ from backend.app import cache, db
 from backend.app.compute import metrics, rrg, signals
 from backend.app.config import get_settings
 from backend.app.ingest import prices
+from backend.app.repo import run as runs
 from backend.tests.test_b2_prices import db_with_universe as b2_universe
 from backend.tests.test_b3_intraday_gate import DAY, _frame, db_with_universe, small_config
 from backend.tests.test_b7_signals import signal_inputs, weekly_db  # noqa: F401
@@ -185,6 +187,38 @@ def test_require_sektor_kandidat_dihormati(two_sector_inputs, monkeypatch):
     assert "DDDD" in longgar and "AAAA" in longgar
 
 
+def test_compute_all_menyiapkan_prasyarat_w1_fri(read_db, monkeypatch):
+    """Temuan gladi bersih: `stage=all` (tombol 4) tidak menghitung `w1_fri` sehingga langkah
+    sinyalnya selalu 0 baris. Sekarang tombol 4 menghitung RRG/metrik/skor `w1_fri` sektor."""
+    monkeypatch.setattr(db, "db_path", lambda: read_db)
+    from backend.app import jobs
+
+    result = jobs.compute({"stage": "all", "timeframe": "d1"}, lambda **k: None)
+    assert "w1_fri" in result["timeframes"]
+
+    conn = db.connect(read_db)
+    try:
+        rrg_w1f = conn.execute("SELECT COUNT(*) FROM rrg_daily WHERE timeframe = 'w1_fri' AND scope = 'sector'").fetchone()[0]
+        metrics_w1f = conn.execute("SELECT COUNT(*) FROM sector_metrics WHERE timeframe = 'w1_fri'").fetchone()[0]
+        scored_w1f = conn.execute("SELECT COUNT(*) FROM sector_metrics WHERE timeframe = 'w1_fri' AND score IS NOT NULL").fetchone()[0]
+        stock_w1f = conn.execute("SELECT COUNT(*) FROM rrg_daily WHERE timeframe = 'w1_fri' AND scope = 'stock'").fetchone()[0]
+    finally:
+        conn.close()
+    assert rrg_w1f > 0 and metrics_w1f > 0 and scored_w1f > 0
+    assert stock_w1f == 0  # saham sengaja tidak dihitung untuk w1_fri (jaga durasi tombol 4)
+
+
+def test_data_status_stale_kalau_tidak_ada_hasil_hitung(read_db, monkeypatch):
+    """Timeframe tanpa baris hasil hitung harus `stale`, bukan `ok` dengan `as_of: null`."""
+    monkeypatch.setattr(db, "db_path", lambda: read_db)
+    cache.clear()
+    from backend.app.main import app
+
+    body = TestClient(app).get("/api/v1/sectors/summary?timeframe=midday").json()
+    assert body["items"] == [] and body["data_status"]["as_of"] is None
+    assert body["data_status"]["status"] == "stale"
+
+
 # --- 4) B3: baris `data_freshness` ditulis setelah ingest ---------------------
 
 
@@ -217,3 +251,43 @@ def test_ingest_daily_catat_baris_freshness(b2_universe, monkeypatch):
     assert result["status"] == "ok" and row is not None
     assert row["status"] == "ok" and row["last_bar_at"]
     assert json.loads(row["detail"])["rows"] == result["rows"] > 0
+
+
+# --- 5) Temuan gladi bersih: transaksi panjang & progres best-effort ----------
+
+
+def test_week_picks_tidak_menahan_transaksi(two_sector_inputs):
+    """Regresi `database is locked` (gladi bersih): `week_picks` menulis tabel TEMP; tanpa commit,
+    koneksi ini menyimpan snapshot basi sehingga `upsert` di akhir loop gagal (SQLITE_BUSY_SNAPSHOT)
+    begitu `report()` menulis dari koneksi worker di tengah loop."""
+    cfg = get_settings()
+    conn = db.connect(two_sector_inputs)
+    try:
+        weeks = signals.weekly_calendar(conn, cfg.ingest["benchmark_alias"], final_only=True)
+        assert weeks, "fixture harus punya minggu final"
+        dates = [r[0] for r in conn.execute(signals.CALENDAR_SQL, (cfg.ingest["benchmark_alias"],))]
+        sector_rows, _ = signals.week_picks(conn, weeks[-1], weighting="equal", trading_dates=dates, cfg=cfg)
+        assert sector_rows, "fixture harus menghasilkan kandidat sektor (jalur tabel TEMP terpakai)"
+        assert conn.in_transaction is False
+    finally:
+        conn.close()
+
+
+def test_report_best_effort_saat_database_locked():
+    """Progres kosmetik tidak boleh membunuh job panjang yang sedang menahan kunci tulis."""
+
+    class LockedConn:
+        def execute(self, *args, **kwargs):
+            raise sqlite3.OperationalError("database is locked")
+
+        def rollback(self):
+            pass
+
+    runs.report(LockedConn(), 1, rows=5, rows_total=10)  # tidak raise
+
+    class BrokenConn(LockedConn):
+        def execute(self, *args, **kwargs):
+            raise sqlite3.OperationalError("no such table: ingest_run")
+
+    with pytest.raises(sqlite3.OperationalError):
+        runs.report(BrokenConn(), 1, rows=5)

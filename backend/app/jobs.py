@@ -103,13 +103,21 @@ def compute(params: dict, report: Callable[..., None]) -> dict:
         scopes = ("sector",) if stage == "signals" else ("sector", "stock")
         rrg_result = rrg.compute_rrg(timeframes=timeframes_list, scopes=scopes, report=report)
         rows += rrg_result["rows"]
-        result["timeframes"] = rrg_result["timeframes"]
+        result["timeframes"] = list(rrg_result["timeframes"])
         metrics_result = metrics.compute_metrics(timeframes=timeframes_list, report=report)
         rows += metrics_result["rows"]
         result["metrics_rows"] = metrics_result["rows"]
         scores_result = metrics.compute_scores(timeframes=timeframes_list)
         rows += scores_result["rows"]
         result["score_rows"] = scores_result["rows"]
+
+        if stage == "all":
+            # Tombol 4 juga menghasilkan sinyal mingguan, jadi prasyarat `w1_fri` (RRG/metrik/skor
+            # sektor) harus dihitung di sini — sektor saja, supaya tidak menambah beban saham.
+            rows += rrg.compute_rrg(timeframes=["w1_fri"], scopes=("sector",), report=report)["rows"]
+            rows += metrics.compute_metrics(timeframes=["w1_fri"], report=report)["rows"]
+            rows += metrics.compute_scores(timeframes=["w1_fri"])["rows"]
+            result["timeframes"].append("w1_fri")
 
     if stage in ("signals", "all"):
         signals_result = signals.compute_signals(report=report)

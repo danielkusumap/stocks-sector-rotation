@@ -184,6 +184,30 @@ Format:
 - alternatif: (a) menghapus key `require_sektor_kandidat` dari config → ditolak: user yang ingin melihat pick di luar sektor kandidat kehilangan tombolnya, dan menghapus konfigurasi yang sudah diumumkan lebih mahal dari 3 baris kode; (b) menulis baris `intraday_ingest` lewat SQL mentah di `prices` → ditolak: satu penulis (`freshness.write_freshness`) lebih mudah dijaga.
 - dampak: B3 `done`. Baris `intraday_ingest`/`daily_ingest` muncul pada run ingest berikutnya (dev DB sekarang baru berisi `midday_gate` karena ingest terakhir terjadi sebelum perubahan ini) — tidak ada migrasi data yang diperlukan.
 
+## ADR-030 — Tombol 4 (`stage=all`) juga menghitung prasyarat `w1_fri`
+- tanggal: 2026-10-13
+- status: diterima (temuan gladi bersih)
+- konteks: `docs/05` §4.1 bilang `stage=all` menjalankan "indeks → RRG → metrik → sinyal". Kode menjalankan RRG/metrik/skor untuk `d1`+`w1` saja, sedangkan langkah sinyal membaca RRG/metrik **`w1_fri`** (ADR-022). Akibatnya `stage=all` selalu menulis 0 baris `signal_weekly`, `/weekly/picks` & `weekly_focus` briefing kosong, dan `/rrg?timeframe=w1_fri` tidak punya baris (frontend menggambar ekor dari situ → ekor tidak pernah muncul). Gladi bersih menemukannya karena semua tombol ditekan berurutan dari UI.
+- keputusan: `stage=all` menambah satu lintasan **sektor saja** untuk `w1_fri` (RRG + metrik + skor) sebelum langkah sinyal. Hasil `timeframes` menjadi `["d1","w1","w1_fri"]`. Saham tidak dihitung untuk `w1_fri` (RRG saham mingguan mahal ±60 s di 962 emiten, dan tidak dipakai UI — ADR-022).
+- alternatif: (a) menyuruh user menekan tombol 5 sebelum tombol 4 → ditolak: sinyal mingguan hanya boleh dihitung Jumat/akhir pekan (`gate_final_week`), jadi `stage=all` di hari kerja akan selalu meninggalkan `/weekly/picks` kosong; (b) `stage=all` memanggil `signals.compute_signals` tanpa prasyarat → ditolak: hasilnya diam-diam kosong (bug yang sedang diperbaiki).
+- dampak: durasi tombol 4 naik sedikit (gladi 20 emiten: 15,7 s; DB user 962 emiten: perkiraan +3–5 s untuk 11 sektor × 3 bobot). `/weekly/picks` dan ekor `/rrg?w1_fri` terisi dari satu klik. Dijaga test `test_compute_all_menyiapkan_prasyarat_w1_fri`.
+
+## ADR-031 — Larangan transaksi panjang di `compute`, progres best-effort
+- tanggal: 2026-10-13
+- status: diterima (temuan gladi bersih: job gagal `OperationalError: database is locked`)
+- konteks: `signals.week_picks` menulis tabel TEMP (`_candidate_sector`) untuk tiap minggu tanpa `commit`, sehingga koneksi itu hidup dalam satu transaksi panjang; `report()` menulis progres dari koneksi worker di tengah loop → snapshot koneksi signals jadi basi, dan `upsert` di akhir loop gagal `SQLITE_BUSY_SNAPSHOT` yang muncul ke user sebagai "database is locked". Di DB kecil pun ini mematikan job (~110 minggu, laporan tiap 20 minggu) dan pasti terulang di DB 962 emiten karena UI memantau tiap detik.
+- keputusan: (a) fungsi `compute` tidak menahan transaksi lintas loop — tabel TEMP di-`commit` sebelum loop membaca baris sektor; (b) `repo.run.report` jadi best-effort: `OperationalError` yang memuat "locked" dilewati (progres kosmetik — job 60 detik tidak boleh mati karena UI memantau), error lain tetap naik. Kunci tulis tetap satu penulis per waktu; `busy_timeout` dari config tidak diubah.
+- alternatif: (a) menaikkan `busy_timeout_ms` → ditolak: tidak menolong `SQLITE_BUSY_SNAPSHOT` (tidak menunggu, langsung gagal); (b) satu koneksi untuk seluruh job (worker meminjamkan koneksinya) → ditolak: diff besar dan mengubah tanda tangan semua fungsi compute; (c) membungkam semua error di `report` → ditolak: error skema nyata harus terlihat.
+- dampak: `stage=all`/`stage=signals` tahan terhadap pemantauan UI dan job lain yang menulis. Dijaga test `test_week_picks_tidak_menahan_transaksi` + `test_report_best_effort_saat_database_locked`.
+
+## ADR-032 — `data_status.status = stale` bila belum ada hasil hitung
+- tanggal: 2026-10-13
+- status: diterima (temuan gladi bersih)
+- konteks: `data_status` menurunkan status dari freshness ingest; timeframe yang belum pernah dihitung (mis. `midday` di DB baru) menjawab `status: "ok"` dengan `as_of: null` dan `computed_at: null` — UI akan menampilkan badge "segar" untuk waktu tanpa data.
+- keputusan: `as_of is None` → `status: "stale"` sebelum aturan `partial`/freshness lain. Urutan: `stale` (tak ada hasil hitung) → `partial` (ada sektor < 3 konstituen) → freshness ingest → `ok`.
+- alternatif: membiarkan `ok` + `as_of: null` → ditolak: kontrak `docs/05` §3 memakai `status` untuk badge; "ok" tanpa data menyesatkan frontend dan user.
+- dampak: frontend boleh memakai `status` saja untuk badge. Endpoint dengan `data_status`: `/rrg`, `/sectors/summary`, `/sectors/{code}`, `/stocks`, `/briefing/morning` (sisanya tanpa `data_status` sesuai `docs/05`).
+
 ## ADR-005 — Git: satu task = satu commit, repo lokal dulu
 - tanggal: 2026-10-12
 - status: diterima

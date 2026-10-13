@@ -1,0 +1,111 @@
+{
+  "api_version": "1.0",
+  "generated_at": "2026-10-13T11:52:58+07:00",
+  "data_status": {
+    "as_of": "2026-10-13",
+    "timeframe": "d1",
+    "status": "ok",
+    "last_data_at": "2026-10-13T11:52:09+07:00",
+    "computed_at": "2026-10-13T11:52:47+07:00",
+    "partial_sectors": []
+  },
+  "market": {
+    "ihsg_close": 5916.34423828125,
+    "ihsg_ret_1d": -0.0033359575607238012,
+    "ihsg_ret_1w": -0.04466103513695452,
+    "sectors_up": 0,
+    "sectors_down": 3,
+    "breadth": {
+      "advancers": 2,
+      "decliners": 18,
+      "unchanged": 0
+    },
+    "regime": "mixed",
+    "regime_note": "0 naik / 3 turun dari 3 sektor — pasar campur, pilih sektor."
+  },
+  "leaders": [
+    {
+      "code": "IDXENERGY",
+      "name_id": "Energi",
+      "quadrant": "weakening",
+      "score": 65.2,
+      "ret_1w": -0.013262816017960422,
+      "streak_weeks": 0,
+      "series": null
+    },
+    {
+      "code": "IDXFINANCE",
+      "name_id": "Keuangan",
+      "quadrant": "lagging",
+      "score": 50.0,
+      "ret_1w": -0.024670873448291997,
+      "streak_weeks": 0,
+      "series": null
+    },
+    {
+      "code": "IDXTECHNO",
+      "name_id": "Teknologi",
+      "quadrant": "lagging",
+      "score": 21.7,
+      "ret_1w": -0.06126336690858847,
+      "streak_weeks": 0,
+      "series": null
+    }
+  ],
+  "laggards": [
+    {
+      "code": "IDXTECHNO",
+      "name_id": "Teknologi",
+      "quadrant": "lagging",
+      "score": 21.7,
+      "ret_1w": -0.06126336690858847,
+      "streak_weeks": 0,
+      "series": null
+    },
+    {
+      "code": "IDXFINANCE",
+      "name_id": "Keuangan",
+      "quadrant": "lagging",
+      "score": 50.0,
+      "ret_1w": -0.024670873448291997,
+      "streak_weeks": 0,
+      "series": null
+    },
+    {
+      "code": "IDXENERGY",
+      "name_id": "Energi",
+      "quadrant": "weakening",
+      "score": 65.2,
+      "ret_1w": -0.013262816017960422,
+      "streak_weeks": 0,
+      "series": null
+    }
+  ],
+  "changes": [],
+  "weekly_focus": {
+    "week_end": null,
+    "sectors": [],
+    "stocks": []
+  },
+  "midday": {
+    "available": false,
+    "as_of": null,
+    "gate": "stale",
+    "moves": []
+  },
+  "watch": [
+    {
+      "level": "warning",
+      "message": "Data intraday Yahoo belum sampai 11:30 WIB (bar terakhir belum ada bar); angka midday = penutupan sebelumnya."
+    },
+    {
+      "level": "info",
+      "message": "Belum ada sinyal mingguan — jalankan 'Hitung mingguan' setelah penutupan Jumat."
+    },
+    {
+      "level": "info",
+      "message": "Angka tengah hari belum tersedia — jalankan tombol 'Tengah hari'."
+    }
+  ],
+  "notes_for_report": "Susun 5–8 paragraf: kondisi pasar, sektor kuat/lemah, perubahan kuadran, fokus mingguan (sebut streak), risiko & catatan data."
+}

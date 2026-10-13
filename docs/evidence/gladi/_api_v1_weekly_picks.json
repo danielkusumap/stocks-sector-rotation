@@ -1,0 +1,29 @@
+{
+  "api_version": "1.0",
+  "week_end": "2026-09-04",
+  "is_final": true,
+  "sectors": [
+    {
+      "ref_id": "IDXTECHNO",
+      "name": "Teknologi",
+      "rank": 1,
+      "score": 0.0,
+      "streak_weeks": 4,
+      "rule_hits": {
+        "quadrant": "leading",
+        "quadrant_ok": true,
+        "age_ok": true,
+        "momentum_ok": true,
+        "ret_4w_ok": true,
+        "constituents_ok": true,
+        "rs_momentum": 100.39505657104444,
+        "rs_momentum_change_1p": 0.03372539322103307,
+        "ret_4w": 0.02809270533340058,
+        "constituents_count": 6,
+        "quadrant_age_periods": 16
+      },
+      "rationale": "Teknologi bertahan 16 periode di kuadran Memimpin dengan momentum relatif 100,4 (>100) yang masih naik."
+    }
+  ],
+  "stocks": []
+}

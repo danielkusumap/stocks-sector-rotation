@@ -34,18 +34,30 @@ def report(
     message: str | None = None,
     phase: str | None = None,
 ) -> None:
-    """Tulis progres (dipanggil per batch, bukan per baris — docs/07 B12 #5)."""
+    """Tulis progres (dipanggil per batch, bukan per baris — docs/07 B12 #5).
+
+    Best-effort: job panjang boleh menahan kunci tulis saat koneksi lain menulis. Progres kosmetik,
+    jadi kegagalan `locked` dilewati supaya tidak membunuh job 60 detik hanya karena UI memantau.
+    """
     percent = round(rows * 100.0 / rows_total, 1) if rows is not None and rows_total else None
-    conn.execute(
-        """
-        UPDATE ingest_run
-        SET rows = COALESCE(?, rows), rows_total = COALESCE(?, rows_total), percent = COALESCE(?, percent),
-            message = COALESCE(?, message), phase = COALESCE(?, phase)
-        WHERE id = ?
-        """,
-        (rows, rows_total, percent, message, phase, run_id),
-    )
-    conn.commit()
+    try:
+        conn.execute(
+            """
+            UPDATE ingest_run
+            SET rows = COALESCE(?, rows), rows_total = COALESCE(?, rows_total), percent = COALESCE(?, percent),
+                message = COALESCE(?, message), phase = COALESCE(?, phase)
+            WHERE id = ?
+            """,
+            (rows, rows_total, percent, message, phase, run_id),
+        )
+        conn.commit()
+    except sqlite3.OperationalError as exc:
+        if "locked" not in str(exc):
+            raise
+        try:
+            conn.rollback()
+        except sqlite3.Error:
+            pass
 
 
 def finish(
