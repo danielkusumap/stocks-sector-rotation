@@ -8,14 +8,16 @@ from __future__ import annotations
 
 import json
 
-from fastapi import APIRouter, HTTPException
+import pandas as pd
+from fastapi import APIRouter, HTTPException, Query
 
 from .. import db
 from ..compute import plan as plan_compute
 from ..config import get_settings
 from ..labels import REGIME_LABEL
 from ..repo import read
-from .schemas import PlanStockResponse
+from .rrg import _check
+from .schemas import PlanStockResponse, SeriesStockResponse
 
 router = APIRouter(prefix="/api/v1", tags=["plan"])
 _API_VERSION = get_settings().app.api_version
@@ -141,3 +143,193 @@ def _summary_fallback(bars_available: int) -> str:
     return (
         f"Riwayat harga {bars_available} bar — analisa teknikal belum dihitung untuk saham ini."
     )
+
+
+# --- B19: bahan grafik candle + overlay TA (`/series/stock/{ticker}`, docs/05 §2, docs/06 §6.5) ---
+
+# OHLC penyesuaian (ADR-040): `open`/`high`/`low` mentah diskalakan ke kerangka `adj_close`.
+CANDLE_SQL = """
+    SELECT date, adj_close AS close, volume,
+           open * adj_close / NULLIF(close, 0) AS open,
+           high * adj_close / NULLIF(close, 0) AS high,
+           low  * adj_close / NULLIF(close, 0) AS low
+    FROM price_daily
+    WHERE ticker = ? AND adj_close IS NOT NULL AND close IS NOT NULL
+    ORDER BY date
+"""
+STOCK_EVENTS_SERIES_SQL = """
+    SELECT signal_date, entry_date, entry_price, result, periods, mfe_pct, mae_pct
+    FROM ta_breakout
+    WHERE scope = 'stock' AND ref_id = ? AND ma_period = ? AND trend_filter = ?
+    ORDER BY signal_date
+"""
+MAX_BARS = 400
+MAX_EVENTS = 100
+LAYERS = ("indicators", "smc", "elliott")
+
+
+def _num(value, digits: int = 2) -> float | None:
+    """Angka bulat `digits` desimal; `None`/NaN tetap `None` (warmup tidak dikirim 0)."""
+    return None if value is None or pd.isna(value) else round(float(value), digits)
+
+
+def _points(series, dates) -> list[dict]:
+    return [
+        {"date": str(date), "value": _num(value, 4)}
+        for date, value in zip(dates, series)
+        if value is not None and not pd.isna(value)
+    ]
+
+
+def _channels(bars, close: float, cfg) -> list[dict]:
+    """Kanal S/R dari pivot (docs/03 §6.4.9) — aturan kelompok sama dengan `plan.channels`."""
+    plan_cfg = cfg.weekly["plan"]
+    up_idx, low_idx = plan_compute.pivots(bars, plan_cfg["pivot_bars"])
+    tolerance = plan_cfg["channel_tol_pct"] * close
+    out: list[dict] = []
+    for kind, indices, column in (("resistance", up_idx, "high"), ("support", low_idx, "low")):
+        pairs = sorted((float(bars[column].iloc[index]), str(bars["date"].iloc[index])) for index in indices)
+        groups: list[list[tuple[float, str]]] = []
+        for pair in pairs:
+            if groups and abs(pair[0] - groups[-1][-1][0]) <= tolerance:
+                groups[-1].append(pair)
+            else:
+                groups.append([pair])
+        for group in groups:
+            if len(group) < cfg.chart["channel_min_strength"]:
+                continue
+            out.append(
+                {
+                    "low": round(min(item[0] for item in group), 2),
+                    "high": round(max(item[0] for item in group), 2),
+                    "strength": len(group),
+                    "kind": kind,
+                    "from": group[0][1],
+                    "to": None,
+                }
+            )
+    return out
+
+
+@router.get("/series/stock/{ticker}", response_model=SeriesStockResponse)
+def stock_series(
+    ticker: str,
+    window: str = "6m",
+    bars: int | None = None,
+    ma: list[int] | None = Query(default=None),
+    events: int | None = None,
+    weighting: str | None = None,
+    layers: list[str] | None = Query(default=None),
+) -> dict:
+    """Candle + overlay TA sesuai rezim (docs/05 §2).
+
+    Level & rezim dibaca dari baris `stock_plan` yang sama dengan `/plan/stock` (satu sumber, B19 AC 9);
+    indikator dihitung backend dari harga penyesuaian — frontend tidak menghitung apa pun.
+    """
+    cfg = get_settings()
+    ticker = ticker.upper()
+    n_bars = bars or cfg.chart["window_bars"]
+    n_events = events or cfg.chart["events"]
+    if n_bars > MAX_BARS:
+        raise HTTPException(422, {"code": "invalid_bars", "message": f"bars maksimum {MAX_BARS}", "detail": {"bars": n_bars}})
+    if n_events > MAX_EVENTS:
+        raise HTTPException(422, {"code": "invalid_events", "message": f"events maksimum {MAX_EVENTS}", "detail": {"events": n_events}})
+    requested = layers or []
+    unknown = [layer for layer in requested if layer not in LAYERS]
+    if unknown:
+        raise HTTPException(422, {"code": "invalid_layer", "message": "lapisan tidak dikenal", "detail": {"layers": unknown}})
+    weighting = weighting or cfg.universe["weighting"]
+    _check("d1", weighting, cfg)
+
+    conn = db.connect()
+    try:
+        head = conn.execute(HEAD_SQL, (ticker,)).fetchone()
+        if head is None:
+            raise HTTPException(
+                404, {"code": "not_found", "message": f"saham {ticker} tidak ada", "detail": {"ticker": ticker}}
+            )
+        all_bars = pd.read_sql(CANDLE_SQL, conn, params=(ticker,))
+        row = plan_compute.stock_plan_row(conn, ticker)
+        plan = json.loads(row["plan_json"]) if row and row["plan_json"] else None
+        code = (row or {}).get("regime") or "tidak_cukup_data"
+
+        visible = all_bars
+        if len(all_bars):
+            start = read.window_start(str(all_bars["date"].iloc[-1]), window)
+            visible = all_bars[all_bars["date"] >= start] if start else all_bars
+            visible = visible.iloc[-n_bars:]
+        index = visible.index
+        close = all_bars["close"].astype(float)
+
+        def points(series) -> list[dict]:
+            return _points(series.loc[index], all_bars["date"].loc[index])
+
+        overlays = {
+            "ma": {str(period): points(close.rolling(period).mean()) for period in (ma or cfg.ta["ma_periods"])},
+            "donchian": {
+                kind: {
+                    "high": points(all_bars["high"].astype(float).rolling(period).max()),
+                    "low": points(all_bars["low"].astype(float).rolling(period).min()),
+                }
+                for kind, period in (
+                    ("fast", cfg.weekly["plan"]["donchian_fast"]),
+                    ("slow", cfg.weekly["plan"]["donchian_slow"]),
+                )
+            },
+            "channels": _channels(visible, float(close.iloc[-1]), cfg) if len(visible) else [],
+            "volume_ma": points(all_bars["volume"].astype(float).rolling(cfg.chart["volume_ma"]).mean()),
+        }
+        body = {
+            "api_version": _API_VERSION,
+            "ticker": head["ticker"],
+            "name": head["name"],
+            "price_basis": PRICE_BASIS,
+            "regime": code,
+            "active_tools": (plan or {}).get("active_tools", []),
+            "regime_reason": (plan or {}).get("regime_reason") or plan_compute.REGIME_REASON.get(code),
+            "candles": [
+                {
+                    "date": str(bar["date"]),
+                    "open": _num(bar["open"]),
+                    "high": _num(bar["high"]),
+                    "low": _num(bar["low"]),
+                    "close": _num(bar["close"]),
+                    "volume": int(bar["volume"]) if bar["volume"] is not None else None,
+                }
+                for _, bar in visible.iterrows()
+            ],
+            "overlays": overlays,
+            "levels": (
+                {
+                    "week_end": row["as_of_date"],
+                    "entry_zone": {"low": row["entry_zone_low"], "high": row["entry_zone_high"]},
+                    "stop": row["stop"],
+                    "tp1": row["tp1"],
+                    "tp2": row["tp2"],
+                    "rr_tp2": row["rr_tp2"],
+                    "plan_ok": bool(row["plan_ok"]),
+                }
+                if row and row["entry_zone_low"] is not None
+                else None
+            ),
+            "events": [
+                dict(event)
+                for event in conn.execute(
+                    STOCK_EVENTS_SERIES_SQL, (ticker, cfg.ta["ma_default"], 1 if cfg.ta["trend_filter"] else 0)
+                )
+            ][-n_events:],
+            "volume_confirm_mult": cfg.weekly["plan"]["volume_mult"],
+            "layers": requested,
+            "indicators": None,  # B21
+            "smc": None,  # B22 — default mati (lapisan konteks, bukan aturan plan)
+            "elliott": None,  # B22
+            "data_status": read.data_status(
+                conn,
+                as_of=(row or {}).get("as_of_date") or (str(visible["date"].iloc[-1]) if len(visible) else None),
+                timeframe="d1",
+                weighting=weighting,
+            ),
+        }
+        return body
+    finally:
+        conn.close()

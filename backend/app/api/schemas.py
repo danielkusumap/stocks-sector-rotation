@@ -733,6 +733,87 @@ class PlanStockResponse(Envelope):
     data_status: DataStatus
 
 
+class SeriesStockCandle(BaseModel):
+    date: str
+    open: float | None
+    high: float | None
+    low: float | None
+    close: float | None
+    volume: int | None
+
+
+class SeriesStockPoint(BaseModel):
+    date: str
+    value: float
+
+
+class SeriesBand(BaseModel):
+    high: list[SeriesStockPoint]
+    low: list[SeriesStockPoint]
+
+
+class SeriesDonchian(BaseModel):
+    fast: SeriesBand
+    slow: SeriesBand
+
+
+class SeriesChannel(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    low: float
+    high: float
+    strength: int
+    kind: str  # support | resistance
+    from_: str | None = Field(default=None, alias="from")
+    to: str | None = None
+
+
+class SeriesStockLevels(BaseModel):
+    week_end: str
+    entry_zone: PlanEntryZone
+    stop: float | None
+    tp1: float | None
+    tp2: float | None
+    rr_tp2: float | None
+    plan_ok: bool
+
+
+class SeriesStockEvent(BaseModel):
+    signal_date: str
+    entry_date: str
+    entry_price: float
+    result: str | None
+    periods: int | None
+    mfe_pct: float | None
+    mae_pct: float | None
+
+
+class SeriesStockOverlays(BaseModel):
+    ma: dict[str, list[SeriesStockPoint]]
+    donchian: SeriesDonchian
+    channels: list[SeriesChannel]
+    volume_ma: list[SeriesStockPoint]
+
+
+class SeriesStockResponse(Envelope):
+    ticker: str
+    name: str | None
+    price_basis: str
+    regime: str
+    active_tools: list[str]
+    regime_reason: str | None
+    candles: list[SeriesStockCandle]
+    overlays: SeriesStockOverlays
+    levels: SeriesStockLevels | None
+    events: list[SeriesStockEvent]
+    volume_confirm_mult: float
+    layers: list[str]
+    indicators: dict[str, Any] | None = None  # B21
+    smc: dict[str, Any] | None = None  # B22 (default mati)
+    elliott: dict[str, Any] | None = None  # B22 (default mati)
+    data_status: DataStatus
+
+
 class WeeklyStockPick(BaseModel):
     ticker: str
     name: str | None
