@@ -22,6 +22,7 @@ export default function App() {
             <Route index element={<OverviewPage />} />
             <Route path="/sectors" element={<SectorPage />} />
             <Route path="/stocks" element={<StockPage />} />
+            <Route path="/stocks/:ticker" element={<StockPage />} />
             <Route path="/weekly" element={<WeeklyPage />} />
             <Route path="/status" element={<StatusPage />} />
             <Route path="/data" element={<DataPage />} />
