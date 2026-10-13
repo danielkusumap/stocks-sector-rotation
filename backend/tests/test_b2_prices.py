@@ -183,6 +183,41 @@ def test_refresh_info_is_opt_in_and_throttled(db_with_universe, monkeypatch):
     assert FakeTicker.calls == 1
 
 
+def test_ingest_multi_batch_tidak_gagal_dan_refresh_info_seluruh_batch(db_with_universe, monkeypatch):
+    """Regresi run#33: tabel TEMP `_ingest_ticker` dibuat per batch → dulu `table ... already exists`.
+
+    `batch_size=1` memaksa 3 batch (IHSG, BBCA, BBRI); Yahoo `.info` juga harus menyapu semua batch.
+    """
+    _patch_download(monkeypatch)
+    monkeypatch.setitem(get_settings().ingest, "batch_size", 1)
+
+    class FakeTicker:
+        def __init__(self, symbol):
+            self.symbol = symbol
+
+        @property
+        def info(self):
+            return {"sector": "Financial Services"}
+
+    monkeypatch.setattr(prices.yf, "Ticker", FakeTicker)
+
+    r = prices.ingest_daily(
+        tickers=["BBCA", "BBRI"], from_date=DATES[0], to_date=DATES[-1], refresh_info=True, db_path=db_with_universe
+    )
+    assert r["batches"] == 3
+    assert r["rows"] == 9 and r["failed_tickers"] == [] and r["status"] == "ok"
+    assert r["yahoo_sector_refreshed"] == 2  # BBCA + BBRI (IHSG tidak ada di tabel `stock`)
+
+    conn = db.connect(db_with_universe)
+    try:
+        sectors = conn.execute("SELECT COUNT(*) FROM stock WHERE yahoo_sector IS NOT NULL").fetchone()[0]
+        caps = conn.execute("SELECT COUNT(*) FROM stock WHERE market_cap_idr IS NOT NULL").fetchone()[0]
+    finally:
+        conn.close()
+    assert sectors == 2  # benchmark tidak ada di tabel `stock`
+    assert caps == 2
+
+
 # --- endpoint -----------------------------------------------------------------
 
 

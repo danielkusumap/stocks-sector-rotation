@@ -267,12 +267,18 @@ def ingest_intraday(*, tickers=None, sectors=None, db_path=None, report=None) ->
         conn.close()
 
 
+def _stash_tickers(conn, tickers: list[str]) -> None:
+    """Isi ulang tabel TEMP `_ingest_ticker`. Dipanggil per batch → tabel hidup selama koneksi, jadi dibuat sekali."""
+    conn.execute("CREATE TEMP TABLE IF NOT EXISTS _ingest_ticker (ticker TEXT PRIMARY KEY)")
+    conn.execute("DELETE FROM _ingest_ticker")
+    conn.executemany("INSERT OR IGNORE INTO _ingest_ticker (ticker) VALUES (?)", ((t,) for t in tickers))
+
+
 def refresh_derived(conn, tickers: list[str], ts: str) -> None:
     """`market_cap_idr` = shares_outstanding × close terakhir (tanpa `.info`), plus `last_bar_date`."""
     if not tickers:
         return
-    conn.execute("CREATE TEMP TABLE _ingest_ticker (ticker TEXT PRIMARY KEY)")
-    conn.executemany("INSERT OR IGNORE INTO _ingest_ticker (ticker) VALUES (?)", ((t,) for t in tickers))
+    _stash_tickers(conn, tickers)
     conn.execute(
         """
         UPDATE stock
@@ -292,6 +298,9 @@ def refresh_yahoo_sector(conn, tickers: list[str], refresh_days: int) -> list[st
 
     Opt-in lewat `refresh_info=true`: 962 `.info` dalam satu klik UI = beberapa menit + risiko 429.
     """
+    if not tickers:
+        return []
+    _stash_tickers(conn, tickers)  # jangan bergantung sisa isi tabel TEMP dari batch terakhir
     cutoff = (datetime.now() - timedelta(days=refresh_days)).date().isoformat()
     due = [
         r["ticker"]
