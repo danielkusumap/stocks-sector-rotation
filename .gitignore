@@ -31,5 +31,5 @@ Thumbs.db
 .DS_Store
 
 # Playwright
-frontend/test-results/
-frontend/playwright-report/
+test-results*/
+playwright-report/
