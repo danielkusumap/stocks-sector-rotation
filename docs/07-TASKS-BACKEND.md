@@ -237,6 +237,27 @@ Catatan: blok `weekly.plan` baru di config → salinan config uji lama harus dig
 **Bukti:** dump JSON plan satu ticker untuk 2 pekan (terbaru + satu pekan lama) sebelum/sesudah perbaikan (tempel angka `atr14`/`sma20` yang berubah) + output `pytest -q backend -n auto` + potongan `signal_weekly` yang menunjukkan level baru.
 Commit: `B18b: plan pakai bar sampai week_end (bukan snapshot metrik terakhir)`.
 
+## B18c — Kalibrasi `plan_ok`: "stop lebar" = peringatan, bukan penolakan (+ ambang adaptif ATR)
+
+**Kenapa ada:** dari bukti B18 (`docs/evidence/b18/RUN-LOG.txt`): **`plan_tidak_ok = 29` dari 34 pick yang punya plan** — kalau dibiarkan, halaman Weekly akan menandai hampir semua pick "perlu ditinjau" dan tanda itu kehilangan arti. Diagnosis (kode `compute/plan.py` `_targets`/`plan_ok`): RR TP2 **bukan** penyebabnya (`tp2_min` dihitung dari rumus net → `rr_tp2 ≥ rr_min_tp2` secara konstruksi); yang menggagalkan adalah cek `stop["pct"] < -max_stop_pct` (8%). Contoh nyata: MPXL stop 202,5 vs entry ±237 = −14,6% — wajar untuk emiten dengan ATR 3–5%/hari, dan itu **bukan** alasan menolak ide; lebar stop dikelola lewat ukuran posisi (`lots_hint` = `risk_per_trade_idr / jarak stop`), sesuai kaidah money management.
+
+**Deliverable:**
+1. `plan_ok = false` **hanya** untuk pelanggaran yang membuat plan tidak layak dipakai: `rr_tp2` di bawah `rr_min_tp2` setelah biaya, atau `entry_mode = no_trade`. Pelanggaran "stop lebar" dipindah ke `notes[]` sebagai **peringatan** (mis. "Batas rugi 14,6% — lebar untuk swing; perkecil ukuran posisi, jangan longgarkan stop") dan tetap `plan_ok = true`.
+2. Ambang lebar stop **adaptif**: `batas = max(plan.max_stop_pct, plan.max_stop_atr × atr14 / entry_mid)` (kunci config baru `max_stop_atr`, default 3.0) — supaya saham bervolatilitas tinggi tidak otomatis ditolak, tapi stop yang benar-benar ekstrem tetap ditandai.
+3. Tambah kolom/kunci `risk_pct` (jarak stop relatif, = `|stop_pct|`) di `plan` supaya UI bisa menampilkan "risiko per lembar" bersama `lots_hint` — tanpa menghitung apa pun di frontend.
+4. Distribusi dilaporkan: hitung berapa plan yang `plan_ok=false` **dan sebabnya** (rr vs no_trade vs stop-lebar-sebagai-peringatan) sebelum/sesudah perubahan, dan tulis di bukti.
+
+**AC:**
+1. `test_plan_ok_hanya_untuk_rr_dan_no_trade`: plan dengan stop −14% tapi `rr_tp2` ≥ 3 → `plan_ok = true` + `notes` memuat peringatan stop lebar.
+2. `test_stop_lebar_adaptif_atr`: `atr14/entry = 4%` → batas efektif = `max(8%, 3×4%) = 12%`; stop −13% → peringatan; stop −11% → tanpa peringatan.
+3. `test_plan_ok_false_kalau_rr_kurang`: memaksa `rr_min_tp2` naik (monkeypatch config) → `plan_ok = false` + `notes` menyebut angka RR-nya.
+4. `test_risk_pct_ikut_kirim`: `plan.risk_pct` = `|stop.pct|` (toleransi 1e-9) dan tidak ada perhitungan baru di endpoint.
+5. Recompute `stage=signals` pada subset uji → **distribusi `plan_ok` berubah** (tempel angka sebelum/sesudah; target: `plan_ok=false` hanya untuk kasus RR/no_trade, bukan mayoritas pick).
+6. `pytest -q backend -n auto` hijau; test B18 lama tidak diubah asersinya kecuali yang memang menguji aturan lama (sebut di laporan).
+
+**Bukti:** angka distribusi sebelum/sesudah (mis. "29/34 → N/34; sisa yang `false` semuanya karena RR < 3 atau `no_trade`") + dump 2 plan yang berubah (MPXL & SMDR) + output pytest.
+Commit: `B18c: plan_ok hanya untuk RR/no_trade + ambang stop lebar adaptif ATR`.
+
 ## B19 — `GET /api/v1/series/stock/{ticker}`: bahan grafik candle + overlay TA
 
 **Kenapa ada:** user ingin melihat **candlestick beserta TA** di halaman detail saham, dengan overlay yang **sesuai aturan & rezim** kita (docs/03 §6.4.0, §6.4.9) — bukan indikator sembarangan. Data sudah ada (`price_daily` 2 tahun OHLC penyesuaian + `ta_breakout`), yang kurang hanya endpoint yang menyajikannya. Kontrak: `docs/05` §2. Tampilan: `docs/06` §6.5.

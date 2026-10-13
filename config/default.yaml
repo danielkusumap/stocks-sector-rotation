@@ -149,7 +149,8 @@ weekly:
     zone_atr: 0.3                     # lebar zona entry = ±0,3 × ATR14 di sekitar level
     stop_buffer_atr: 0.5              # penyangga di bawah level struktur (biar tidak kena sentuhan)
     min_stop_atr: 1.0                 # stop tidak boleh lebih ketat dari 1 × ATR14 (noise intraday)
-    max_stop_pct: 0.08                # stop lebih lebar dari 8% → plan ditandai tidak layak untuk swing
+    max_stop_pct: 0.08                # stop lebih lebar dari 8% → PERINGATAN (bukan penolakan), lihat B18c
+    max_stop_atr: 3.0                 # batas efektif = max(max_stop_pct, max_stop_atr × ATR/harga) — adaptif volatilitas
     volume_mult: 1.5                  # konfirmasi volume untuk entry breakout (× rata-rata 20 bar)
     chase_atr: 2.0                    # harga > 2 × ATR di atas SMA20 → jangan chase, tunggu pullback
     ma_slope_bars: 5                  # "SMA20 menanjak" = SMA20 sekarang > SMA20 N bar lalu (docs/03 §6.4.0)
