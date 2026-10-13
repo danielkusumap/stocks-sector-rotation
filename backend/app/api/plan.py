@@ -12,7 +12,7 @@ import pandas as pd
 from fastapi import APIRouter, HTTPException, Query
 
 from .. import db
-from ..compute import plan as plan_compute
+from ..compute import indicators, plan as plan_compute
 from ..config import get_settings
 from ..labels import REGIME_LABEL
 from ..repo import read
@@ -211,6 +211,65 @@ def _channels(bars, close: float, cfg) -> list[dict]:
     return out
 
 
+def _indicators(bars, cfg, index) -> dict:
+    """Lapisan `indicators` (docs/03 §11.1–§11.3) — dihitung dari harga penyesuaian, dipotong ke jendela."""
+    close = bars["close"].astype(float)
+    high, low, volume = bars["high"].astype(float), bars["low"].astype(float), bars["volume"].astype(float)
+    ursi_cfg, vwap_cfg, poc_cfg = cfg.chart["ursi"], cfg.chart["vwap"], cfg.chart["poc"]
+    line = indicators.ursi(close, ursi_cfg["len"], ursi_cfg["method"])
+    signal = indicators.sma(line, ursi_cfg["signal_len"])
+
+    anchor, start = vwap_cfg["anchor"], None
+    if anchor == "pivot_low":
+        lows = plan_compute.pivots(bars, cfg.weekly["plan"]["pivot_bars"])[1]
+        start = lows[-1] if lows else None
+    elif anchor == "quarter":
+        last = str(bars["date"].iloc[-1])
+        start = int(bars["date"].searchsorted(f"{last[:4]}-{((int(last[5:7]) - 1) // 3) * 3 + 1:02d}-01"))
+    bands = indicators.vwap(high, low, close, volume, vwap_cfg["len"], tuple(vwap_cfg["band"]), start)
+    profile = indicators.volume_profile(
+        high, low, close, volume, poc_cfg["bins"], poc_cfg["bars"], poc_cfg["value_area"]
+    )
+    dates = bars["date"].loc[index]
+    return {
+        "ursi": {
+            "len": ursi_cfg["len"],
+            "method": ursi_cfg["method"],
+            "ob": ursi_cfg["ob"],
+            "os": ursi_cfg["os"],
+            "points": [
+                {"date": str(date), "value": _num(value, 2), "signal": _num(signal_value, 2)}
+                for date, value, signal_value in zip(dates, line.loc[index], signal.loc[index])
+                if not pd.isna(value)
+            ],
+        },
+        "vwap": {
+            "len": vwap_cfg["len"],
+            "anchor": anchor,
+            "anchor_date": str(bars["date"].iloc[start]) if start is not None else None,
+            "points": [
+                {
+                    "date": str(date),
+                    "vwap": _num(row["vwap"]),
+                    "upper1": _num(row["upper1"]),
+                    "lower1": _num(row["lower1"]),
+                    "upper2": _num(row["upper2"]),
+                    "lower2": _num(row["lower2"]),
+                }
+                for date, row in bands.loc[index].iterrows()
+                if not pd.isna(row["vwap"])
+            ],
+        },
+        "poc": {
+            "basis": poc_cfg["basis"],
+            "bars_used": min(poc_cfg["bars"], len(bars)),
+            "bins": poc_cfg["bins"],
+            "poc": profile["poc"],
+            "value_area": profile["value_area"],
+        },
+    }
+
+
 @router.get("/series/stock/{ticker}", response_model=SeriesStockResponse)
 def stock_series(
     ticker: str,
@@ -234,7 +293,7 @@ def stock_series(
         raise HTTPException(422, {"code": "invalid_bars", "message": f"bars maksimum {MAX_BARS}", "detail": {"bars": n_bars}})
     if n_events > MAX_EVENTS:
         raise HTTPException(422, {"code": "invalid_events", "message": f"events maksimum {MAX_EVENTS}", "detail": {"events": n_events}})
-    requested = layers or []
+    requested = layers or ["indicators"]  # docs/05 §2: lapisan `indicators` menyala secara default (B21)
     unknown = [layer for layer in requested if layer not in LAYERS]
     if unknown:
         raise HTTPException(422, {"code": "invalid_layer", "message": "lapisan tidak dikenal", "detail": {"layers": unknown}})
@@ -320,7 +379,7 @@ def stock_series(
             ][-n_events:],
             "volume_confirm_mult": cfg.weekly["plan"]["volume_mult"],
             "layers": requested,
-            "indicators": None,  # B21
+            "indicators": _indicators(all_bars, cfg, index) if len(visible) and "indicators" in requested else None,
             "smc": None,  # B22 — default mati (lapisan konteks, bukan aturan plan)
             "elliott": None,  # B22
             "data_status": read.data_status(
