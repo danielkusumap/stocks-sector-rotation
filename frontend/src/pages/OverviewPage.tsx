@@ -5,6 +5,7 @@ import { RotationMatrix } from "../components/charts/RotationMatrix";
 import { ChangeList } from "../components/domain/ChangeList";
 import { FilterBar } from "../components/domain/FilterBar";
 import { MarketSummary } from "../components/domain/MarketSummary";
+import { PeriodNote } from "../components/domain/PeriodNote";
 import { SectorDrawer } from "../components/domain/SectorDrawer";
 import { SectorTable } from "../components/domain/SectorTable";
 import { ErrorState } from "../components/ui/ErrorState";
@@ -88,7 +89,12 @@ export default function OverviewPage() {
       <div className="grid gap-3 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <Panel
       title="Diagram RRG — Sektor"
-      actions={rrg.data ? <FreshnessPill status={rrg.data.data_status} /> : null}
+      actions={
+        <>
+          {rrg.data && <PeriodNote text={period} />}
+          {rrg.data ? <FreshnessPill status={rrg.data.data_status} /> : null}
+        </>
+      }
     >
       {rrg.isPending ? (
         <div className="flex flex-col gap-2 p-3">
@@ -184,7 +190,12 @@ export default function OverviewPage() {
 
       <Panel
         title="Sektor"
-        actions={summary.data ? <FreshnessPill status={summary.data.data_status} /> : null}
+        actions={
+          <>
+            {summary.data && <PeriodNote text={period} />}
+            {summary.data ? <FreshnessPill status={summary.data.data_status} /> : null}
+          </>
+        }
       >
         <FilterBar
           filters={filters}

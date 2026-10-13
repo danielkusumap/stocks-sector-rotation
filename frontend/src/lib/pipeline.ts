@@ -82,6 +82,14 @@ export function lastRun(runs: IngestRun[], kind: string): IngestRun | null {
   return [...runs].sort((a, b) => b.run_id - a.run_id).find((r) => r.kind === kind) ?? null;
 }
 
+/** Run terbaru dari kind apa pun — dipakai `/data` untuk menampilkan periode run terakhir. */
+export function newestRun(runs: IngestRun[]): IngestRun | null {
+  return runs.reduce<IngestRun | null>(
+    (latest, run) => (latest === null || run.run_id > latest.run_id ? run : latest),
+    null,
+  );
+}
+
 /**
  * Run dianggap "data sudah masuk" kalau statusnya `ok|partial|skipped` (bukan `failed`).
  * Dipakai untuk pertanyaan "langkah ini pernah berhasil?" — prasyarat tombol sendiri

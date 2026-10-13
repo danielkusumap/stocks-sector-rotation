@@ -7,9 +7,11 @@ import { Panel } from "../components/ui/Panel";
 import { ProgressBar } from "../components/ui/ProgressBar";
 import { Pill } from "../components/ui/Pill";
 import { ToastStack, useToasts } from "../components/ui/Toast";
+import { Tooltip } from "../components/ui/Tooltip";
 import { useMetaConfig, useMetaSectors, useRuns } from "../hooks/useApiQuery";
 import { useRunProgress, useStartStep } from "../hooks/usePipeline";
 import type { ImportResult } from "../lib/api";
+import { runPeriodLabel } from "../lib/period";
 import {
   PIPELINE,
   RUN_KIND,
@@ -18,6 +20,7 @@ import {
   isFinal,
   lastRun,
   lockReason,
+  newestRun,
   prereqState,
   skippedMessage,
   statusChip,
@@ -79,16 +82,22 @@ export default function DataPage() {
             Jalankan berurutan dari atas ke bawah. Semua langkah jalan di latar belakang; halaman ini aman
             ditinggal.
           </p>
+          {/* periode run terakhir dibaca dari params_json/result_json (docs/08 F13 C11) */}
+          <p className="text-sm text-fg-muted" data-testid="run-period">
+            Periode run terakhir: {runPeriodLabel(newestRun(runs))}
+          </p>
         </div>
-        <Button
-          className="ml-auto"
-          onClick={() => {
-            void queryClient.invalidateQueries();
-            void runsQuery.refetch();
-          }}
-        >
-          Muat ulang data
-        </Button>
+        <Tooltip label="Ambil ulang data dari server — tidak menjalankan pipeline, tidak menarik harga baru.">
+          <Button
+            className="ml-auto"
+            onClick={() => {
+              void queryClient.invalidateQueries();
+              void runsQuery.refetch();
+            }}
+          >
+            Segarkan tampilan
+          </Button>
+        </Tooltip>
       </div>
 
       <Panel title="Langkah pipeline" className="mb-4">

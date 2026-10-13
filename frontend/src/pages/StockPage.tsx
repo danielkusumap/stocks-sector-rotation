@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router";
 import { QuadrantChart } from "../components/charts/QuadrantChart";
 import { FilterBar } from "../components/domain/FilterBar";
+import { PeriodNote } from "../components/domain/PeriodNote";
 import { StockTable } from "../components/domain/StockTable";
 import { Delta } from "../components/ui/Delta";
 import { ErrorState } from "../components/ui/ErrorState";
@@ -70,7 +71,12 @@ function StockList() {
   return (
     <Panel
       title="Saham"
-      actions={stocks.data ? <FreshnessPill status={stocks.data.data_status} /> : null}
+      actions={
+        <>
+          {stocks.data && <PeriodNote text={period} />}
+          {stocks.data ? <FreshnessPill status={stocks.data.data_status} /> : null}
+        </>
+      }
     >
       <div className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2">
         <label className="flex items-center gap-2 text-sm text-fg-muted">
@@ -237,7 +243,10 @@ function StockDetail({ ticker }: { ticker: string }) {
         )}
       </Panel>
 
-      <Panel title="RRG saham vs sektor">
+      <Panel
+        title="RRG saham vs sektor"
+        actions={rrg.data ? <PeriodNote text={period} /> : null}
+      >
         {rrg.isPending ? (
           <div className="flex flex-col gap-2 p-3">
             {/* bentuk akhir: rasio chart 780×608 + tinggi kotak legenda */}

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { FilterBar } from "../components/domain/FilterBar";
+import { PeriodNote } from "../components/domain/PeriodNote";
 import { SectorDrawer } from "../components/domain/SectorDrawer";
 import { SectorTable } from "../components/domain/SectorTable";
 import { ErrorState } from "../components/ui/ErrorState";
@@ -53,7 +54,12 @@ export default function SectorPage() {
     <>
       <Panel
         title="Sektor"
-        actions={summary.data ? <FreshnessPill status={summary.data.data_status} /> : null}
+        actions={
+          <>
+            {summary.data && <PeriodNote text={period} />}
+            {summary.data ? <FreshnessPill status={summary.data.data_status} /> : null}
+          </>
+        }
       >
         <FilterBar
           filters={filters}

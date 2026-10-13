@@ -10,6 +10,7 @@ import {
   isFinal,
   lastRun,
   lockReason,
+  newestRun,
   prereqState,
   skippedMessage,
   statusChip,
@@ -114,6 +115,9 @@ describe("ringkas status run", () => {
   it("mengambil run terbaru walau daftar dari API tidak urut", () => {
     const runs = [run(3, RUN_KIND.midday, "ok"), run(9, RUN_KIND.midday, "failed")];
     expect(lastRun(runs, RUN_KIND.midday)?.run_id).toBe(9);
+    expect(newestRun(runs)?.run_id).toBe(9);
+    expect(newestRun([run(4, RUN_KIND.importExcel, "ok"), run(7, RUN_KIND.computeAll, "ok")])?.run_id).toBe(7);
+    expect(newestRun([])).toBeNull();
   });
 });
 
