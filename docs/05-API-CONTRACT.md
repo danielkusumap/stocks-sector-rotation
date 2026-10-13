@@ -19,9 +19,22 @@ Status: `400` input salah, `404` tidak ada, `409` konflik (import duplikat), `42
   "status": "ok",                 // ok | stale | partial
   "last_data_at": "2026-10-12T16:10:00+07:00",
   "computed_at": "2026-10-12T16:31:02+07:00",
+  "range_from": "2026-07-15",     // awal rentang yang BENAR-BENAR dipakai hitungan ini
+  "range_to": "2026-10-12",       // akhir rentang (= as_of untuk d1/w1/w1_fri/midday)
+  "range_label": "15 Jul – 12 Okt 2026",
   "partial_sectors": []           // kode sektor dengan constituents_count < 3
 }
 ```
+Aturan `range_from`/`range_to`/`range_label` (dipakai UI untuk menampilkan "ambil dari periode berapa sampai berapa" — user tidak boleh menebak):
+
+| timeframe | `range_from` | `range_to` | catatan |
+|---|---|---|---|
+| `d1` | hari bursa terakhir yang punya hasil (`as_of`) | sama | satu hari |
+| `w1` | **Senin** minggu berjalan | hari bursa terakhir | minggu belum final |
+| `w1_fri` | **Senin** | **Jumat** (final) | minggu lengkap |
+| `midday` | hari ini | hari ini | jam terakhir bar intraday |
+
+`range_label` **disusun backend** (Bahasa Indonesia, `d Mmm yyyy`, mis. `5–9 Okt 2026`, `15 Jul – 12 Okt 2026`) supaya frontend tidak menyusun sendiri rentang tanggal finansial. Kalau `window` dipakai untuk kolom return/ekor, `range_from` = bar terjauh yang dipakai untuk kolom itu (bukan awal seluruh riwayat). Kalau belum ada hasil hitung: ketiganya `null` — UI menampilkan "belum ada data".
 
 Parameter umum (dipakai banyak endpoint):
 `timeframe` = `d1|w1|w1_fri|midday` (default `d1`) · `as_of` = tanggal acuan (default: tanggal terakhir yang ada) · `window` = `1w|1m|3m|6m|1y|ytd` (default `3m`, hanya panjang ekor & kolom return) · `weighting` = `equal|turnover|captier` (default dari config) · `format` = `json` (default).
@@ -216,7 +229,7 @@ Seri untuk chart garis/area. Query: `from, to, timeframe, weighting`.
 ### `GET /api/v1/weekly/picks`
 Query: `week_end` (default minggu final terakhir), `scope` (default `sector,stock`), `sector` (multi), `min_streak` (default 1), `limit`.
 ```json
-{ "api_version": "1.0", "week_end": "2026-10-09", "is_final": true,
+{ "api_version": "1.1", "week_end": "2026-10-09", "week_start": "2026-10-05", "week_label": "5–9 Okt 2026", "is_final": true,
   "sectors": [ { "ref_id": "IDXFINANCE", "name": "Keuangan", "rank": 1, "score": 87.4, "streak_weeks": 2,
                  "rule_hits": { "quadrant": "leading", "age_ok": true, "momentum_ok": true, "ret_4w_ok": true, "constituents_ok": true },
                  "rationale": "Keuangan masuk kuadran Memimpin 2 periode berturut-turut, momentum relatif masih naik." } ],
