@@ -668,6 +668,71 @@ class TaPlan(BaseModel):
     risk_pct: float | None = None  # B18c: |stop.pct| supaya UI bisa menampilkan risiko per lembar
 
 
+class PlanStockHead(BaseModel):
+    """Kepala saham untuk `/plan/stock` (docs/05 §2) — `board` ikut, `yahoo_symbol` tidak."""
+
+    ticker: str
+    name: str | None
+    sector_code: str | None
+    board: str | None
+
+
+class PlanPrice(BaseModel):
+    close: float | None
+    prev_close: float | None
+    ret_1d: float | None
+    price_basis: str
+
+
+class PlanRegime(BaseModel):
+    code: str
+    label: str
+    reason: str | None
+    active_tools: list[str]
+
+
+class PlanScenario(BaseModel):
+    """Peluang historis pada level plan hari ini (docs/03 §6.5.2) — `None` bila sampel kurang."""
+
+    p_tp1_first: float
+    p_sl_first: float
+    p_timeout: float
+    p_tp2_first: float
+    median_periods_tp1: float | None
+    median_periods_sl: float | None
+    n_events: int
+    n_open_dikeluarkan: int
+    basis: str
+
+
+class PlanLevelRow(BaseModel):
+    label: str
+    level: float | None = None
+    low: float | None = None
+    high: float | None = None
+
+
+class PlanCoverage(BaseModel):
+    bars_available: int
+    bars_from: str | None
+    bars_to: str | None
+    n_events: int
+    price_basis: str
+
+
+class PlanStockResponse(Envelope):
+    as_of: str | None
+    stock: PlanStockHead
+    price: PlanPrice
+    regime: PlanRegime
+    summary_lines: list[str]
+    plan: TaPlan | None
+    scenario: PlanScenario | None
+    levels_table: list[PlanLevelRow]
+    coverage: PlanCoverage
+    data_status: DataStatus
+
+
 class WeeklyStockPick(BaseModel):
     ticker: str
     name: str | None

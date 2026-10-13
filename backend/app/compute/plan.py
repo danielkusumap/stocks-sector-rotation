@@ -9,13 +9,15 @@ penyesuaian (`high`/`low` diskalakan `adj_close/close`, ADR-040); semua angka am
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from statistics import median
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 
 from ..config import get_settings
 from ..db import connect
-from ..labels import format_id_number
+from ..labels import REGIME_LABEL, format_id_number
 from . import indicators
 
 ENTRY_TOOLS = ("pullback_ma20", "breakout_donchian", "sr_channel", "pivot_level", "none")
@@ -155,6 +157,8 @@ def _empty_plan(regime: str, note: str, *, entry_mode: str = "no_trade") -> dict
         "volume_ratio": None,
         "entry_tool_reason": _trim(note),
         "confirm_reason": None,
+        "regime_reason": _trim(REGIME_REASON.get(regime, note)),
+        "active_tools": [],
     }
 
 
@@ -374,6 +378,8 @@ def plan_levels(bars: pd.DataFrame, metrics: dict, regime: str, ta_stats: dict, 
         "risk_pct": abs(stop["pct"]),
         "entry_tool_reason": _trim(TOOL_REASON.get(entry_tool, "")),
         "confirm_reason": confirm_reason(confirm, features, cfg),
+        "regime_reason": _trim(REGIME_REASON.get(regime, "")),
+        "active_tools": [tool for tool in (entry_tool, confirm) if tool and tool != "none"],
     }
 
 
@@ -551,3 +557,254 @@ def metrics_for(conn, ticker: str, _week_end: str | None = None) -> dict:
     """Turnover median terakhir dari `stock_metrics` — gerbang rezim `tipis` saja (level plan dari bar, B18b)."""
     row = conn.execute(METRICS_SQL, (ticker,)).fetchone()
     return dict(row) if row else {}
+
+
+# --- B20: plan & skenario untuk SEMUA emiten (docs/03 §6.5) ---
+
+FAR_FUTURE = "9999-12-31"  # batas atas tanggal: "bar terakhir yang tersedia"
+
+# Alasan rezim (docs/03 §6.4.0 → docs/05 §2 `regime.reason`) — dipakai `weekly/picks` dan `/plan/stock`.
+REGIME_REASON = {
+    "tren_naik": "Harga di atas penyangga 20 & 50 hari dan penyangganya menanjak — alat utama pantulan ke penyangga.",
+    "range": "Penyangga 20 & 50 hari berdekatan (pasar menyamping) — alat utama level pantulan di kanal.",
+    "turun": "Harga di bawah penyangga 20 & 50 hari — mode gagal saat turun, tidak ambil posisi.",
+    "tipis": "Transaksi harian jarang atau banyak bar tanpa volume — hanya level pantulan, tanpa konfirmasi volume.",
+    "tidak_cukup_data": "Riwayat harga belum cukup untuk menghitung level.",
+}
+
+ACTIVE_STOCKS_SQL = """
+    SELECT ticker FROM stock WHERE is_active = 1 ORDER BY ticker
+"""
+STOCK_EVENTS_SQL = """
+    SELECT entry_date, entry_price, result FROM ta_breakout
+    WHERE scope = 'stock' AND ref_id = ? AND ma_period = ? AND trend_filter = ?
+    ORDER BY entry_date
+"""
+STOCK_PLAN_COLUMNS = (
+    "as_of_date", "ticker", "regime", "entry_tool", "confirm_tool", "entry_mode",
+    "entry_zone_low", "entry_zone_high", "stop", "stop_pct", "stop_basis", "tp1", "tp2",
+    "rr_tp1", "rr_tp2", "volume_ratio", "hold_median_periods", "hit_tp1", "hit_tp2",
+    "p_tp1_first", "p_sl_first", "p_timeout", "median_periods_tp1", "median_periods_sl",
+    "n_events", "invalidation", "summary_lines", "plan_ok", "notes", "plan_json", "computed_at",
+)
+STOCK_PLAN_SQL = (
+    f"INSERT INTO stock_plan ({', '.join(STOCK_PLAN_COLUMNS)}) "
+    f"VALUES ({', '.join('?' * len(STOCK_PLAN_COLUMNS))}) "
+    "ON CONFLICT(as_of_date, ticker) DO UPDATE SET "
+    + ", ".join(f"{column} = excluded.{column}" for column in STOCK_PLAN_COLUMNS if column not in ("as_of_date", "ticker"))
+)
+
+
+def scenario_basis(cfg) -> str:
+    """Basis angka skenario (docs/03 §6.5.2) — dipakai saat menghitung dan saat endpoint membacanya."""
+    return (
+        f"penembusan penyangga {cfg.ta['ma_default']} hari "
+        f"({'filter tren aktif' if cfg.ta['trend_filter'] else 'tanpa filter tren'}), "
+        f"horizon {cfg.ta['timeout_periods']} bar"
+    )
+
+
+def first_touch(
+    bars: pd.DataFrame,
+    entry_date: str,
+    up_pct: float,
+    down_pct: float,
+    horizon: int,
+    *,
+    entry_price: float | None = None,
+) -> tuple[str, int | None]:
+    """Bar yang **lebih dulu** menyentuh `+up_pct` atau `−down_pct` (docs/03 §10.9).
+
+    Urutan bar yang menentukan, bukan MFE/MAE: seri yang menyentuh target lalu berbalik ke batas rugi
+    tetap dihitung "target lebih dulu". `entry_price` = harga entry bar D (dari `ta_breakout`).
+    """
+    window = bars[bars["date"] >= entry_date]
+    if window.empty:
+        return "open", None
+    base = float(entry_price) if entry_price else float(window["close"].iloc[0])
+    closes = window["close"].tolist()
+    for period, close in enumerate(closes[: horizon + 1]):
+        change = close / base - 1
+        if change <= -down_pct:
+            return "down", period
+        if change >= up_pct:
+            return "up", period
+    if len(closes) > horizon:
+        return "timeout", horizon
+    return "open", None
+
+
+def scenario(events: list[dict], bars: pd.DataFrame, levels: dict | None, cfg) -> dict | None:
+    """Frekuensi historis pada level plan hari ini (docs/03 §6.5.2) — bukan ramalan, bukan MFE.
+
+    `n_events < weekly.plan.min_events_scenario` → `None` (UI: "belum cukup riwayat").
+    """
+    plan_cfg = cfg.weekly["plan"]
+    usable = [event for event in events if event["result"] != "open"]
+    n_open = len(events) - len(usable)
+    if levels is None or len(usable) < plan_cfg["min_events_scenario"]:
+        return None
+
+    ahead = behind = timeout = ahead2 = 0
+    periods_ahead: list[int] = []
+    periods_behind: list[int] = []
+    horizon = cfg.ta["timeout_periods"]
+    for event in usable:
+        touch, periods = first_touch(bars, event["entry_date"], levels["tp1_pct"], levels["stop_pct"], horizon, entry_price=event["entry_price"])
+        touch2, _ = first_touch(bars, event["entry_date"], levels["tp2_pct"], levels["stop_pct"], horizon, entry_price=event["entry_price"])
+        if touch == "up":
+            ahead += 1
+            if periods is not None:
+                periods_ahead.append(periods)
+        elif touch == "down":
+            behind += 1
+            if periods is not None:
+                periods_behind.append(periods)
+        else:
+            timeout += 1
+        if touch2 == "up":
+            ahead2 += 1
+
+    total = len(usable)
+    return {
+        "p_tp1_first": round(ahead / total, 4),
+        "p_sl_first": round(behind / total, 4),
+        "p_timeout": round(timeout / total, 4),
+        "p_tp2_first": round(ahead2 / total, 4),
+        "median_periods_tp1": median(periods_ahead) if periods_ahead else None,
+        "median_periods_sl": median(periods_behind) if periods_behind else None,
+        "n_events": total,
+        "n_open_dikeluarkan": n_open,
+    }
+
+
+def summary_lines(bars, metrics: dict, regime: str, plan: dict | None, scenario_stats: dict | None, cfg) -> list[str]:
+    """1–3 kalimat (docs/03 §6.5.1), tiap kalimat ≤ 140 char, tanpa istilah mentah."""
+    lines: list[str] = []
+    close = float(bars["close"].iloc[-1]) if len(bars) else None
+    sma20, sma50 = metrics.get("sma20"), metrics.get("sma50")
+    if close and sma20 and sma50:
+        lines.append(
+            _trim(
+                f"Harga {format_id_number(close)} {'di atas' if close >= sma20 else 'di bawah'} penyangga 20 hari "
+                f"({format_id_number(sma20)}) dan {'di atas' if close >= sma50 else 'di bawah'} penyangga 50 hari "
+                f"({format_id_number(sma50)}); rezim: {REGIME_LABEL.get(regime, regime)}."
+            )
+        )
+    if plan and plan.get("plan_ok"):
+        lines.append(
+            _trim(
+                f"Zona beli {format_id_number(plan['entry_zone']['low'])}–{format_id_number(plan['entry_zone']['high'])}, "
+                f"batas rugi {format_id_number(plan['stop']['level'])} ({format_id_number(abs(plan['stop']['pct']) * 100)}%), "
+                f"target {format_id_number(plan['tp1']['level'])} ({format_id_number(plan['tp1']['pct'] * 100)}%) dan "
+                f"{format_id_number(plan['tp2']['level'])} ({format_id_number(plan['tp2']['pct'] * 100)}%); "
+                f"imbal hasil terhadap risiko {format_id_number(plan['tp2']['rr'])}:1."
+            )
+        )
+    if scenario_stats:
+        lines.append(
+            _trim(
+                f"Dari {scenario_stats['n_events']} penembusan sebelumnya: target pertama kena "
+                f"{format_id_number(scenario_stats['p_tp1_first'] * 100)}% (median "
+                f"{format_id_number(scenario_stats['median_periods_tp1'] or 0)} bar), batas rugi kena lebih dulu "
+                f"{format_id_number(scenario_stats['p_sl_first'] * 100)}%."
+            )
+        )
+    elif regime == "tidak_cukup_data":
+        lines.append(_trim("Belum cukup riwayat untuk menaksir peluang pada level ini."))
+    else:
+        n_events = (plan or {}).get("hold", {}).get("n_events") or 0
+        lines.append(_trim(f"Belum cukup riwayat untuk menaksir peluang pada level ini (baru {n_events} penembusan)."))
+    for note in (plan or {}).get("notes", []) or []:
+        if len(lines) >= 3:
+            break
+        lines.append(_trim(note))
+    return lines[:3]
+
+
+def plan_for_all(conn, cfg, report=None) -> dict:
+    """Plan + skenario untuk **semua** emiten aktif (docs/03 §6.5) → upsert `stock_plan` hari ini.
+
+    Mesin yang sama dengan pick mingguan (`build_plans` → `plan_levels`); hanya lingkupnya berbeda.
+    `report(rows=…, rows_total=…, message=…)` menulis progres tiap 50 emiten.
+    """
+    plan_cfg = cfg.weekly["plan"]
+    ma = cfg.ta["ma_default"]
+    trend = 1 if cfg.ta["trend_filter"] else 0
+    now = datetime.now(ZoneInfo(cfg.app.timezone)).isoformat(timespec="seconds")
+    benchmark_bars = load_bars(conn, cfg.ingest["benchmark_alias"], FAR_FUTURE)
+    support_ihsg = (
+        float(benchmark_bars["low"].iloc[-plan_cfg["donchian_fast"] :].min())
+        if len(benchmark_bars) > plan_cfg["donchian_fast"]
+        else None
+    )
+
+    refs = [row["ticker"] for row in conn.execute(ACTIVE_STOCKS_SQL)]
+    written = skipped = null_scenario = 0
+    for index, ticker in enumerate(refs, 1):
+        bars = load_bars(conn, ticker, FAR_FUTURE)
+        if not len(bars):
+            continue
+        as_of = str(bars["date"].iloc[-1])
+        row = {"as_of_date": as_of, "ticker": ticker, "computed_at": now}
+        if len(bars) < cfg.ta["min_history"]:
+            plan, stats = None, None
+            regime = "tidak_cukup_data"
+            summaries = [_trim(f"Riwayat harga baru {len(bars)} bar — belum cukup untuk menghitung level.")]
+            skipped += 1
+        else:
+            metrics = metrics_for(conn, ticker)
+            metrics.update(indicators_from_bars(bars, cfg))
+            sector = conn.execute("SELECT code FROM sector WHERE id = (SELECT sector_id FROM stock WHERE ticker = ?)", (ticker,)).fetchone()
+            quadrant = (
+                conn.execute(SECTOR_QUADRANT_SQL, (cfg.universe["weighting"], sector[0], as_of)).fetchone() if sector else None
+            )
+            regime = regime_of(bars, metrics, sector_quadrant=quadrant[0] if quadrant else None, cfg=cfg)
+            if metrics.get("atr14") is None:
+                plan = None
+            else:
+                plan = plan_levels(bars, metrics, regime, ta_stats_for(conn, ticker, cfg), cfg, support_ihsg=support_ihsg)
+                validate(plan)
+            events = [dict(event) for event in conn.execute(STOCK_EVENTS_SQL, (ticker, ma, trend))]
+            levels = (
+                {"tp1_pct": plan["tp1"]["pct"], "tp2_pct": plan["tp2"]["pct"], "stop_pct": abs(plan["stop"]["pct"])}
+                if plan
+                else None
+            )
+            stats = scenario(events, bars, levels, cfg)
+            summaries = summary_lines(bars, metrics, regime, plan, stats, cfg)
+        if stats is None:
+            null_scenario += 1
+
+        level_values = key_levels(plan) if plan else {column: None for column in plan_columns()}
+        level_values["regime"] = regime
+        row.update(level_values)
+        row.update(
+            {
+                "p_tp1_first": stats["p_tp1_first"] if stats else None,
+                "p_sl_first": stats["p_sl_first"] if stats else None,
+                "p_timeout": stats["p_timeout"] if stats else None,
+                "median_periods_tp1": stats["median_periods_tp1"] if stats else None,
+                "median_periods_sl": stats["median_periods_sl"] if stats else None,
+                "n_events": stats["n_events"] if stats else (plan["hold"]["n_events"] if plan else 0),
+                "summary_lines": json.dumps(summaries, ensure_ascii=False),
+                "notes": json.dumps((plan or {}).get("notes", []), ensure_ascii=False),
+            }
+        )
+        conn.execute(STOCK_PLAN_SQL, tuple(row[column] for column in STOCK_PLAN_COLUMNS))
+        written += 1
+        if report and (index % 50 == 0 or index == len(refs)):
+            report(rows=written, rows_total=len(refs), message=f"emiten {index}/{len(refs)}")
+    conn.commit()
+    return {"rows": written, "refs": len(refs), "skipped_short_history": skipped, "scenario_null_refs": null_scenario}
+
+
+def stock_plan_row(conn, ticker: str, as_of: str | None = None) -> dict | None:
+    """Baris `stock_plan` terakhir (atau `as_of` tertentu) — satu sumber untuk `/plan/stock` & `/series/stock`."""
+    sql = "SELECT * FROM stock_plan WHERE ticker = ?"
+    params: tuple = (ticker,)
+    if as_of:
+        sql += " AND as_of_date <= ?"
+        params += (as_of,)
+    found = conn.execute(sql + " ORDER BY as_of_date DESC LIMIT 1", params).fetchone()
+    return dict(found) if found else None

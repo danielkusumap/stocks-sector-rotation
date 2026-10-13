@@ -9,6 +9,15 @@ QUADRANT_LABEL = {
     "lagging": "Tertinggal",
 }
 
+# Rezim plan TA (docs/03 §6.4.0) — label yang dibaca user, bukan kode mentah.
+REGIME_LABEL = {
+    "tren_naik": "Tren naik",
+    "range": "Menyamping",
+    "turun": "Turun",
+    "tipis": "Tipis",
+    "tidak_cukup_data": "Data belum cukup",
+}
+
 QUADRANT_DESC = {
     "leading": "Tren relatif naik dan masih dipercepat.",
     "improving": "Tren relatif masih di bawah acuan, tapi mulai dipercepat.",

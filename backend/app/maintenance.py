@@ -12,6 +12,7 @@ from .config import get_settings
 INTRADAY_DELETE_SQL = "DELETE FROM price_intraday WHERE substr(ts, 1, 10) < ?"
 MIDDAY_RRG_DELETE_SQL = "DELETE FROM rrg_daily WHERE timeframe = 'midday' AND as_of_date < ?"
 MIDDAY_METRICS_DELETE_SQL = "DELETE FROM sector_metrics WHERE timeframe = 'midday' AND as_of_date < ?"
+STOCK_PLAN_DELETE_SQL = "DELETE FROM stock_plan WHERE as_of_date < ?"
 
 
 def retention(*, db_path=None) -> dict:
@@ -24,12 +25,14 @@ def retention(*, db_path=None) -> dict:
     today = datetime.now(ZoneInfo(cfg.app.timezone)).date()
     intraday_cutoff = (today - timedelta(days=cfg.retention["intraday_days"])).isoformat()
     midday_cutoff = (today - timedelta(days=cfg.retention["midday_rrg_days"])).isoformat()
+    plan_cutoff = (today - timedelta(days=cfg.retention["plan_days"])).isoformat()
 
     conn = db.connect(db_path)
     try:
         intraday = conn.execute(INTRADAY_DELETE_SQL, (intraday_cutoff,)).rowcount
         rrg = conn.execute(MIDDAY_RRG_DELETE_SQL, (midday_cutoff,)).rowcount
         metrics = conn.execute(MIDDAY_METRICS_DELETE_SQL, (midday_cutoff,)).rowcount
+        plans = conn.execute(STOCK_PLAN_DELETE_SQL, (plan_cutoff,)).rowcount
         conn.commit()
 
         target = Path(db_path) if db_path else db.db_path()
@@ -42,8 +45,10 @@ def retention(*, db_path=None) -> dict:
             "intraday_deleted": intraday,
             "midday_rrg_deleted": rrg,
             "midday_metrics_deleted": metrics,
+            "stock_plan_deleted": plans,
             "intraday_cutoff": intraday_cutoff,
             "midday_cutoff": midday_cutoff,
+            "plan_cutoff": plan_cutoff,
             "size_mb": round(size_mb, 1),
             "vacuumed": vacuumed,
         }

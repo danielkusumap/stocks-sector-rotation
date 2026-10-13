@@ -13,7 +13,8 @@ import time
 from typing import Callable
 
 from . import db
-from .compute import index, metrics, midday as midday_compute, rrg, signals, ta
+from .compute import index, metrics, midday as midday_compute, plan, rrg, signals, ta
+from .config import get_settings
 from .ingest import excel, freshness, prices
 from .repo import run as runs
 
@@ -135,6 +136,16 @@ def compute(params: dict, report: Callable[..., None]) -> dict:
         result["ta_rows"], result["ta_refs"] = ta_result["rows"], ta_result["refs"]
         if stage == "ta":  # bentuk result_json compute_ta (docs/05 §4.6)
             result.update({key: ta_result[key] for key in ("events", "refs", "ma_periods", "variants", "win_rate")})
+        # (b) plan + skenario untuk **semua** emiten aktif → `stock_plan` (docs/03 §6.5, B20).
+        conn = db.connect()
+        try:
+            plan_result = plan.plan_for_all(conn, get_settings(), report=report)
+        finally:
+            conn.close()
+        rows += plan_result["rows"]
+        result["plan_rows"], result["plan_refs"] = plan_result["rows"], plan_result["refs"]
+        result["plan_skipped_short_history"] = plan_result["skipped_short_history"]
+        result["scenario_null_refs"] = plan_result["scenario_null_refs"]
 
     result["rows"] = rows
     result["duration_s"] = round(time.monotonic() - started, 2)
