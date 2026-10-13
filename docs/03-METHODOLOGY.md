@@ -164,7 +164,22 @@ Gerbang tambahan di dalam `tren_naik`: `chase_atr` (harga terlalu jauh dari SMA2
 
 **Urutan penyelesaian konflik** (kalau alat bertentangan — mis. harga menembus resistance tapi rezim `range` dan RSI belum di tepi bawah): struktur harga menang atas indikator turunan → filter tren menang atas osilator → volume hanya mengonfirmasi/membatalkan → **masih seri = `no_trade`** (jawaban yang sah, bukan dipaksa).
 
-#### 6.4.1 Setup & input
+#### 6.4.1 Setup & input — **basis = sesi penutup pekan itu** (Jumat)
+
+**Semua input dihitung dari bar `date <= week_end`** (sesi terakhir pekan itu, umumnya Jumat) dan tidak boleh membaca snapshot tanggal lain:
+
+```
+bars     = price_daily ticker, date <= week_end, adj_close sebagai harga (high/low diskalakan adj_close/close — ADR-040)
+sma20/50 = rolling mean bars.close (jendela 20/50)          ← dihitung dari `bars`, BUKAN dari stock_metrics
+rsi14    = Wilder RSI(14) atas bars.close                   ← idem
+atr14    = Wilder ATR(14) atas bars high/low/close          ← idem
+vol20    = rata-rata volume 20 bar terakhir dari `bars`
+kuadran sektor = rrg_daily w1_fri as_of_date <= week_end (baris terakhir)
+support IHSG   = low terendah donchian_fast bar IHSG, date <= week_end
+```
+`stock_metrics` **tidak** dipakai untuk level plan: metrik itu hanya dihitung untuk `as_of` terakhir (ADR-021), sehingga untuk pekan lama barisnya tidak ada dan untuk pekan terakhir justru bisa berisi tanggal **setelah** `week_end` (look-ahead). Konsekuensinya plan pekan lama tetap bisa direplay dari data Jumat-nya sendiri.
+
+Test: `test_plan_pakai_bar_sampai_week_end` (untuk pekan lama, `sma20`/`rsi14`/`atr14` yang dipakai = hasil hitung dari bar ≤ week_end, **berbeda** dari `stock_metrics` terakhir dan sama dengan hitungan manual), `test_plan_tidak_baca_metrik_masa_depan` (plan pekan 9 Okt tidak berubah walau bar 12–13 Okt ditambahkan).
 ```
 close            = adj_close bar terakhir sampai week_end
 atr14            = ATR14 harian (Wilder) dari stock_metrics

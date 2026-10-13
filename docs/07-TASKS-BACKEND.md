@@ -217,6 +217,26 @@ Commit (satu task satu commit): `B17: analisa teknikal & backtest MA (SMA, break
 **Bukti:** `pytest -q backend` hijau + run nyata `stage=signals` dengan config salinan (`ROTATION_CONFIG` ke DB di luar repo, 10–20 emiten — **jangan** backfill penuh) + dump JSON satu pick per rezim (tren_naik & range minimal, kalau tidak ada → buat fixture sintetis dan sebut itu) ke `docs/evidence/b18/` + agregat SQL `hit_tp1`/`hit_tp2` nyata + potongan respons `weekly/picks`.
 Catatan: blok `weekly.plan` baru di config → salinan config uji lama harus digenerate ulang. Commit: `B18: trading plan TA (rezim dinamis, stop struktur, RR bersih biaya)`.
 
+## B18b — Basis bar plan: indikator dari `date <= week_end`, bukan snapshot metrik terakhir
+
+**Kenapa ada:** ditemukan user 13 Okt 2026 setelah B18 selesai. `compute/plan.py` sudah mengambil **bar** dengan benar (`load_bars(ticker, week_end)` → `date <= week_end`), tetapi `metrics_for()` **mengabaikan** `week_end` dan membaca baris `stock_metrics` terakhir. Di DB dev baris terakhir = `as_of 2026-10-13`, sedangkan pekan final terakhir = `2026-10-09` → ATR14/SMA20/SMA50/RSI14 yang menyusun zona–stop–TP diambil dari **2 hari bursa setelah** sesi penutup (look-ahead halus), dan plan pekan lama tidak bisa direplay. `stock_metrics` juga hanya punya 2 tanggal (`2026-10-13`: 833 baris, `2026-10-09`: 256), jadi pekan lebih lama tidak punya barisnya sama sekali.
+
+**Deliverable:**
+1. `compute/plan.py`: tambah `indicators_from_bars(bars, cfg)` (murni, pandas/numpy) yang menghitung `sma20`, `sma50`, `rsi14` (Wilder), `atr14` (Wilder), `vol20` dari `bars` (yang sudah `date <= week_end`, harga penyesuaian). `build_plans` memakai itu, **bukan** `metrics_for`.
+2. `metrics_for` dipertahankan hanya untuk hal yang memang bukan level plan (mis. skor/`median_turnover_20d_idr` dari `stock_metrics`) — kalau tetap dipakai, wajib diberi komentar kenapa, dan **tidak** boleh mengisi `atr14`/`sma*`/`rsi14` plan.
+3. Nilai `sma20`/`sma50`/`rsi14`/`atr14` hasil hitung ulang harus **konsisten** dengan `stock_metrics` bila `week_end` = `as_of` terakhir (toleransi 1e-6) — itu bukti rumusnya sama, bukan tafsiran baru.
+4. `ta_stats_for()` (statistik event dari `ta_breakout`) tetap dipakai apa adanya — ia hanya menghitung peluang historis, bukan level.
+
+**AC:**
+1. `test_plan_pakai_bar_sampai_week_end`: untuk `week_end` = 2026-10-09, `atr14`/`sma20`/`rsi14` yang dipakai plan = hitungan dari bar ≤ 9 Okt, **bukan** nilai `stock_metrics` 13 Okt (tempel kedua angka di bukti).
+2. `test_plan_tidak_baca_metrik_masa_depan`: hitung plan untuk pekan 9 Okt, lalu tambahkan bar 12–13 Okt → nilai plan pekan 9 Okt **identik** (tidak berubah).
+3. `test_indicators_sama_dengan_stock_metrics`: bila `week_end` = `as_of` terakhir, `sma20/sma50/rsi14/atr14` sama dengan `stock_metrics` (toleransi 1e-6).
+4. Plan pekan lama (mis. 2026-06-19) tetap menghasilkan level (tidak `null` hanya karena `stock_metrics` tidak punya baris tanggal itu).
+5. `pytest -q backend -n auto` hijau; tidak ada regresi pada B18 (test B18 tetap lulus tanpa diubah asersinya).
+
+**Bukti:** dump JSON plan satu ticker untuk 2 pekan (terbaru + satu pekan lama) sebelum/sesudah perbaikan (tempel angka `atr14`/`sma20` yang berubah) + output `pytest -q backend -n auto` + potongan `signal_weekly` yang menunjukkan level baru.
+Commit: `B18b: plan pakai bar sampai week_end (bukan snapshot metrik terakhir)`.
+
 ## B19 — `GET /api/v1/series/stock/{ticker}`: bahan grafik candle + overlay TA
 
 **Kenapa ada:** user ingin melihat **candlestick beserta TA** di halaman detail saham, dengan overlay yang **sesuai aturan & rezim** kita (docs/03 §6.4.0, §6.4.9) — bukan indikator sembarangan. Data sudah ada (`price_daily` 2 tahun OHLC penyesuaian + `ta_breakout`), yang kurang hanya endpoint yang menyajikannya. Kontrak: `docs/05` §2. Tampilan: `docs/06` §6.5.
