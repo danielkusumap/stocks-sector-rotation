@@ -23,6 +23,8 @@ import {
   type SectorSummaryParams,
   type SectorSummaryResponse,
   type StockDetailResponse,
+  type StockPlanParams,
+  type StockPlanResponse,
   type StockSeriesParams,
   type StockSeriesResponse,
   type TaDetailParams,
@@ -141,6 +143,10 @@ export const useTaDetail = (scope: TaScope, refId: string, params: TaDetailParam
     params,
     Boolean(refId),
   );
+
+/** Analisa lengkap satu saham (`docs/05` §2 `/plan/stock/{ticker}`) — panel halaman detail. */
+export const useStockPlan = (ticker: string, params: StockPlanParams = {}) =>
+  useApi<StockPlanResponse, StockPlanParams>(`stock-plan:${ticker}`, `/plan/stock/${ticker}`, params, Boolean(ticker));
 
 /** Poll 1 s selama status belum final; berhenti sendiri saat `ok|partial|failed|skipped` (docs/05 §5.1). */
 export function useRun(runId: number | null) {

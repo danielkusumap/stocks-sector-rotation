@@ -711,6 +711,58 @@ export interface ElliottLayers {
   note: string;
 }
 
+// ── §2d Analisa lengkap satu saham — `/plan/stock/{ticker}` (docs/05 §2, docs/06 §5.3) ──
+
+/** Skenario historis: frekuensi "kena dulu" dari event masa lalu (`scenario` `null` = sampel kecil). */
+export interface PlanScenario {
+  p_tp1_first: number | null;
+  p_sl_first: number | null;
+  p_timeout: number | null;
+  p_tp2_first: number | null;
+  median_periods_tp1: number | null;
+  median_periods_sl: number | null;
+  n_events: number;
+  /** Event yang masih berjalan — dikeluarkan dari hitungan peluang (ditampilkan terpisah). */
+  n_open_dikeluarkan: number;
+  basis: string;
+}
+
+/** Satu baris daftar level (`levels_table`, urutan tetap dari backend). */
+export interface LevelRow {
+  label: string;
+  level?: number | null;
+  low?: number | null;
+  high?: number | null;
+}
+
+export interface StockPlanCoverage {
+  bars_available: number;
+  bars_from: string | null;
+  bars_to: string | null;
+  n_events: number;
+  price_basis: string;
+}
+
+/** `GET /plan/stock/{ticker}` — satu sumber untuk panel analisa di halaman detail. */
+export interface StockPlanResponse {
+  api_version: string;
+  as_of: string;
+  stock: { ticker: string; name: string; sector_code: string | null; board: string | null };
+  price: { close: number | null; prev_close: number | null; ret_1d: number | null; price_basis: string };
+  regime: { code: string; label: string; reason: string; active_tools: string[] };
+  summary_lines: string[];
+  /** `null` = tidak ada rencana beli / riwayat kurang (bukan error). */
+  plan: WeeklyPlan | null;
+  scenario: PlanScenario | null;
+  levels_table: LevelRow[];
+  coverage: StockPlanCoverage;
+  data_status: DataStatus;
+}
+
+export interface StockPlanParams {
+  as_of?: string;
+}
+
 // ── §3 Weekly picks & briefing ───────────────────────────────────────────────
 
 export interface WeeklySectorPick {

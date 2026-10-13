@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router";
 import { CandleChart } from "../components/charts/CandleChart";
 import { QuadrantChart } from "../components/charts/QuadrantChart";
+import { AnalysisPanel } from "../components/domain/AnalysisPanel";
 import { FilterBar } from "../components/domain/FilterBar";
 import { PeriodNote } from "../components/domain/PeriodNote";
 import { StockTable } from "../components/domain/StockTable";
@@ -14,11 +15,12 @@ import { Segmented } from "../components/ui/Segmented";
 import { QuadrantBadge } from "../components/ui/QuadrantBadge";
 import { StreakBadge } from "../components/ui/StreakBadge";
 import { Skeleton, TableSkeleton } from "../components/ui/Skeleton";
-import { useMetaSectors, useRrg, useStock, useStockSeries, useStocks } from "../hooks/useApiQuery";
+import { useMetaSectors, useRrg, useStock, useStockPlan, useStockSeries, useStocks } from "../hooks/useApiQuery";
 import { useFilterState } from "../hooks/useFilterState";
 import { useSetPeriodLabel } from "../components/layout/ScopeControls";
 import { formatNum, formatRp, formatRpCompact, formatDate } from "../lib/format";
 import { periodFromStatus } from "../lib/period";
+import { regimeLabel, regimeToneOf } from "../lib/stockAnalysis";
 import { polyline } from "../lib/seriesChart";
 import { nextSort, stockSortOf } from "../lib/stockTable";
 
@@ -153,6 +155,8 @@ function StockDetail({ ticker }: { ticker: string }) {
   const [picked, setPicked] = useState<string | null>(ticker);
   // grafik candle: `window` dari URL (filter lain), angka overlay dari API
   const series = useStockSeries(ticker, { window: filters.window });
+  // analisa lengkap (docs/06 §5.3): satu hook, satu permintaan — badge rezim di header & AnalysisPanel
+  const plan = useStockPlan(ticker, filters.as_of ? { as_of: filters.as_of } : {});
 
   const period = periodFromStatus(rrg.data?.data_status, {
     timeframe: filters.timeframe,
@@ -192,6 +196,25 @@ function StockDetail({ ticker }: { ticker: string }) {
               <span className="text-sm text-fg-muted">
                 {stock.data.stock.sector_code} · {stock.data.stock.yahoo_symbol}
               </span>
+              {/* badge rezim + label harga penyesuaian (docs/06 §5.3 no.1), sumber `/plan/stock` */}
+              {plan.data && (
+                <>
+                  <span
+                    data-testid="stock-regime"
+                    data-tone={regimeToneOf(plan.data.regime.code)}
+                    className={
+                      regimeToneOf(plan.data.regime.code) === "down"
+                        ? "font-medium text-down"
+                        : regimeToneOf(plan.data.regime.code) === "warn"
+                          ? "font-medium text-warn"
+                          : "font-medium text-fg-muted"
+                    }
+                  >
+                    {regimeLabel(plan.data.regime.code)}
+                  </span>
+                  <span className="text-sm text-fg-faint">harga penyesuaian</span>
+                </>
+              )}
               <Sparkline values={closes} className="ml-auto" />
             </div>
 
@@ -247,6 +270,9 @@ function StockDetail({ ticker }: { ticker: string }) {
           </p>
         )}
       </Panel>
+
+      {/* Analisa lengkap untuk SEMUA emiten (docs/06 §5.3 no.2) */}
+      <AnalysisPanel ticker={ticker} asOf={filters.as_of ?? undefined} />
 
       <Panel
         title="Grafik & analisa teknikal"

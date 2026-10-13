@@ -30,6 +30,7 @@ import { weekRangeLabel, weekStart } from "../lib/weeklyPicks";
 import { adminHandlers } from "./admin";
 import { taHandlers } from "./ta";
 import { seriesHandlers } from "./series";
+import { planHandlers } from "./plan";
 import { planFor } from "./plans";
 
 /**
@@ -901,4 +902,5 @@ export const handlers = [
   ...adminHandlers,
   ...taHandlers,
   ...seriesHandlers,
+  ...planHandlers,
 ];
