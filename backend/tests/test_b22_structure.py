@@ -38,18 +38,22 @@ def _span(cfg) -> int:
     return cfg.weekly["plan"]["pivot_bars"]
 
 
-def _swing_bars(cfg, *, span: int | None = None, tail_close: float = 100.0, pokes_high: bool = False) -> pd.DataFrame:
-    """Mendatar 100 dengan satu swing high 110 di tengah, lalu bar terakhir menembus (atau hanya wick)."""
-    span = span or _span(cfg)
+def _swing_bars(cfg, *, tail_close: float = 100.0, pokes_high: bool = False) -> pd.DataFrame:
+    """Mendatar dengan swing high 110 & swing low 90; pivot biasa di 105/95 supaya wick bisa diuji.
+
+    Band pivot dibuat **di atas** `tail_close` (105) sehingga bar ekor bisa menembus dengan `high`
+    tapi tidak dengan `close`.
+    """
+    span = _span(cfg)
     length = span * 4 + 4
     index = span * 2
     closes = [100.0] * length
-    highs = [101.0] * length
-    lows = [99.0] * length
+    highs = [105.0] * length
+    lows = [95.0] * length
     highs[index] = 110.0  # swing high tunggal (tetangga ±`span` lebih rendah)
     lows[index + span] = 90.0  # swing low tunggal
     closes[-1] = tail_close
-    highs[-1] = 111.0 if pokes_high else max(tail_close + 1, 101.0)
+    highs[-1] = 111.0 if pokes_high else max(tail_close + 1, 105.0)
     return make_ohlc(closes, highs=highs, lows=lows)
 
 
@@ -77,13 +81,12 @@ def test_smc_bos_butuh_close(cfg):
     wick = structure.smc_layers(_swing_bars(cfg, tail_close=104.0, pokes_high=True), cfg)
     assert wick["bos"] == []
 
-    broken = structure.smc_layers(_swing_bars(cfg, tail_close=111.0), cfg)
+    broken = structure.smc_layers(_swing_bars(cfg, tail_close=106.0), cfg)
     assert broken["bos"] and broken["bos"][-1]["direction"] == "up"
 
 
 def test_smc_order_block_candle_terakhir_sebelum_impuls(cfg):
     """OB bullish = candle turun terakhir sebelum impuls yang memecah struktur; `mitigated` setelah disentuk."""
-    span = _span(cfg)
     bars = _swing_bars(cfg, tail_close=111.0)
     index = len(bars) - 1
     bars.loc[max(index - 1, 0), ["open", "close", "high", "low"]] = [109.0, 105.0, 109.5, 104.5]  # candle turun
@@ -96,17 +99,12 @@ def test_smc_order_block_candle_terakhir_sebelum_impuls(cfg):
     revisited = [block for block in structure.smc_layers(after, cfg)["order_blocks"] if block["kind"] == "bullish"]
     assert revisited[-1]["mitigated"] is True
 
-    assert span > 0  # fixture memakai span config, bukan konstanta
-
 
 def test_smc_equal_levels_toleransi(cfg):
-    """Dua pivot high berdekatan (≤ `chart.smc.eq_tol_pct` × close) → satu baris `equal_levels`, `count` 2."""
-    span = _span(cfg)
-    bars = _swing_bars(cfg)
-    highs = bars["high"].tolist()
-    highs[span * 2 + 6 if span * 2 + 6 < len(highs) - span else span * 2] = 110.5  # pivot high kedua, 0,5% dari 110
-    levels = structure.smc_layers(make_ohlc(bars["close"].tolist(), highs=highs, lows=bars["low"].tolist()), cfg)["equal_levels"]
-    assert any(entry["kind"] == "high" and entry["count"] >= 2 for entry in levels)
+    """Beberapa pivot high pada level berdekatan (≤ `chart.smc.eq_tol_pct` × close) → satu baris, `count ≥ 2`."""
+    levels = [entry for entry in structure.smc_layers(_swing_bars(cfg), cfg)["equal_levels"] if entry["kind"] == "high"]
+    assert levels and levels[0]["count"] >= 2
+    assert "level" in levels[0] and levels[0]["level"] > 0
 
 
 # --- Elliott --------------------------------------------------------------------

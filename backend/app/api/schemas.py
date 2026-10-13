@@ -768,9 +768,16 @@ class SeriesChannel(BaseModel):
     to: str | None = None
 
 
+class SeriesStockZone(BaseModel):
+    """Zona beli untuk legend grafik (docs/05 §2) — tanpa `reason` (itu milik `/plan/stock`)."""
+
+    low: float
+    high: float
+
+
 class SeriesStockLevels(BaseModel):
     week_end: str
-    entry_zone: PlanEntryZone
+    entry_zone: SeriesStockZone
     stop: float | None
     tp1: float | None
     tp2: float | None

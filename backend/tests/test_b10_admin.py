@@ -92,7 +92,7 @@ def test_backup_terunduh_dan_utuh(client, tmp_db):
     try:
         assert check.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
         assert check.execute("SELECT COUNT(*) FROM stock WHERE ticker = 'AAAA'").fetchone()[0] == 1
-        assert check.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table'").fetchone()[0] == 14
+        assert check.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table'").fetchone()[0] == 15
     finally:
         check.close()
         dest.unlink(missing_ok=True)

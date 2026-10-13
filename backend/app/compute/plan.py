@@ -766,9 +766,14 @@ def plan_for_all(conn, cfg, report=None) -> dict:
                 plan = plan_levels(bars, metrics, regime, ta_stats_for(conn, ticker, cfg), cfg, support_ihsg=support_ihsg)
                 validate(plan)
             events = [dict(event) for event in conn.execute(STOCK_EVENTS_SQL, (ticker, ma, trend))]
+            # Plan tanpa level (`no_trade`/data kurang) → tidak ada level untuk diukur skenarionya.
             levels = (
-                {"tp1_pct": plan["tp1"]["pct"], "tp2_pct": plan["tp2"]["pct"], "stop_pct": abs(plan["stop"]["pct"])}
-                if plan
+                {
+                    "tp1_pct": plan["tp1"]["pct"],
+                    "tp2_pct": plan["tp2"]["pct"],
+                    "stop_pct": abs(plan["stop"]["pct"]),
+                }
+                if plan and plan["stop"]["pct"] is not None and plan["tp1"]["pct"] is not None and plan["tp2"]["pct"] is not None
                 else None
             )
             stats = scenario(events, bars, levels, cfg)
@@ -776,7 +781,16 @@ def plan_for_all(conn, cfg, report=None) -> dict:
         if stats is None:
             null_scenario += 1
 
-        level_values = key_levels(plan) if plan else {column: None for column in plan_columns()}
+        level_values = (
+            key_levels(plan)
+            if plan
+            else {
+                # `plan_ok` NOT NULL di DDL → tanpa plan = 0 (tidak layak dipakai), bukan NULL.
+                column: (0 if column == "plan_ok" else None)
+                for column in STOCK_PLAN_COLUMNS
+                if column not in ("as_of_date", "ticker", "computed_at")  # dikunci terpisah di atas
+            }
+        )
         level_values["regime"] = regime
         row.update(level_values)
         row.update(

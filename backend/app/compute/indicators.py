@@ -74,7 +74,7 @@ def vwap(
     Bar bervolume 0 dibuang dari pembilang **dan** penyebut — volume 0 bukan harga.
     """
     typical = (high + low + close) / 3
-    traded = volume.where(volume > 0)
+    traded = volume.where(volume > 0, 0.0)  # volume 0 → nol (bukan NaN) supaya tidak meracuni penjumlahan
     if start is None:
         value = (typical * traded).rolling(window).sum() / traded.rolling(window).sum()
         sigma = (close - value).rolling(window).std()

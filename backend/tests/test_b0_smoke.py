@@ -29,6 +29,7 @@ TABLES = {
     "signal_weekly",
     "ingest_run",
     "ta_breakout",
+    "stock_plan",
 }
 VIEWS = {"v_sector_latest", "v_stock_latest"}
 

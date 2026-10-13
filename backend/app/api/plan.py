@@ -256,8 +256,9 @@ def _indicators(bars, cfg, index) -> dict:
                     "upper2": _num(row["upper2"]),
                     "lower2": _num(row["lower2"]),
                 }
-                for date, row in bands.loc[index].iterrows()
-                if not pd.isna(row["vwap"])
+                for date, row in zip(dates, bands.loc[index].to_dict("records"))
+                # VWAP valid setelah `len` bar; pita σ baru lengkap setelah `len` simpangan → titik parsial dibuang.
+                if not pd.isna(row["vwap"]) and not pd.isna(row["upper1"])
             ],
         },
         "poc": {
@@ -293,7 +294,10 @@ def stock_series(
         raise HTTPException(422, {"code": "invalid_bars", "message": f"bars maksimum {MAX_BARS}", "detail": {"bars": n_bars}})
     if n_events > MAX_EVENTS:
         raise HTTPException(422, {"code": "invalid_events", "message": f"events maksimum {MAX_EVENTS}", "detail": {"events": n_events}})
-    requested = layers or ["indicators"]  # docs/05 §2: lapisan `indicators` menyala secara default (B21)
+    # `layers` kosong eksplisit (`?layers=`) = matikan semua lapisan; tanpa parameter = default `indicators`.
+    requested = [layer for layer in (layers or []) if layer]
+    if layers is None:
+        requested = ["indicators"]  # docs/05 §2: lapisan `indicators` menyala secara default (B21)
     unknown = [layer for layer in requested if layer not in LAYERS]
     if unknown:
         raise HTTPException(422, {"code": "invalid_layer", "message": "lapisan tidak dikenal", "detail": {"layers": unknown}})
