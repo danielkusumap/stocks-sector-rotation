@@ -294,8 +294,9 @@ def stock_series(
         raise HTTPException(422, {"code": "invalid_bars", "message": f"bars maksimum {MAX_BARS}", "detail": {"bars": n_bars}})
     if n_events > MAX_EVENTS:
         raise HTTPException(422, {"code": "invalid_events", "message": f"events maksimum {MAX_EVENTS}", "detail": {"events": n_events}})
-    # `layers` kosong eksplisit (`?layers=`) = matikan semua lapisan; tanpa parameter = default `indicators`.
-    requested = [layer for layer in (layers or []) if layer]
+    # `layers` menerima **dua bentuk**: berulang (`?layers=indicators&layers=smc`) dan berkoma
+    # (`?layers=indicators,smc`) — bentuk berkoma yang dipakai frontend (ADR-057). Spasi diabaikan.
+    requested = [part.strip() for layer in (layers or []) for part in layer.split(",") if part.strip()]
     if layers is None:
         requested = ["indicators"]  # docs/05 §2: lapisan `indicators` menyala secara default (B21)
     unknown = [layer for layer in requested if layer not in LAYERS]
