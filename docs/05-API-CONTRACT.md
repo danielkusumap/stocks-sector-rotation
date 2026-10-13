@@ -336,6 +336,7 @@ Seri untuk chart garis/area. Query: `from, to, timeframe, weighting`.
 ### `GET /api/v1/series/stock/{ticker}`
 Bahan **grafik candle + overlay analisa teknikal** di halaman detail saham (docs/06 §6.5). Semua overlay dihitung backend dari harga penyesuaian (`docs/03` §6.4.9 & §10) — frontend tidak menghitung satu pun indikator.
 Query: `window` (default `6m`), `bars` (default `config.chart.window_bars`, maks 400), `ma` (daftar periode, default `config.ta.ma_periods`), `events` (default `config.chart.events`, maks 100), `weighting` (untuk rezim sektor saham), **`layers`** (daftar lapisan tambahan, default = `indicators`; nilai sah: `indicators` (Ultimate RSI + VWAP + POC), `smc`, `elliott`; kosong = hanya MA/Donchian/kanal/level/event).
+Dua bentuk penulisan **sama-sama sah**: berulang `?layers=indicators&layers=smc` dan berkoma `?layers=indicators,smc` (backend memecah nilai pada koma; spasi diabaikan). `?layers=` (kosong eksplisit) = semua lapisan mati. Nilai tak dikenal → `422 invalid_layer`.
 ```json
 { "api_version": "1.0", "ticker": "BBRI", "name": "Bank Rakyat Indonesia", "price_basis": "adj_close",
   "regime": "tren_naik", "active_tools": ["pullback_ma20", "volume"], "regime_reason": "Harga di atas penyangga 20 & 50 hari dan sektornya Memimpin — alat utama pantulan ke penyangga.",

@@ -258,6 +258,38 @@ Commit: `B18b: plan pakai bar sampai week_end (bukan snapshot metrik terakhir)`.
 **Bukti:** angka distribusi sebelum/sesudah (mis. "29/34 → N/34; sisa yang `false` semuanya karena RR < 3 atau `no_trade`") + dump 2 plan yang berubah (MPXL & SMDR) + output pytest.
 Commit: `B18c: plan_ok hanya untuk RR/no_trade + ambang stop lebar adaptif ATR`.
 
+## B19b — `layers` menerima daftar berkoma (bug 422 pada `/series/stock`)
+
+**Kenapa ada:** dilaporkan user 14 Okt 2026 dari log server: `GET /api/v1/series/stock/KLBF?window=1y&layers=indicators%2Csmc` → **422 Unprocessable Content** (8 kali berturut-turut, juga untuk `indicators,smc,elliott` dan `indicators,elliott`).
+
+**Akar masalah (sudah ditelusuri, jangan cari lagi):**
+- `backend/app/api/plan.py:282` mendeklarasikan `layers: list[str] | None = Query(default=None)` — deklarasi itu di FastAPI berarti **parameter berulang** (`?layers=indicators&layers=smc`), bukan nilai berkoma.
+- Frontend (F21, `lib/candleChart.ts` / `lib/urlFilters.ts`) mengirim **satu** nilai berkoma → FastAPI menyerahkan `["indicators,smc"]`.
+- `backend/app/api/plan.py:301-303` memvalidasi tiap elemen terhadap `LAYERS` → `unknown = ["indicators,smc"]` → `raise HTTPException(422, {"code": "invalid_layer", …})`. Karena itu pesan errornya `invalid_layer`, bukan `invalid_bars`/`invalid_events`.
+
+**Keputusan (ADR wajib):** backend yang menerima **dua bentuk** — bukan menyuruh frontend berubah, karena (a) `layers` bertipe daftar di kontrak `docs/05` §2 dan bentuk berkoma lebih pendek di URL, (b) mengubah frontend berarti menyentuh F21 yang sedang jalan, (c) pemecahan satu baris di backend menutup keduanya sekaligus dan tetap kompatibel dengan pemanggil lain (CLI/curl).
+
+**Deliverable:**
+1. `backend/app/api/plan.py`: pecah nilai pada koma + buang spasi/kosong, pertahankan aturan yang sudah ada:
+   ```python
+   requested = [part.strip() for layer in (layers or []) for part in layer.split(",") if part.strip()]
+   if layers is None:
+       requested = ["indicators"]          # default docs/05 §2
+   ```
+   (dengan ini `?layers=` kosong tetap = semua lapisan mati, dan `?layers=indicators&layers=smc` tetap sah).
+2. `docs/05` §2 sudah diperbarui: dua bentuk sah + `?layers=` kosong + `422 invalid_layer` untuk nilai tak dikenal.
+3. `docs/DECISIONS.md`: ADR singkat (bentuk berkoma diterima; alasan tidak mengubah frontend).
+
+**AC:**
+1. `test_layers_bentuk_berkoma_dan_berulang_sama`: untuk `KLBF` (atau ticker uji), respons `?layers=indicators,smc` **identik** dengan `?layers=indicators&layers=smc` (bandingkan `layers` + `smc` + `indicators` di JSON; tempel bukti).
+2. `test_layers_kosong_mematikan_semua`: `?layers=` → `layers == []` dan tidak ada kunci `indicators`/`smc`/`elliott` di respons; tanpa parameter → `layers == ["indicators"]`.
+3. `test_layers_spasi_diabaikan`: `?layers=indicators%2C+smc` (koma + spasi) → sama dengan tanpa spasi.
+4. `test_layer_tak_dikenal_tetap_422`: `?layers=foo` → 422 `invalid_layer` (perilaku lama tidak hilang).
+5. Regresi: `pytest -q backend -n auto` hijau.
+
+**Bukti:** 4 potongan respons JSON (berkoma / berulang / kosong / tak dikenal) + `curl` nyata ke server dev untuk `KLBF?window=1y&layers=indicators,smc` → `200` (tempel kode status + `layers` di respons).
+Commit: `B19b: layers terima daftar berkoma (fix 422 invalid_layer)`.
+
 ## B19 — `GET /api/v1/series/stock/{ticker}`: bahan grafik candle + overlay TA
 
 **Kenapa ada:** user ingin melihat **candlestick beserta TA** di halaman detail saham, dengan overlay yang **sesuai aturan & rezim** kita (docs/03 §6.4.0, §6.4.9) — bukan indikator sembarangan. Data sudah ada (`price_daily` 2 tahun OHLC penyesuaian + `ta_breakout`), yang kurang hanya endpoint yang menyajikannya. Kontrak: `docs/05` §2. Tampilan: `docs/06` §6.5.
