@@ -240,6 +240,14 @@ Format:
 - alternatif: membiarkan frontend menghitung Senin → ditolak: alasan yang sama dengan ADR-034.
 - dampak: aditif, frontend lama tetap jalan. Dijaga `test_weekly_picks_week_start_dan_label` + `test_weekly_picks_kosong_tetap_punya_field_baru`.
 
+## ADR-036 — `GET /meta/market`: kutipan IHSG (DB default, live opsional, cache TTL, fallback DB)
+- tanggal: 2026-10-13
+- status: diterima
+- konteks: halaman Overview butuh kutipan IHSG yang dipoll berulang (interval dari config) tanpa memanggil `/briefing/morning` yang berat. `docs/05` §1 menambah endpoint ini bersama blok `config.market`; feed Yahoo untuk IDX selalu delay, dan tiap tab browser yang poll sendiri-sendiri akan membanjiri Yahoo.
+- keputusan: endpoint baru di `api/meta.py` (`MARKET_API_VERSION = "1.1"`), **hanya** benchmark (`^JKSE`, tidak ada jalur kutipan live untuk emiten/sektor). `live=false` (default) membaca bar terakhir `price_daily` ticker `IHSG` (`source: "db"`); `live=true` mengambil bar `^JKSE` dari Yahoo (interval `1d`, ditambah satu panggilan `5m` **hanya** saat `session == "open"`), **tanpa menulis DB**, lalu disimpan di cache `config.market.live_ttl_seconds` → respons berikutnya `cached: true` + `cache_age_s` (helper `cache.put(ttl=...)`/`cache.age()`). `session` dari jam WIB (`open` 09:00–12:00 & 13:30–16:00 · `break` 12:00–13:30 · `closed`); `ret_intraday` = `close/prev_close − 1` hanya saat `open`, selain itu `null`. `delayed` selalu `true`. Fetch live gagal → `200` dengan nilai DB, `source: "db"`, `data_status.status: "stale"` + `detail: "live gagal, memakai data tersimpan"` (field `detail` ditambahkan ke `DataStatus`, default `null`). `config.market` dimuat sebagai model `MarketCfg` dan diekspos utuh di `/meta/config` supaya UI tidak menghardcode interval poll.
+- alternatif: (a) menaruh kutipan live di `/briefing/morning` → ditolak: endpoint itu menyusun laporan pagi, bukan untuk poll 60 s; (b) menulis kutipan live ke `price_daily` → ditolak: menyentuh data hasil ingest resmi dari satu request baca, dan akan mengacaukan bar harian; (c) `ret_intraday` dihitung dari bar pembukaan hari itu → ditolak: definisi §1 adalah `close/prev_close − 1` (sama dengan `ret_1d` saat jam bursa) dan `null` di luar jam bursa; (d) `volume` 0 saat NaN → ditolak: konvensi "nilai tak tersedia = `null`".
+- dampak: satu endpoint ringan untuk kartu Overview; N tab dalam TTL = 1 request ke Yahoo (dibuktikan `test_market_live_cache` + bukti curl: poll 1 5.543 ms, poll 2 4 ms `cached: true`). `last_bar_at` untuk `source: "db"` memakai penutupan sesi `16:00:00+07:00` hari bar itu karena `price_daily` hanya menyimpan tanggal.
+
 ## ADR-005 — Git: satu task = satu commit, repo lokal dulu
 - tanggal: 2026-10-12
 - status: diterima

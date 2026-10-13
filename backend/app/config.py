@@ -48,12 +48,22 @@ class ApiCfg(BaseModel):
     backup_enabled: bool = True
 
 
+class MarketCfg(BaseModel):
+    """Kutipan IHSG di halaman Overview (docs/05 §1 `/meta/market`). Hanya benchmark, tidak untuk emiten."""
+
+    live_enabled: bool
+    live_ttl_seconds: int
+    poll_seconds: int
+    move_flat_pct: float
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(extra="allow")
 
     app: AppCfg
     database: DatabaseCfg
     api: ApiCfg
+    market: MarketCfg
 
     @classmethod
     def settings_customise_sources(

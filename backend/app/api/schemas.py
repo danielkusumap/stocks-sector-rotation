@@ -17,6 +17,7 @@ class DataStatus(BaseModel):
     range_to: str | None
     range_label: str | None
     partial_sectors: list[str]
+    detail: str | None = None
 
 
 class Envelope(BaseModel):
@@ -46,13 +47,47 @@ class LastIngest(BaseModel):
     signals_weekly: str | None
 
 
+class MarketLimits(BaseModel):
+    """`config.market` yang dipakai UI untuk interval poll kutipan IHSG (docs/05 §1 `/meta/config`)."""
+
+    live_enabled: bool
+    live_ttl_seconds: int
+    poll_seconds: int
+    move_flat_pct: float
+
+
 class MetaConfigResponse(Envelope):
     universe: dict[str, Any]
     rrg: dict[str, Any]
     timeframes: list[str]
     windows: list[str]
     midday_gate_min_bar_time: str
+    market: MarketLimits
     last_ingest: LastIngest
+
+
+class MarketQuoteResponse(Envelope):
+    """Kutipan IHSG (docs/05 §1 `/meta/market`) — hanya benchmark, tidak untuk emiten/sektor."""
+
+    benchmark: str
+    symbol: str
+    close: float | None
+    prev_close: float | None
+    ret_1d: float | None
+    ret_1w: float | None
+    ret_intraday: float | None
+    open: float | None
+    high: float | None
+    low: float | None
+    volume: int | None
+    as_of: str | None
+    last_bar_at: str | None
+    session: str
+    source: str
+    delayed: bool
+    cached: bool
+    cache_age_s: int | None
+    data_status: DataStatus
 
 
 class MetaDatesResponse(Envelope):

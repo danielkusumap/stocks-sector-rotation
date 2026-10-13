@@ -160,6 +160,7 @@ def test_data_status_muncul_di_heatmap_matrix_dan_detail_saham(read_db, monkeypa
             "range_to",
             "range_label",
             "partial_sectors",
+            "detail",
         }
 
 

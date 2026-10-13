@@ -23,9 +23,19 @@ def get(endpoint: str, params: dict, as_of: str | None):
     return value
 
 
-def put(endpoint: str, params: dict, as_of: str | None, value) -> None:
-    ttl = get_settings().api.cache_ttl_seconds
+def put(endpoint: str, params: dict, as_of: str | None, value, ttl: float | None = None) -> None:
+    ttl = get_settings().api.cache_ttl_seconds if ttl is None else ttl
     _store[key(endpoint, params, as_of)] = (time.monotonic() + ttl, value)
+
+
+def age(endpoint: str, params: dict, as_of: str | None, ttl: float) -> float | None:
+    """Umur entri cache (detik, dibulatkan) — `None` kalau tidak ada/kedaluwarsa (dipakai `meta/market`)."""
+    entry = _store.get(key(endpoint, params, as_of))
+    if entry is None:
+        return None
+    expires_at, _ = entry
+    remaining = expires_at - time.monotonic()
+    return None if remaining < 0 else round(max(0.0, ttl - remaining))
 
 
 def clear() -> None:
