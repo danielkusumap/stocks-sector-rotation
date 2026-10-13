@@ -90,6 +90,39 @@ Aturan:
 - Daftar kosong bukan error: `{"dates": [], "latest": null}` → UI memakai `<input type="date">` biasa dan membiarkan backend memilih tanggal terakhir (`data_status.as_of`) — jangan blokir user.
 - Cache 60 s seperti endpoint berat lain; kolom `as_of_date` sudah terindeks lewat `idx_rrg_lookup`.
 
+### `GET /api/v1/meta/market`
+Kutipan **IHSG** untuk kartu di halaman Overview. Endpoint ringan yang dipanggil berulang (poll 60 s) — jangan pakai `/briefing/morning` untuk ini.
+**Hanya benchmark IHSG.** Tidak ada jalur kutipan live untuk emiten atau sektor lain — sektor/saham tetap dari hasil hitung di DB. Jangan memperluas endpoint ini jadi kutipan multi-ticker.
+Query: `live` (default `false`).
+
+```json
+{ "api_version": "1.1",
+  "benchmark": "IHSG",
+  "symbol": "^JKSE",
+  "close": 5936.15,
+  "prev_close": 6093.76,
+  "ret_1d": -0.0259,
+  "ret_1w": -0.0204,
+  "ret_intraday": -0.0134,
+  "open": 6010.2, "high": 6021.7, "low": 5920.4, "volume": 11840000000,
+  "as_of": "2026-10-13",
+  "last_bar_at": "2026-10-13T14:35:00+07:00",
+  "session": "open",
+  "source": "live",
+  "delayed": true,
+  "cached": false,
+  "cache_age_s": 0,
+  "data_status": { "...": "lihat konvensi; range_from/range_to = hari ini" } }
+```
+
+Aturan:
+- `live=false` (default) → baca dari DB (`price_daily` ticker `IHSG`); `source: "db"`.
+- `live=true` → ambil bar terakhir `^JKSE` dari yfinance (interval 1d + 1m/5m bila jam bursa), **tidak** menulis ke DB (kutipan read-only), lalu simpan di cache selama `config.market.live_ttl_seconds` (default 60). Respons berikutnya dalam jendela itu → `cached: true` + `cache_age_s`. Ini yang mencegah N tab browser membanjiri Yahoo.
+- `delayed: true` selalu (feed Yahoo untuk IDX punya delay); UI **wajib** menampilkan "per <waktu>" dan kata "delay" — jangan tampilkan seolah realtime.
+- `session`: `open` (09:00–12:00 / 13:30–16:00 WIB) · `break` (12:00–13:30) · `closed`. Diluar jam bursa, `ret_intraday` = `null`.
+- Kalau fetch live gagal → jangan error: kembali ke nilai DB dengan `source: "db"`, `delayed: true`, dan `data_status.status = "stale"`, plus `detail: "live gagal, memakai data tersimpan"`.
+- Wajib ada test: poll berulang dalam TTL → 1× fetch Yahoo saja (`cached: true` pada respons kedua).
+
 ### `GET /api/v1/freshness`
 ```json
 { "api_version": "1.0",

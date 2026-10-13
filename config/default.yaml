@@ -144,6 +144,18 @@ api:
   api_key: ""                       # kosong = /admin/* terbuka (single-user lokal)
   backup_enabled: true
 
+market:
+  # Kutipan IHSG di halaman Overview (GET /api/v1/meta/market?live=true).
+  # HANYA IHSG (benchmark) — emiten/sektor lain tidak punya jalur kutipan live.
+  live_enabled: true
+  # Cache kutipan live (detik). N tab browser dalam jendela ini = 1 request ke Yahoo.
+  # Jangan di bawah 30 (sopan ke Yahoo, dan feed IDX delay-nya lebih besar dari ini).
+  live_ttl_seconds: 60
+  # Interval poll di frontend (detik) — dibaca UI dari /meta/config.
+  poll_seconds: 60
+  # Ambang "datar" untuk label arah intraday IHSG.
+  move_flat_pct: 0.0005
+
 logging:
   level: "INFO"
   keep_days: 14
