@@ -15,10 +15,10 @@
   --accent: oklch(0.55 0.14 258);
   --accent-fg: oklch(0.99 0 0);
   --accent-subtle: oklch(0.95 0.03 258);
-  --up: oklch(0.56 0.14 152);
+  --up: oklch(0.5 0.14 152); /* 5,57:1 di --surface (ADR-034); docs/06 §2: 0.56 → 4,36:1 (gagal AA) */
   --down: oklch(0.55 0.17 22);
   --flat: oklch(0.6 0.01 255);
-  --warn: oklch(0.68 0.14 75);
+  --warn: oklch(0.52 0.15 75); /* 5,62:1 di --surface (ADR-034); docs/06 §2 menulis 0.68 → 2,95:1 (gagal AA) */
   --info: oklch(0.58 0.12 235);
   --focus: oklch(0.62 0.16 258);
 

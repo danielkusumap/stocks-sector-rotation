@@ -38,10 +38,10 @@ Ditulis sebagai CSS variables di `frontend/src/styles/tokens.css`; Tailwind v4 m
   --accent:        oklch(0.55 0.14 258);    /* SATU aksen: biru kalem */
   --accent-fg:     oklch(0.99 0 0);
   --accent-subtle: oklch(0.95 0.03 258);
-  --up:            oklch(0.56 0.14 152);    /* hijau, harga naik */
+  --up:            oklch(0.50 0.14 152);    /* hijau, harga naik — 5,57:1 di --surface (ADR-034); 0.56 gagal AA */
   --down:          oklch(0.55 0.17 22);     /* merah, harga turun */
   --flat:          oklch(0.60 0.01 255);
-  --warn:          oklch(0.68 0.14 75);
+  --warn:          oklch(0.52 0.15 75);     /* 5,62:1 di --surface (ADR-034); 0.68 → 2,95:1 gagal AA */
   --info:          oklch(0.58 0.12 235);
   --focus:         oklch(0.62 0.16 258);
 

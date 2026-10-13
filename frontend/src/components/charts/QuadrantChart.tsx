@@ -332,6 +332,10 @@ export function QuadrantChart({
               key={item.ref_id}
               id={`rrg-point-${item.ref_id}`}
               data-point={item.ref_id}
+              /* role="img": elemen tanpa role (`generic`) tidak boleh diberi aria-label (axe
+                 `aria-prohibited-attr`). Interaksi keyboard tetap di tingkat chart (role
+                 application + aria-activedescendant + aria-live). */
+              role="img"
               aria-label={describePoint(item)}
               data-testid={`point-group-${item.ref_id}`}
               transform={`translate(${mounted ? px : fromX}, ${mounted ? py : fromY})`}

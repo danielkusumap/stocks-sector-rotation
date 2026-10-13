@@ -134,6 +134,7 @@ export default function DataPage() {
                         type="file"
                         accept=".xlsx"
                         tabIndex={-1}
+                        aria-label="Berkas Excel saham sektoral"
                         className="sr-only"
                         onChange={(event) => {
                           const picked = event.target.files?.[0];

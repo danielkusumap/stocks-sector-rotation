@@ -3,11 +3,9 @@ import { expect, test } from "@playwright/test";
 /**
  * Smoke test UI: dev server + MSW (mock), bukan backend nyata.
  *
- * Tiga tes bertanda `fixme` menunggu halaman yang belum ada — jangan diaktifkan
- * sebelum task-nya dikerjakan:
- *   - tabel sektor di `/`   → F5/F6 (SectorTable)
- *   - pill gate di `/status` → F10 (halaman Status belum dibangun)
- *   - drawer sektor         → F5 + F7 (drawer dibuka dari baris tabel)
+ * Tiga tes dulu bertanda `fixme` (menunggu F5/F6, F7, F10) kini aktif — halamannya sudah ada;
+ * cakupan mendalamnya tetap di `sector-table.spec.ts`, `sector-drawer.spec.ts`, dan
+ * `status-readonly.spec.ts`.
  */
 test.describe("smoke UI (dev server + MSW)", () => {
   test("/ menampilkan shell + judul halaman", async ({ page }) => {
@@ -18,9 +16,10 @@ test.describe("smoke UI (dev server + MSW)", () => {
     await expect(page.getByRole("link", { name: "Data" })).toBeVisible();
   });
 
-  test.fixme("/ menampilkan tabel sektor (aktif saat F5/F6)", async ({ page }) => {
+  test("/ menampilkan tabel sektor (aktif saat F5/F6)", async ({ page }) => {
     await page.goto("/");
-    const table = page.getByRole("table", { name: /sektor/i });
+    // nama tabel lain di halaman ini juga memuat kata "sektor" (peta panas) → pakai caption persis
+    const table = page.getByRole("table", { name: /^Sektor: kuadran/ });
     await expect(table).toBeVisible();
     await expect(table.locator("tbody tr")).toHaveCount(11);
   });
@@ -52,22 +51,23 @@ test.describe("smoke UI (dev server + MSW)", () => {
     await expect(page.locator("vite-error-overlay")).toHaveCount(0);
   });
 
-  test.fixme("/status menampilkan pill gate walau endpoint mengembalikan null (aktif saat F10)", async ({
-    page,
-  }) => {
+  test("/status menampilkan pill gate walau data minim (aktif saat F10)", async ({ page }) => {
     await page.goto("/status");
-    await expect(page.getByRole("button", { name: /gate|data/i })).toBeVisible();
+    const gate = page.locator("section").filter({ hasText: "Gate tengah hari" });
+    await expect(gate).toContainText(/ok|stale/); // pill gate, bukan hanya warna
+    await expect(page.getByRole("link", { name: "Buka halaman Data" })).toBeVisible();
   });
 
-  test.fixme("klik baris sektor membuka drawer, Esc menutup & fokus kembali (aktif saat F5+F7)", async ({
+  test("klik baris sektor membuka drawer, Esc menutup & halaman tetap utuh (aktif saat F5+F7)", async ({
     page,
   }) => {
     await page.goto("/");
-    const row = page.getByRole("row").nth(1);
-    await row.click();
+    await page.getByTestId("sector-row-IDXFINANCE").click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await page.keyboard.press("Escape");
-    await expect(page.getByRole("dialog")).toBeHidden();
-    await expect(row).toBeFocused();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    // kembali ke tabel utuh (fokus kembali ke baris diuji khusus di sector-drawer.spec.ts)
+    await expect(page.locator("[data-testid^=sector-row-]")).toHaveCount(11);
+    expect(new URL(page.url()).searchParams.get("sector")).toBeNull();
   });
 });
