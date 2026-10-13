@@ -36,6 +36,31 @@ for (const theme of THEMES) {
   }
 }
 
+test("tidak ada CLS saat skeleton berganti data (jaringan diperlambat)", async ({ page }) => {
+  // catat pergeseran tata letak sejak sebelum React mount
+  await page.addInitScript(() => {
+    (window as unknown as { __cls: number }).__cls = 0;
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries() as (PerformanceEntry & { value: number; hadRecentInput: boolean })[]) {
+        if (!entry.hadRecentInput) (window as unknown as { __cls: number }).__cls += entry.value;
+      }
+    }).observe({ type: "layout-shift", buffered: true });
+  });
+  // perbesar jendela skeleton → konten supaya pergeseran (kalau ada) benar-benar terukur
+  await page.route("**/api/**", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    await route.continue();
+  });
+
+  await page.goto("/");
+  await expect(page.locator("[data-testid^=sector-row-]")).toHaveCount(11);
+  await page.waitForTimeout(1200);
+
+  const cls = await page.evaluate(() => (window as unknown as { __cls: number }).__cls);
+  console.log(`CLS / = ${cls}`);
+  expect(cls).toBeLessThan(0.1); // ambang "baik" Core Web Vitals
+});
+
 test("prefers-reduced-motion: transisi panel & titik jadi 0, tidak ada animasi berjalan", async ({
   page,
 }) => {
