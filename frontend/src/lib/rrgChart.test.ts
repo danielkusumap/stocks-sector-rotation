@@ -2,17 +2,21 @@ import { describe, expect, it } from "vitest";
 import type { RrgItem } from "./api";
 import {
   AXIS_CENTER,
+  CARD_MARGIN_PX,
   MIN_LABEL_DISTANCE_PX,
   STOCK_SCOPE_LIMIT,
   axisPad,
   axisTicks,
   cappedItems,
+  cardPlacement,
+  cardSideOf,
   describePoint,
   hasTail,
   labelledRefIds,
   legendEntries,
   legendNeedsSearch,
   orderedItems,
+  segmentHitsRect,
   tailSegmentOpacity,
   tickLabel,
   viewBoxDistanceForScreenPx,
@@ -206,5 +210,214 @@ describe("entri legenda (docs/06 §6.2)", () => {
     expect(legendNeedsSearch(12)).toBe(false);
     expect(legendNeedsSearch(13)).toBe(true);
     expect(legendNeedsSearch(25)).toBe(true);
+  });
+});
+
+describe("posisi kartu hover (docs/06 §6.3)", () => {
+  const BOX = { x0: 0, y0: 0, x1: 1000, y1: 800 };
+  const CARD = { w: 120, h: 100 };
+  const center = { x: 500, y: 400 };
+
+  /** Arah gerak dari `previous` ke `point`, satuan viewBox (y ke bawah). */
+  const move = (dx: number, dy: number) => ({
+    point: { x: center.x + dx * 10, y: center.y + dy * 10 },
+    previous: center,
+  });
+
+  /** Kartu tidak boleh menutupi segmen ekor: cuplik segmennya. */
+  function overlaps(
+    card: { x: number; y: number; w: number; h: number },
+    from: { x: number; y: number },
+    to: { x: number; y: number },
+  ): boolean {
+    for (let i = 0; i <= 200; i += 1) {
+      const t = i / 200;
+      const x = from.x + (to.x - from.x) * t;
+      const y = from.y + (to.y - from.y) * t;
+      if (x >= card.x && x <= card.x + card.w && y >= card.y && y <= card.y + card.h) return true;
+    }
+    return false;
+  }
+
+  const DIRS: readonly [string, number, number, "right" | "left" | "bottom" | "top"][] = [
+    ["timur", 1, 0, "right"],
+    ["barat", -1, 0, "left"],
+    ["selatan", 0, 1, "bottom"],
+    ["utara", 0, -1, "top"],
+    ["tenggara", 1, 1, "right"],
+    ["barat daya", -1, 1, "left"],
+    ["timur laut", 1, -1, "right"],
+    ["barat laut", -1, -1, "left"],
+  ];
+
+  it("8 arah gerak: sisi dominan sesuai arah gerak", () => {
+    for (const [name, dx, dy, side] of DIRS) {
+      const placement = cardPlacement({ ...move(dx, dy), box: BOX, card: CARD });
+      expect(placement.side, name).toBe(side);
+      expect(placement.flipped, name).toBe(false);
+    }
+  });
+
+  it("tidak ada arah gerak yang menaruh kartu di atas ekor/titiknya sendiri", () => {
+    for (const [name, dx, dy] of DIRS) {
+      const { point, previous } = move(dx, dy);
+      const placement = cardPlacement({
+        point,
+        previous,
+        box: BOX,
+        card: CARD,
+        pointRadius: 10,
+      });
+      const covers =
+        point.x >= placement.x - 10 &&
+        point.x <= placement.x + CARD.w + 10 &&
+        point.y >= placement.y - 10 &&
+        point.y <= placement.y + CARD.h + 10;
+      expect(covers, name).toBe(false);
+      // kotak kartu tidak menyentuh segmen ekor terakhir (previous → point)
+      expect(overlaps({ ...placement, w: CARD.w, h: CARD.h }, previous, point), name).toBe(false);
+    }
+  });
+
+  it("tanpa ekor (warmup): sisi menjauhi pusat chart, tetap di dalam kotak", () => {
+    const side = (x: number, y: number) => cardSideOf(0, 0, BOX, { x, y });
+    expect(side(950, 100)).toBe("right"); // kanan-atas
+    expect(side(50, 100)).toBe("left"); // kiri-atas
+    expect(side(950, 700)).toBe("right");
+    expect(side(50, 700)).toBe("left");
+    expect(side(500, 20)).toBe("top"); // atas-tengah
+    expect(side(500, 780)).toBe("bottom");
+
+    for (const [x, y] of [
+      [950, 100],
+      [50, 100],
+      [500, 20],
+      [500, 780],
+    ] as const) {
+      const placement = cardPlacement({ point: { x, y }, previous: null, box: BOX, card: CARD });
+      expect(placement.x).toBeGreaterThanOrEqual(CARD_MARGIN_PX);
+      expect(placement.y).toBeGreaterThanOrEqual(CARD_MARGIN_PX);
+      expect(placement.x + CARD.w).toBeLessThanOrEqual(BOX.x1 - CARD_MARGIN_PX);
+      expect(placement.y + CARD.h).toBeLessThanOrEqual(BOX.y1 - CARD_MARGIN_PX);
+    }
+  });
+
+  it("titik di tepi: sisi yang tidak cukup ruang diganti, bukan keluar kotak", () => {
+    // titik mentok kanan, gerak ke timur → sisi kanan tidak muat → kartu di sisi lain
+    const flipped = cardPlacement({
+      point: { x: 990, y: 400 },
+      previous: { x: 900, y: 400 },
+      box: BOX,
+      card: CARD,
+    });
+    expect(flipped.flipped).toBe(true);
+    expect(flipped.x).toBeGreaterThanOrEqual(CARD_MARGIN_PX);
+    expect(flipped.y).toBeGreaterThanOrEqual(CARD_MARGIN_PX);
+    expect(flipped.x + CARD.w).toBeLessThanOrEqual(BOX.x1 - CARD_MARGIN_PX);
+    expect(flipped.y + CARD.h).toBeLessThanOrEqual(BOX.y1 - CARD_MARGIN_PX);
+
+    // titik mentok atas, gerak ke utara → tidak ada ruang di atas
+    const down = cardPlacement({
+      point: { x: 500, y: 4 },
+      previous: { x: 500, y: 80 },
+      box: BOX,
+      card: CARD,
+    });
+    expect(down.flipped).toBe(true);
+    expect(down.y).toBeGreaterThanOrEqual(CARD_MARGIN_PX);
+    expect(down.y + CARD.h).toBeLessThanOrEqual(BOX.y1 - CARD_MARGIN_PX);
+
+    // titik mentok sudut kanan-atas, gerak ke timur laut → tetap di dalam kotak
+    const corner = cardPlacement({
+      point: { x: 995, y: 3 },
+      previous: { x: 900, y: 80 },
+      box: BOX,
+      card: CARD,
+    });
+    expect(corner.x).toBeGreaterThanOrEqual(CARD_MARGIN_PX);
+    expect(corner.y).toBeGreaterThanOrEqual(CARD_MARGIN_PX);
+    expect(corner.x + CARD.w).toBeLessThanOrEqual(BOX.x1 - CARD_MARGIN_PX);
+    expect(corner.y + CARD.h).toBeLessThanOrEqual(BOX.y1 - CARD_MARGIN_PX);
+  });
+
+  it("kartu tidak menutupi titiknya sendiri walau di tepi", () => {
+    for (const point of [
+      { x: 990, y: 400 },
+      { x: 10, y: 400 },
+      { x: 500, y: 4 },
+      { x: 500, y: 796 },
+      { x: 995, y: 3 },
+      { x: 5, y: 797 },
+    ]) {
+      const placement = cardPlacement({
+        point,
+        previous: { x: point.x - 30, y: point.y + 30 },
+        box: BOX,
+        card: CARD,
+        pointRadius: 10,
+      });
+      const covers =
+        point.x >= placement.x - 10 &&
+        point.x <= placement.x + CARD.w + 10 &&
+        point.y >= placement.y - 10 &&
+        point.y <= placement.y + CARD.h + 10;
+      expect(covers, JSON.stringify(point)).toBe(false);
+    }
+  });
+
+  it("ekor yang menghalangi kandidat terbaik: sisi lain dipilih", () => {
+    // gerak ke timur, tapi ada segmen ekor di depan-kanan titik (kail) → sisi kanan ditolak
+    const point = { x: 300, y: 400 };
+    const tail = [
+      { x: 420, y: 450 },
+      { x: 330, y: 410 },
+    ];
+    const placement = cardPlacement({
+      point,
+      previous: tail[tail.length - 1],
+      box: BOX,
+      card: CARD,
+      tail,
+    });
+    expect(placement.side).not.toBe("right");
+    expect(
+      tail.every((from, index) =>
+        !segmentHitsRect(from, index + 1 < tail.length ? tail[index + 1] : point, {
+          x: placement.x,
+          y: placement.y,
+          w: CARD.w,
+          h: CARD.h,
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it("semua kombinasi sudut tetap di dalam kotak, margin 8 px", () => {
+    for (const x of [4, 200, 390, 600, 776]) {
+      for (const y of [4, 150, 300, 450, 604]) {
+        const placement = cardPlacement({
+          point: { x, y },
+          previous: { x: x - 8, y: y + 8 },
+          box: BOX,
+          card: CARD,
+        });
+        expect(placement.x).toBeGreaterThanOrEqual(CARD_MARGIN_PX);
+        expect(placement.y).toBeGreaterThanOrEqual(CARD_MARGIN_PX);
+        expect(placement.x + CARD.w).toBeLessThanOrEqual(BOX.x1 - CARD_MARGIN_PX);
+        expect(placement.y + CARD.h).toBeLessThanOrEqual(BOX.y1 - CARD_MARGIN_PX);
+      }
+    }
+  });
+
+  it("jarak dari titik mengikuti `gap` selama ada ruang", () => {
+    const placement = cardPlacement({
+      point: { x: 300, y: 300 },
+      previous: { x: 250, y: 300 },
+      box: BOX,
+      card: CARD,
+      gap: 12,
+    });
+    expect(placement.x).toBe(312);
+    expect(placement.y).toBe(300 - CARD.h / 2); // gerak mendatar → tinggi dipusatkan
   });
 });

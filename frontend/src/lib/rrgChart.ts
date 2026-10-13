@@ -141,3 +141,183 @@ export function legendEntries(items: RrgItem[], query = ""): RrgItem[] {
     `${item.name} ${item.ref_id}`.toLocaleLowerCase("id-ID").includes(needle),
   );
 }
+
+// ── Posisi kartu hover (docs/06 §6.3) ────────────────────────────────────────
+// Kartu TIDAK BOLEH menutupi ekor & arah gerak titik yang sedang dibaca. Offset tetap
+// (+12px/-50%) selalu menutupi ekor di salah satu sisi chart, jadi sisinya dihitung dari
+// datanya sendiri: arah gerak = vektor `tail[-2] → tail[-1]`, kartu diletakkan **searah
+// gerak** (sisi yang baru ditinggalkan titik, jadi berlawanan dengan ekor).
+// Semua satuan viewBox; pemanggil mengonversi px → viewBox (`/scale`) dan ukuran kartu
+// diukur dari DOM (lebar `w-60` = 240 px, tinggi tergantung isi).
+
+/** Lebar kartu (`w-60`) — dipakai sebelum kartu sempat diukur. */
+export const CARD_WIDTH_PX = 240;
+/** Perkiraan tinggi kartu sebelum diukur (7 baris metrik + 2 tautan). */
+export const CARD_HEIGHT_PX = 196;
+/** Jarak kartu dari titik & tepi minimum ke kotak chart (docs/06 §6.3). */
+export const CARD_GAP_PX = 12;
+export const CARD_MARGIN_PX = 8;
+
+export type CardSide = "right" | "left" | "bottom" | "top";
+
+/** Vektor arah tiap sisi (y ke bawah, seperti SVG). */
+export const CARD_SIDE_VECTOR: Record<CardSide, { x: number; y: number }> = {
+  right: { x: 1, y: 0 },
+  left: { x: -1, y: 0 },
+  bottom: { x: 0, y: 1 },
+  top: { x: 0, y: -1 },
+};
+
+export interface CardPlacement {
+  side: CardSide;
+  /** sisi pilihan kurang ruang → dibalik ke sisi seberang pada sumbu itu */
+  flipped: boolean;
+  /** sudut kiri-atas kartu di satuan viewBox, sudah dijepit di dalam kotak chart */
+  x: number;
+  y: number;
+}
+
+export interface CardPlacementInput {
+  /** titik aktif (viewBox) */
+  point: { x: number; y: number };
+  /** `tail[-2]` — arah gerak; `null` saat warmup (ekor < 2 titik) */
+  previous: { x: number; y: number } | null;
+  /** kotak chart (viewBox) yang tidak boleh dilewati kartu */
+  box: { x0: number; y0: number; x1: number; y1: number };
+  /** ukuran kartu (viewBox) */
+  card: { w: number; h: number };
+  gap?: number;
+  margin?: number;
+  /** jari-jari titik + ring (viewBox) — kartu tidak boleh menutupi titiknya sendiri */
+  pointRadius?: number;
+  /** titik ekor (viewBox, tanpa titik terakhir) yang tidak boleh tertutup kartu */
+  tail?: readonly { x: number; y: number }[];
+}
+
+/** Sisi dominan kartu relatif ke titik (label debug & test). */
+export function cardSideOf(
+  dx: number,
+  dy: number,
+  box: { x0: number; y0: number; x1: number; y1: number },
+  point: { x: number; y: number },
+): CardSide {
+  if (dx === 0 && dy === 0) {
+    // tanpa gerak: sisi menjauhi pusat chart, sumbu dengan jarak relatif terbesar
+    const rx = (point.x - (box.x0 + box.x1) / 2) / Math.max(1, (box.x1 - box.x0) / 2);
+    const ry = (point.y - (box.y0 + box.y1) / 2) / Math.max(1, (box.y1 - box.y0) / 2);
+    if (Math.abs(rx) >= Math.abs(ry)) return rx >= 0 ? "right" : "left";
+    return ry >= 0 ? "bottom" : "top";
+  }
+  if (Math.abs(dx) >= Math.abs(dy)) return dx > 0 ? "right" : "left";
+  return dy > 0 ? "bottom" : "top";
+}
+
+const rect = (x: number, y: number, card: { w: number; h: number }) => ({
+  x,
+  y,
+  w: card.w,
+  h: card.h,
+});
+
+const insideRect = (p: { x: number; y: number }, r: ReturnType<typeof rect>) =>
+  p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
+
+/** Apakah segmen menyentuh kotak? (dicuplik — cukup untuk keputusan tampilan) */
+export function segmentHitsRect(
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  r: ReturnType<typeof rect>,
+  samples = 24,
+): boolean {
+  for (let i = 0; i <= samples; i += 1) {
+    const t = i / samples;
+    if (insideRect({ x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t }, r)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Titik kiri-atas kartu. Kartu dicoba di empat sisi (urut: **searah gerak** dulu, lalu
+ * sumbu tegak lurus, terakhir sisi seberang) dan yang dipakai adalah kandidat yang
+ * (a) muat di dalam kotak chart, (b) tidak menutupi titiknya sendiri, dan (c) paling
+ * sedikit menyentuh ekor titik itu. Jadi "flip" di docs/06 §6.3 tetap berlaku untuk
+ * sumbu yang tidak cukup ruang, tapi tidak pernah menukar kartu ke atas ekornya sendiri
+ * (ADR-041) — penting karena kartu `w-60` selebar ⅓ chart.
+ */
+export function cardPlacement({
+  point,
+  previous,
+  box,
+  card,
+  gap = CARD_GAP_PX,
+  margin = CARD_MARGIN_PX,
+  pointRadius = POINT_RADIUS + FOCUS_RING_WIDTH,
+  tail = [],
+}: CardPlacementInput): CardPlacement {
+  const dx = previous ? point.x - previous.x : 0;
+  const dy = previous ? point.y - previous.y : 0;
+  const sx = Math.abs(dx) > 0.001 ? Math.sign(dx) : 0;
+  const sy = Math.abs(dy) > 0.001 ? Math.sign(dy) : 0;
+  const preferred = cardSideOf(sx, sy, box, point);
+
+  const minX = box.x0 + margin;
+  const minY = box.y0 + margin;
+  const maxX = box.x1 - margin - card.w;
+  const maxY = box.y1 - margin - card.h;
+  const clamp = (value: number, min: number, max: number) =>
+    max < min ? min : Math.min(Math.max(value, min), max);
+
+  // kandidat: sisi searah gerak dulu (dot positif terbesar), lalu tegak lurus, terakhir seberang
+  const sides: readonly CardSide[] = ["right", "left", "bottom", "top"];
+  const ordered = [...sides].sort(
+    (a, b) =>
+      CARD_SIDE_VECTOR[b].x * dx +
+        CARD_SIDE_VECTOR[b].y * dy -
+        (CARD_SIDE_VECTOR[a].x * dx + CARD_SIDE_VECTOR[a].y * dy) ||
+      sides.indexOf(a) - sides.indexOf(b),
+  );
+
+  const at = (side: CardSide): { x: number; y: number } => {
+    if (side === "right") return { x: point.x + gap, y: point.y - card.h / 2 };
+    if (side === "left") return { x: point.x - gap - card.w, y: point.y - card.h / 2 };
+    if (side === "bottom") return { x: point.x - card.w / 2, y: point.y + gap };
+    return { x: point.x - card.w / 2, y: point.y - gap - card.h };
+  };
+
+  const inBox = (position: { x: number; y: number }) => ({
+    x: clamp(position.x, minX, maxX),
+    y: clamp(position.y, minY, maxY),
+  });
+
+  const tailHits = (position: { x: number; y: number }) => {
+    const r = rect(position.x, position.y, card);
+    return tail.reduce(
+      (hits, from, index) =>
+        hits +
+        (segmentHitsRect(from, index + 1 < tail.length ? tail[index + 1] : point, r) ? 1 : 0),
+      0,
+    );
+  };
+
+  const coversPoint = (position: { x: number; y: number }) =>
+    point.x >= position.x - pointRadius &&
+    point.x <= position.x + card.w + pointRadius &&
+    point.y >= position.y - pointRadius &&
+    point.y <= position.y + card.h + pointRadius;
+
+  const candidates = ordered.map((side) => {
+    const position = inBox(at(side));
+    return { side, ...position, covers: coversPoint(position), hits: tailHits(position) };
+  });
+
+  const usable = candidates.filter((candidate) => !candidate.covers);
+  const pool = usable.length > 0 ? usable : candidates;
+  const best = pool.reduce<(typeof candidates)[number]>(
+    (acc, candidate) => (candidate.hits < acc.hits ? candidate : acc),
+    pool[0],
+  );
+
+  return { side: best.side, flipped: best.side !== preferred, x: best.x, y: best.y };
+}

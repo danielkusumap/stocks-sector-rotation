@@ -1,11 +1,22 @@
 import { scaleLinear } from "d3-scale";
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from "react";
 import { Link } from "react-router";
 import type { Quadrant, RrgItem } from "../../lib/api";
 import { cn } from "../../lib/cn";
 import { QUADRANT_BG } from "../../lib/quadrant";
 import {
   AXIS_CENTER,
+  CARD_GAP_PX,
+  CARD_HEIGHT_PX,
+  CARD_MARGIN_PX,
+  CARD_WIDTH_PX,
   DIM_POINT_OPACITY,
   DIM_TAIL_OPACITY,
   FOCUS_RADIUS,
@@ -15,6 +26,7 @@ import {
   axisPad,
   axisTicks,
   cappedItems,
+  cardPlacement,
   describePoint,
   hasTail,
   labelledRefIds,
@@ -96,7 +108,11 @@ export function QuadrantChart({
   const [mounted, setMounted] = useState(false);
   const [labelDistance, setLabelDistance] = useState(MIN_LABEL_DISTANCE_PX);
   const [legendQuery, setLegendQuery] = useState("");
+  /** skala px layar per satuan viewBox — dipakai mengubah px ↔ viewBox (docs/06 §6.3) */
+  const [scale, setScale] = useState(0);
+  const [cardSize, setCardSize] = useState({ w: CARD_WIDTH_PX, h: CARD_HEIGHT_PX });
   const rootRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
   const lastExternal = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
@@ -113,6 +129,7 @@ export function QuadrantChart({
       const renderedWidth = element.clientWidth;
       if (renderedWidth > 0) {
         setLabelDistance(viewBoxDistanceForScreenPx(MIN_LABEL_DISTANCE_PX, renderedWidth, VIEW_W));
+        setScale(renderedWidth / VIEW_W);
       }
     };
     update();
@@ -136,6 +153,45 @@ export function QuadrantChart({
   const activeRefId = hovered ?? selectedRefId ?? keyboardRefId ?? null;
   const dimmed = activeRefId !== null;
   const activeItem = shown.find((item) => item.ref_id === activeRefId) ?? null;
+
+  // Ukuran kartu diukur dari DOM (lebar `w-60`, tinggi tergantung isi) sebelum digambar,
+  // supaya posisinya bisa dijepit di dalam kotak chart tanpa menebak (docs/06 §6.3).
+  useLayoutEffect(() => {
+    const element = cardRef.current;
+    if (!element) return;
+    const measure = () =>
+      setCardSize({
+        w: element.offsetWidth || CARD_WIDTH_PX,
+        h: element.offsetHeight || CARD_HEIGHT_PX,
+      });
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [activeRefId, shown]);
+
+  /** Posisi kartu: searah gerak titik (berlawanan ekor), dijepit di dalam kotak chart. */
+  const placement = useMemo(() => {
+    if (!activeItem || scale <= 0) return null;
+    const tail = activeItem.tail;
+    const previous = tail.length >= 2 ? tail[tail.length - 2] : null;
+    return cardPlacement({
+      point: { x: xScale(activeItem.rs_ratio), y: yScale(activeItem.rs_momentum) },
+      previous: previous
+        ? { x: xScale(previous.rs_ratio), y: yScale(previous.rs_momentum) }
+        : null,
+      box: { x0: 0, y0: 0, x1: VIEW_W, y1: VIEW_H },
+      card: { w: cardSize.w / scale, h: cardSize.h / scale },
+      gap: CARD_GAP_PX / scale,
+      margin: CARD_MARGIN_PX / scale,
+      pointRadius: POINT_RADIUS + FOCUS_RING_WIDTH,
+      // ekor tanpa titik terakhir (titiknya sendiri) — kartu tidak boleh menutupinya
+      tail: tail.slice(0, -1).map((point) => ({
+        x: xScale(point.rs_ratio),
+        y: yScale(point.rs_momentum),
+      })),
+    });
+  }, [activeItem, scale, cardSize, xScale, yScale]);
 
   const points = useMemo(
     () =>
@@ -421,19 +477,21 @@ export function QuadrantChart({
 
       </svg>
 
-      {activeItem && (
+      {activeItem && placement && (
         <div
           data-testid="point-card"
+          data-side={placement.side}
+          data-flipped={placement.flipped}
           className="pointer-events-none absolute z-10"
           style={{
-            left: `${(xScale(activeItem.rs_ratio) / VIEW_W) * 100}%`,
-            top: `${(yScale(activeItem.rs_momentum) / VIEW_H) * 100}%`,
-            transform: `translate(${xScale(activeItem.rs_ratio) > VIEW_W * 0.68 ? "calc(-100% - 12px)" : "12px"}, -50%)`,
+            left: `${(placement.x / VIEW_W) * 100}%`,
+            top: `${(placement.y / VIEW_H) * 100}%`,
+            width: cardSize.w,
           }}
         >
           {/* kartu tidak boleh menangkap pointer: titik di baliknya harus tetap bisa di-hover/klik
               (yang tetap bisa diklik hanya tautan di dalamnya — lihat PointCard) */}
-          <div className="pointer-events-none">
+          <div className="pointer-events-none" ref={cardRef}>
             <PointCard
               item={activeItem}
               onOpenDetail={onOpenDetail ? () => onOpenDetail(activeItem.ref_id) : undefined}
