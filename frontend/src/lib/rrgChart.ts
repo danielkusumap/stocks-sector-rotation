@@ -113,8 +113,19 @@ export function labelledRefIds(
 }
 
 /** Satu baris untuk `aria-live`: "Keuangan — Memimpin, RS-Ratio 102,31, RS-Momentum 100,84". */
-export function describePoint(item: RrgItem): string {
-  return `${item.name} — ${QUADRANT_LABEL[item.quadrant]}, RS-Ratio ${formatNum(item.rs_ratio, 2)}, RS-Momentum ${formatNum(item.rs_momentum, 2)}`;
+export function describePoint(item: RrgItem, scope: "sector" | "stock" = "sector"): string {
+  const title = scope === "stock" ? stockLabel(item) : item.name;
+  return `${title} — ${QUADRANT_LABEL[item.quadrant]}, RS-Ratio ${formatNum(item.rs_ratio, 2)}, RS-Momentum ${formatNum(item.rs_momentum, 2)}`;
+}
+
+/** Judul lengkap entitas: saham `TICKER · Nama` (docs/06 §5/§6.2), sektor cukup namanya. */
+export function stockLabel(item: RrgItem): string {
+  return `${item.ref_id} · ${item.name}`;
+}
+
+/** Label titik di chart: saham pakai ticker (lebih pendek → lebih sedikit bertumpuk, docs/06 §6). */
+export function pointLabel(item: RrgItem, scope: "sector" | "stock" = "sector"): string {
+  return scope === "stock" ? item.ref_id : item.name;
 }
 
 /** Titik yang punya ekor layak gambar (≥ 2 titik); selain itu cukup titiknya saja. */

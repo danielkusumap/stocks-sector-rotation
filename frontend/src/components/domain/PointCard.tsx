@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { RrgItem } from "../../lib/api";
 import { formatNum, formatRpCompact } from "../../lib/format";
 import { QUADRANT_DESC, QUADRANT_LABEL } from "../../lib/quadrant";
+import { stockLabel } from "../../lib/rrgChart";
 import { Delta } from "../ui/Delta";
 import { StreakBadge } from "../ui/StreakBadge";
 
@@ -10,8 +11,17 @@ import { StreakBadge } from "../ui/StreakBadge";
  * Kartu detail satu titik RRG (docs/06 §5). Angka berasal dari item `/rrg` yang sama
  * dengan tabel, jadi tidak ada perhitungan di sini. `rs_*_change_1p` boleh `null`
  * (docs/05 §2 → tampil "—") dan `streak_weeks` = 0 (badge tidak muncul).
+ * `scope=stock` → judul `TICKER · Nama` (kode saham dulu, docs/06 §5).
  */
-export function PointCard({ item, onOpenDetail }: { item: RrgItem; onOpenDetail?: () => void }) {
+export function PointCard({
+  item,
+  scope = "sector",
+  onOpenDetail,
+}: {
+  item: RrgItem;
+  scope?: "sector" | "stock";
+  onOpenDetail?: () => void;
+}) {
   return (
     <div className="w-60 rounded-md border border-border bg-surface p-3 text-left shadow-float">
       <div className="flex items-center gap-2">
@@ -20,7 +30,9 @@ export function PointCard({ item, onOpenDetail }: { item: RrgItem; onOpenDetail?
           className="h-2 w-2 shrink-0 rounded-full"
           style={{ backgroundColor: item.color_hex }}
         />
-        <p className="font-medium">{item.name}</p>
+        <p className="font-medium" data-testid="point-card-title">
+          {scope === "stock" ? stockLabel(item) : item.name}
+        </p>
         <StreakBadge weeks={item.streak_weeks ?? 0} />
       </div>
       <p className="mt-0.5 text-sm text-fg-muted">
@@ -64,10 +76,10 @@ export function PointCard({ item, onOpenDetail }: { item: RrgItem; onOpenDetail?
           <span />
         )}
         <Link
-          to={`/stocks?sector=${item.ref_id}`}
+          to={scope === "stock" ? `/stocks/${item.ref_id}` : `/stocks?sector=${item.ref_id}`}
           className="pointer-events-auto text-sm text-accent underline underline-offset-2"
         >
-          Lihat saham sektor ini
+          {scope === "stock" ? "Buka halaman saham" : "Lihat saham sektor ini"}
         </Link>
       </div>
     </div>

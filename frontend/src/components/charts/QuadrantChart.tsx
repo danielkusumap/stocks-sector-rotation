@@ -33,6 +33,8 @@ import {
   legendEntries,
   legendNeedsSearch,
   orderedItems,
+  pointLabel,
+  stockLabel,
   tailSegmentOpacity,
   tickLabel,
   viewBoxDistanceForScreenPx,
@@ -197,11 +199,11 @@ export function QuadrantChart({
     () =>
       shown.map((item) => ({
         refId: item.ref_id,
-        label: item.name,
+        label: pointLabel(item, scope),
         x: xScale(item.rs_ratio),
         y: yScale(item.rs_momentum),
       })),
-    [shown, xScale, yScale],
+    [shown, scope, xScale, yScale],
   );
   const labels = useMemo(
     () => (dimmed ? new Set(activeRefId ? [activeRefId] : []) : labelledRefIds(points, labelDistance)),
@@ -402,7 +404,7 @@ export function QuadrantChart({
                  `aria-prohibited-attr`). Interaksi keyboard tetap di tingkat chart (role
                  application + aria-activedescendant + aria-live). */
               role="img"
-              aria-label={describePoint(item)}
+              aria-label={describePoint(item, scope)}
               data-testid={`point-group-${item.ref_id}`}
               transform={`translate(${mounted ? px : fromX}, ${mounted ? py : fromY})`}
               className={transition}
@@ -432,7 +434,7 @@ export function QuadrantChart({
                   fontSize={11}
                   className="pointer-events-none fill-fg"
                 >
-                  {item.name}
+                  {pointLabel(item, scope)}
                 </text>
               )}
             </g>
@@ -469,7 +471,7 @@ export function QuadrantChart({
                 fontSize={11}
                 className="fill-fg"
               >
-                {activeItem.name}
+                {pointLabel(activeItem, scope)}
               </text>
             </g>
           )}
@@ -494,6 +496,7 @@ export function QuadrantChart({
           <div className="pointer-events-none" ref={cardRef}>
             <PointCard
               item={activeItem}
+              scope={scope}
               onOpenDetail={onOpenDetail ? () => onOpenDetail(activeItem.ref_id) : undefined}
             />
           </div>
@@ -566,7 +569,13 @@ export function QuadrantChart({
                   className="h-2 w-2 shrink-0 rounded-full"
                   style={{ backgroundColor: item.color_hex }}
                 />
-                {item.name}
+                {scope === "stock" ? (
+                  <span className="max-w-40 truncate" title={item.name}>
+                    {stockLabel(item)}
+                  </span>
+                ) : (
+                  item.name
+                )}
                 <QuadrantBadge quadrant={item.quadrant} />
                 <StreakBadge weeks={item.streak_weeks} />
                 {/* pembaca layar dapat angkanya (docs/06 §6.2) */}
@@ -580,7 +589,7 @@ export function QuadrantChart({
       </div>
 
       <p aria-live="polite" data-testid="rrg-live" className="sr-only">
-        {activeItem ? describePoint(activeItem) : ""}
+        {activeItem ? describePoint(activeItem, scope) : ""}
       </p>
     </div>
   );

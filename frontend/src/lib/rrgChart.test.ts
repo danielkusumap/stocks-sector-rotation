@@ -16,7 +16,9 @@ import {
   legendEntries,
   legendNeedsSearch,
   orderedItems,
+  pointLabel,
   segmentHitsRect,
+  stockLabel,
   tailSegmentOpacity,
   tickLabel,
   viewBoxDistanceForScreenPx,
@@ -185,6 +187,20 @@ describe("baris aria-live", () => {
     expect(
       describePoint(item("IDXFINANCE", { name: "Keuangan", rs_ratio: 102.31, rs_momentum: 100.84 })),
     ).toBe("Keuangan — Memimpin, RS-Ratio 102,31, RS-Momentum 100,84");
+  });
+
+  it("scope saham: ticker dulu, nama tetap ikut (docs/08 F16)", () => {
+    const bbri = item("BBRI", { name: "Bank Rakyat Indonesia", rs_ratio: 103.1, rs_momentum: 101.2 });
+    expect(stockLabel(bbri)).toBe("BBRI · Bank Rakyat Indonesia");
+    expect(pointLabel(bbri, "stock")).toBe("BBRI");
+    expect(pointLabel(bbri, "sector")).toBe("Bank Rakyat Indonesia");
+    expect(describePoint(bbri, "stock")).toBe(
+      "BBRI · Bank Rakyat Indonesia — Memimpin, RS-Ratio 103,10, RS-Momentum 101,20",
+    );
+    // scope sektor tidak berubah (regresi)
+    const sektor = item("IDXFINANCE", { name: "Keuangan" });
+    expect(pointLabel(sektor)).toBe("Keuangan");
+    expect(stockLabel(sektor)).toBe("IDXFINANCE · Keuangan");
   });
 });
 
