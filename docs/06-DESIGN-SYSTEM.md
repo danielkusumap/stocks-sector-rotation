@@ -187,6 +187,23 @@ Aturan teknis:
 
 **Batasan jumlah titik:** untuk `scope=stock`, satu sektor bisa 160+ saham → titik & label jadi tak terbaca. Default tampilkan **maks 25 saham** dengan `stock_score` tertinggi (slider/pilihan "semua" tersedia), dan selalu sediakan tautan "lihat semua di tabel".
 
+### 6.2 Legenda interaktif (hover + klik dari legenda)
+
+Legenda **bukan hiasan** — dia jalur interaksi kedua ke titik yang sama, dan jalur keyboard utama.
+
+- **Isi tiap entri**: dot warna (token sektor / kuadran untuk saham) + nama (sektor: `name_id`; saham: ticker) + `QuadrantBadge`. Untuk `scope=sector` juga tampil `streak_weeks` bila ≥ 2 (pakai `StreakBadge`).
+- **Perilaku sama dengan titik di chart, satu state** (`selectedRefId` + `hoveredRefId` di-share dua arah):
+  - `hover` entri → sama seperti hover titik: titik itu opacity 1 + r membesar + dirender paling atas, semua titik lain **0,22**, ekor lain **0,18**, label lain hilang, dan `PointCard` untuk titik itu **tampil** di posisi titiknya (bukan menempel kursor legenda).
+  - `click` entri → **pin** (identik dengan klik titik). Klik lagi / `Esc` / klik area kosong → lepas.
+  - `hover` titik di chart → entri legenda yang bersangkutan **ter-highlight** (ring `--focus` 1px + `bg-surface-hover`), supaya mata tahu entri mana yang sedang dibaca.
+- **Legenda tidak ikut meredup.** Saat ada titik terfokus, legenda tetap terbaca penuh; hanya entri aktif yang ditandai. (Kalau legenda ikut meredup, user kehilangan navigasinya.)
+- **Keyboard**: entri legenda adalah `<button>` — `Tab` untuk berpindah antar entri, `Enter`/`Space` = pin, `Esc` = lepas. Karena itu legenda **menggantikan** jalur `←`/`→` sebagai cara utama (jalur panah boleh tetap ada, tapi legenda wajib lengkap). `aria-pressed` = status pin; teks entri memuat nama + kuadran + RS-Ratio + RS-Momentum agar pembaca layar dapat angkanya.
+- **Urutan entri**: `scope=sector` → `rank_score` menaik (pemenang pertama); `scope=stock` → `stock_score` menurun. Urutan sama dengan urutan `Tab` di chart.
+- **Tata letak**: di bawah chart, `flex-wrap`, gap 8px, tinggi entri 24px, font 13px; untuk `scope=stock` yang bisa 25 entri → wadah `max-height` 96px dengan scroll, dan entri terurut. Jangan bikin legenda vertikal di samping chart (sempit di layar kecil).
+- **Pencarian (opsional, hanya kalau entri > 12)**: satu `<input>` kecil "cari nama/ticker" yang memfilter entri legenda — tanpa mengubah data chart.
+- Zona kuadran sudah punya label di tepi chart (§6); legenda **tidak** mengulang legenda kuadran — cukup badge di tiap entri.
+
+
 ## 7. Daftar filter (jawaban pertanyaan "filternya apa saja")
 
 Filter di URL, berlaku untuk tabel & (kalau relevan) chart:
