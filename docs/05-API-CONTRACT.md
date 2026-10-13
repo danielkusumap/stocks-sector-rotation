@@ -291,9 +291,36 @@ Satu panggilan, semua yang dibutuhkan untuk report pagi. Query: `as_of` (opsiona
   "midday": { "available": true, "as_of": "2026-10-13", "gate": "ok",
               "moves": [ { "code": "IDXFINANCE", "ret_intraday": 0.006, "direction": "naik", "projected_quadrant": "leading" } ] },
   "watch": [ { "level": "warning", "message": "Data intraday Yahoo belum sampai 11:30 WIB; angka midday = penutupan sebelumnya." } ],
-  "notes_for_report": "Susun 5–8 paragraf: kondisi pasar, sektor kuat/lemah, perubahan kuadran, fokus mingguan (sebut streak), risiko & catatan data."
-}
+  "notes_for_report": "Susun 5–8 paragraf: kondisi pasar, sektor kuat/lemah, perubahan kuadran, fokus mingguan (sebut streak), risiko & catatan data.",
+  "summary_lines": [
+    "IHSG turun 0,45% hari ini; 9 dari 11 sektor ikut turun — pasar sedang menghindari risiko.",
+    "Yang masih naik: Keuangan (+1,8%) dan Kesehatan (+0,9%). Turun paling dalam: Energi (−4,3%).",
+    "Berpindah kuadran: Infrastruktur dari Tertinggal ke Membaik.",
+    "Perhatikan minggu depan: Keuangan (Memimpin 2 minggu berturut-turut) — BRI (3 minggu masuk daftar, entry 4.250, stop 4.132)."
+  ],
+  "watchlist": [
+    { "kind": "sector", "ref_id": "IDXFINANCE", "name": "Keuangan", "quadrant": "leading",
+      "streak_weeks": 2, "reason": "Memimpin 2 minggu berturut-turut, kekuatan relatif masih naik." },
+    { "kind": "stock", "ref_id": "BBRI", "name": "Bank Rakyat Indonesia", "quadrant": "leading",
+      "streak_weeks": 3, "reason": "3 minggu berturut-turut masuk daftar; tren di atas rata-rata 20 & 50 hari, harga masih wajar." }
+  ] }
 ```
+
+**`summary_lines`** (ringkasan singkat untuk panel Ringkasan Pasar):
+- 3–6 kalimat, masing-masing **≤ 140 karakter**, Bahasa Indonesia, angka sudah diformat Indonesia (`1,8%`, `4.250`).
+- **Tanpa istilah teknis**: jangan tulis "RS-Ratio"/"kuadran improving" mentah — pakai "kekuatan relatif", "Membaik/Memimpin", dst.
+- Susunan baku: (1) kondisi pasar hari ini + regime → (2) sektor naik & turun teratas (angka) → (3) perubahan kuadran yang terjadi → (4) fokus mingguan + streak → (5) catatan data/peringatan (sektor tipis, data stale, tengah hari belum ada).
+- Kalimat (3)/(4)/(5) **dilewati** kalau tidak ada isinya. Minimal 1 kalimat selama ada hasil hitung; kalau belum ada hasil hitung → `[]` dan UI menampilkan "belum ada hasil hitung".
+- **Disusun backend dengan template + angka yang sudah ada — TIDAK memakai LLM.** Frontend hanya menampilkan; tidak menyusun kalimat finansial sendiri.
+
+**`watchlist`** (sektor/saham yang menarik dipantau):
+- Maks **3 item**. Sumber: kandidat `signal_weekly` terakhir (sektor dulu, lalu saham), urut `score` menurun.
+- `reason` = **1 kalimat** (≤ 140 karakter), menyebut alasan konkret: streak, perubahan kuadran, atau level harga (`entry`/`stop`).
+- Kalau tidak ada kandidat (belum Jumat / belum ada sinyal) → `[]`; UI menyembunyikan blok ini, jangan tampilkan blok kosong.
+- `streak_weeks` dan `quadrant` dipakai UI untuk badge.
+
+**Simpan juga ke DB** sebagai bagian briefing? Tidak — dihitung ulang saat endpoint dipanggil (`summary_lines` dan `watchlist` murni turunan, murah). Jangan menambah tabel.
+
 Aturan: `briefing/morning` **wajib tetap mengembalikan 200** walau data stale/partial — kesegaran dilaporkan di `data_status` dan `watch`, bukan lewat kode error. Ini yang membuat report pagi tidak pernah gagal total.
 
 ---
