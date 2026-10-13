@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router";
+import { CandleChart } from "../components/charts/CandleChart";
 import { QuadrantChart } from "../components/charts/QuadrantChart";
 import { FilterBar } from "../components/domain/FilterBar";
 import { PeriodNote } from "../components/domain/PeriodNote";
@@ -9,10 +10,11 @@ import { Delta } from "../components/ui/Delta";
 import { ErrorState } from "../components/ui/ErrorState";
 import { FreshnessPill } from "../components/ui/FreshnessPill";
 import { Panel } from "../components/ui/Panel";
+import { Segmented } from "../components/ui/Segmented";
 import { QuadrantBadge } from "../components/ui/QuadrantBadge";
 import { StreakBadge } from "../components/ui/StreakBadge";
 import { Skeleton, TableSkeleton } from "../components/ui/Skeleton";
-import { useMetaSectors, useRrg, useStock, useStocks } from "../hooks/useApiQuery";
+import { useMetaSectors, useRrg, useStock, useStockSeries, useStocks } from "../hooks/useApiQuery";
 import { useFilterState } from "../hooks/useFilterState";
 import { useSetPeriodLabel } from "../components/layout/ScopeControls";
 import { formatNum, formatRp, formatRpCompact, formatDate } from "../lib/format";
@@ -137,7 +139,7 @@ function StockList() {
 }
 
 function StockDetail({ ticker }: { ticker: string }) {
-  const { filters } = useFilterState();
+  const { filters, setFilters } = useFilterState();
   const location = useLocation();
   const stock = useStock(ticker);
   const sectorCode = stock.data?.stock.sector_code ?? "";
@@ -149,6 +151,8 @@ function StockDetail({ ticker }: { ticker: string }) {
     weighting: filters.weighting,
   });
   const [picked, setPicked] = useState<string | null>(ticker);
+  // grafik candle: `window` dari URL (filter lain), angka overlay dari API
+  const series = useStockSeries(ticker, { window: filters.window });
 
   const period = periodFromStatus(rrg.data?.data_status, {
     timeframe: filters.timeframe,
@@ -241,6 +245,38 @@ function StockDetail({ ticker }: { ticker: string }) {
           <p className="p-3 text-sm text-fg-faint" data-testid="no-pick">
             — saham ini belum pernah masuk daftar pick mingguan.
           </p>
+        )}
+      </Panel>
+
+      <Panel
+        title="Grafik & analisa teknikal"
+        actions={
+          <span className="flex items-center gap-2">
+            <span className="text-sm text-fg-muted">Jendela</span>
+            <Segmented
+              label="Jendela grafik"
+              value={filters.window}
+              onChange={(value) => setFilters({ window: value })}
+              options={[
+                { value: "3m" as const, label: "3 bln" },
+                { value: "6m" as const, label: "6 bln" },
+                { value: "1y" as const, label: "1 thn" },
+              ]}
+            />
+          </span>
+        }
+      >
+        {series.isPending ? (
+          // tinggi sama dengan grafik akhirnya (viewBox 780×442) → tanpa CLS
+          <div className="p-3" data-testid="candle-skeleton">
+            <Skeleton className="aspect-[780/442] w-full" />
+          </div>
+        ) : series.isError ? (
+          <ErrorState error={series.error} onRetry={() => void series.refetch()} />
+        ) : (
+          <div className="p-3">
+            <CandleChart data={series.data} />
+          </div>
         )}
       </Panel>
 

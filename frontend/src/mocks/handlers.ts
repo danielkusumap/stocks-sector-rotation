@@ -29,6 +29,7 @@ import weeklyJson from "./fixtures/weekly.json";
 import { weekRangeLabel, weekStart } from "../lib/weeklyPicks";
 import { adminHandlers } from "./admin";
 import { taHandlers } from "./ta";
+import { seriesHandlers } from "./series";
 import { planFor } from "./plans";
 
 /**
@@ -899,4 +900,5 @@ export const handlers = [
 
   ...adminHandlers,
   ...taHandlers,
+  ...seriesHandlers,
 ];

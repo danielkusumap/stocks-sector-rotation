@@ -589,6 +589,128 @@ export interface TaDetailResponse {
   data_status: DataStatus;
 }
 
+// ── §2c Grafik candle saham — `/series/stock/{ticker}` (docs/05 §2, docs/06 §6.5) ──
+// Semua overlay (MA, Donchian, kanal, level plan, penanda event, volume) datang dari API.
+// Frontend tidak menghitung satu pun indikator (docs/08 aturan 1).
+
+/** Satu bar harian **harga penyesuaian** (`adj_close`; `open` sudah diskalakan, ADR-040). */
+export interface Candle {
+  date: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+export interface SeriesPoint {
+  date: string;
+  value: number;
+}
+
+export interface StockSeriesParams extends CommonParams {
+  /** Panjang jendela grafik (default `6m`). */
+  window?: Window;
+  /** Jumlah bar (default `config.chart.window_bars`, maks 400). */
+  bars?: number;
+  /** Lapisan tambahan: `indicators` (Ultimate RSI/VWAP/POC), `smc`, `elliott`; kosong = dasar saja. */
+  layers?: readonly string[];
+  /** Jumlah event (default `config.chart.events`, maks 100). */
+  events?: number;
+  /** Periode MA (default `config.ta.ma_periods`). */
+  ma?: readonly number[];
+}
+
+export interface StockSeriesEvent {
+  signal_date: string;
+  entry_date: string;
+  entry_price: number;
+  result: TaResult;
+  periods: number | null;
+  mfe_pct: number | null;
+  mae_pct: number | null;
+}
+
+/** Kanal S/R pivot (`strength` = jumlah pivot yang dikelompokkan, docs/03 §6.4.9). */
+export interface SrChannel {
+  low: number;
+  high: number;
+  strength: number;
+  kind: string;
+  from: string | null;
+  to: string | null;
+}
+
+export interface StockSeriesResponse {
+  api_version: string;
+  ticker: string;
+  name: string;
+  price_basis: string;
+  /** `tren_naik|range|turun|tipis` — menentukan overlay yang digambar (docs/03 §6.4.0). */
+  regime: string;
+  active_tools: string[];
+  regime_reason: string;
+  candles: Candle[];
+  overlays: {
+    /** Berkunci periode sebagai **string**; nilai `null` (warmup) sudah dibuang backend. */
+    ma: Record<string, SeriesPoint[]>;
+    donchian: { fast: { high: SeriesPoint[]; low: SeriesPoint[] }; slow: { high: SeriesPoint[]; low: SeriesPoint[] } };
+    /** Selalu dikirim; UI hanya menggambar saat rezim `range|tipis` (docs/06 §6.5). */
+    channels: SrChannel[];
+    volume_ma: SeriesPoint[];
+  };
+  /** Level plan pick terakhir; `null` = belum ada pick → garis level disembunyikan, bukan error. */
+  levels: {
+    week_end: string;
+    entry_zone: { low: number; high: number };
+    stop: number;
+    tp1: number;
+    tp2: number;
+    rr_tp2: number | null;
+    plan_ok: boolean;
+  } | null;
+  events: StockSeriesEvent[];
+  volume_confirm_mult: number;
+  /** Lapisan yang benar-benar dikirim backend (v2: `indicators`, `smc`, `elliott`). */
+  layers: string[];
+  indicators?: StockIndicators;
+  smc?: SmcLayers;
+  elliott?: ElliottLayers;
+  data_status: DataStatus;
+}
+
+/** Lapisan `indicators` (docs/03 §11.1–§11.3) — dipakai F21. */
+export interface StockIndicators {
+  ursi?: { len: number; method: string; ob: number; os: number; points: { date: string; value: number; signal: number }[] };
+  vwap?: {
+    len: number;
+    anchor: string;
+    anchor_date: string | null;
+    points: { date: string; vwap: number; upper1: number; lower1: number; upper2: number; lower2: number }[];
+  };
+  poc?: { basis: string; bars_used: number; bins: number; poc: number; value_area: { low: number; high: number } };
+}
+
+/** Lapisan `smc` (docs/03 §11.4) — dipakai F22. */
+export interface SmcLayers {
+  bos: { date: string; direction: string; level: number }[];
+  choch: { date: string; direction: string; level: number }[];
+  order_blocks: { kind: string; from: string; to: string; low: number; high: number; mitigated: boolean }[];
+  fvg: { kind: string; date: string; low: number; high: number; mitigated: boolean }[];
+  equal_levels: { kind: string; level: number; count: number }[];
+  range: { low: number; high: number; premium_from: number; discount_to: number } | null;
+}
+
+/** Lapisan `elliott` (docs/03 §11.5) — dipakai F22; `invalidated` → UI menggambar garis putus. */
+export interface ElliottLayers {
+  status: string;
+  invalidated: boolean;
+  zigzag: { date: string; price: number; kind: string }[];
+  waves: { label: string; from: string; to: string; price_from: number; price_to: number }[];
+  fib_zones: { ratio: number; level: number }[];
+  note: string;
+}
+
 // ── §3 Weekly picks & briefing ───────────────────────────────────────────────
 
 export interface WeeklySectorPick {

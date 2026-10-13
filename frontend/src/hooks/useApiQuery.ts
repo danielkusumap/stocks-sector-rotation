@@ -23,6 +23,8 @@ import {
   type SectorSummaryParams,
   type SectorSummaryResponse,
   type StockDetailResponse,
+  type StockSeriesParams,
+  type StockSeriesResponse,
   type TaDetailParams,
   type TaDetailResponse,
   type TaScope,
@@ -95,6 +97,15 @@ export const useStocks = (params: StocksParams) =>
 
 export const useStock = (ticker: string) =>
   useApi<StockDetailResponse, object>(`stock:${ticker}`, `/stocks/${ticker}`, undefined, Boolean(ticker));
+
+/** Grafik candle + overlay TA satu saham (`docs/05` §2 `/series/stock/{ticker}`). */
+export const useStockSeries = (ticker: string, params: StockSeriesParams = {}) =>
+  useApi<StockSeriesResponse, StockSeriesParams>(
+    `series-stock:${ticker}`,
+    `/series/stock/${ticker}`,
+    params,
+    Boolean(ticker),
+  );
 
 export const useRotationMatrix = (params: RotationMatrixParams) =>
   useApi<RotationMatrixResponse, RotationMatrixParams>("rotation-matrix", "/rotation/matrix", params);
