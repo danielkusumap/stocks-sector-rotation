@@ -1,0 +1,5 @@
+compute_signals (kode B18c): {"rows": 109, "weeks": 91, "sector_rows": 75, "stock_rows": 34, "weighting": "equal", "week_end": "2026-10-09", "sectors": 3, "stocks": 5}
+distribusi `plan_ok` SESUDAH B18c: baris=50 · punya_plan=34 · ok=16 · tidak_ok=18 · gagal_no_trade=18 · gagal_rr=0 · ada_peringatan_lebar=0 · stop_di_atas_8pct=10
+(SEBELUM B18c, dari docs/evidence/b18/RUN-LOG.txt: baris=50 · punya_plan=34 · plan_tidak_ok=29 — semuanya stop > 8%)
+MPXL @ 2026-10-09: plan_ok=1 · stop=200.71 (-9.97%) · rr_tp2=4.676 · risk_pct=0.0997 · notes=[]
+SMDR @ 2026-10-09: plan_ok=1 · stop=375.73 (-5.93%) · rr_tp2=3.000 · risk_pct=0.0593 · notes=[]

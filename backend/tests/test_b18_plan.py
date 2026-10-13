@@ -343,7 +343,7 @@ def test_weekly_picks_kirim_plan(coherent_inputs, monkeypatch):
     pick = body["stocks"][0]
     assert set(pick["plan"]) == {
         "regime", "entry_tool", "entry_tool_reason", "confirm_tool", "confirm_reason", "entry_mode", "entry_zone",
-        "stop", "tp1", "tp2", "hold", "invalidation", "plan_ok", "notes",
+        "stop", "tp1", "tp2", "hold", "invalidation", "plan_ok", "notes", "risk_pct",
     }
     assert pick["plan"]["confirm_reason"] is None or len(pick["plan"]["confirm_reason"]) <= 140
     assert set(pick["plan"]["stop"]) == {"level", "pct", "basis", "reason"}
@@ -478,3 +478,65 @@ def test_plan_pekan_lama_tetap_ada_level(tmp_db):
     assert stale == 0  # memang tak ada snapshot metrik sama sekali di DB ini
     assert built is not None and built["regime"] == "tipis"
     assert built["stop"]["level"] is not None and built["tp1"]["level"] is not None
+
+
+# --- B18c: `plan_ok` hanya untuk RR/no_trade, lebar stop = PERINGATAN + ambang adaptif ---
+
+
+def _cfg_with(tmp_path, monkeypatch, *, plan_overrides=None, weekly_overrides=None):
+    """Config salinan dengan override `weekly.*` (plan & stop ATR) — angka tetap dari config, bukan dari kode."""
+    config = yaml.safe_load(DEFAULT_CONFIG.read_text(encoding="utf-8"))
+    config["database"]["path"] = str(tmp_path / "b18c.db")
+    config["weekly"]["plan"].update(plan_overrides or {})
+    config["weekly"].update(weekly_overrides or {})
+    path = tmp_path / "b18c.yaml"
+    path.write_text(yaml.safe_dump(config), encoding="utf-8")
+    monkeypatch.setenv("ROTATION_CONFIG", str(path))
+    get_settings.cache_clear()
+    return get_settings()
+
+
+def _wide_stop_plan(cfg, *, atr: float = 4.0) -> dict:
+    """Bar mendatar dengan low jauh (struktur) + ATR 4% dari harga → stop lebar tapi bukan ide buruk."""
+    bars = make_bars([100.0] * 60, lows=[80.0] * 60)
+    return plan.plan_levels(bars, metrics(100.0, sma20=100.0, sma50=95.0, atr=atr), "tren_naik", {"n_events": 9}, cfg)
+
+
+def test_plan_ok_hanya_untuk_rr_dan_no_trade(tmp_path, monkeypatch):
+    """Stop lebar = peringatan; `plan_ok` tetap true selama imbal hasil memenuhi minimum (ADR-048)."""
+    cfg = _cfg_with(tmp_path, monkeypatch, weekly_overrides={"atr_stop_mult": 7.0})
+    built = _wide_stop_plan(cfg)
+    assert built["stop"]["pct"] < -0.08 and built["plan_ok"] is True
+    assert any("lebar" in note for note in built["notes"])
+    assert built["risk_pct"] == pytest.approx(abs(built["stop"]["pct"]))  # AC 4
+    assert built["tp2"]["rr"] == pytest.approx(cfg.weekly["plan"]["rr_min_tp2"], abs=1e-9)  # toleransi float (ADR-048)
+    get_settings.cache_clear()
+
+
+def test_stop_lebar_adaptif_atr(tmp_path, monkeypatch):
+    """`atr/entry` 4% → batas efektif `max(8%, 3×4%) = 12%`: stop −13% diperingatkan, −11% tidak."""
+    lebar = _wide_stop_plan(_cfg_with(tmp_path, monkeypatch, weekly_overrides={"atr_stop_mult": 3.25}))
+    sempit = _wide_stop_plan(_cfg_with(tmp_path, monkeypatch, weekly_overrides={"atr_stop_mult": 2.75}))
+    assert lebar["stop"]["pct"] == pytest.approx(-0.13) and sempit["stop"]["pct"] == pytest.approx(-0.11)
+    assert any("lebar" in note for note in lebar["notes"]) and not any("lebar" in note for note in sempit["notes"])
+    assert lebar["plan_ok"] is True and sempit["plan_ok"] is True
+    get_settings.cache_clear()
+
+
+def test_rr_tp2_selalu_penuhi_minimum(tmp_path, monkeypatch):
+    """Guard RR dalam bentuk yang benar-benar bisa terjadi: TP2 selalu dinaikkan ke level minimum.
+
+    `docs/03` §6.4.4 menetapkan `tp2 = max(puncak 40, level RR minimum)` sehingga
+    `rr_tp2 < rr_min_tp2` **tidak mungkin** selama target terukur dipakai; karena itu
+    `plan_ok=false` hanya berasal dari `no_trade` (rezim turun / data kurang) — lihat ADR-048.
+    """
+    cfg = _cfg_with(tmp_path, monkeypatch, plan_overrides={"rr_min_tp2": 8.0})
+    built = _wide_stop_plan(cfg)
+    assert built["tp2"]["rr"] == pytest.approx(8.0, abs=1e-6)
+    assert built["tp2"]["basis"] == "target_terukur_minimal" and built["plan_ok"] is True
+
+    turun = plan.plan_levels(
+        make_bars([200.0 - i for i in range(60)]), metrics(141.0, sma20=160.0, sma50=170.0), "turun", {"n_events": 9}, cfg
+    )
+    assert turun["plan_ok"] is False and turun["entry_mode"] == "no_trade"
+    get_settings.cache_clear()

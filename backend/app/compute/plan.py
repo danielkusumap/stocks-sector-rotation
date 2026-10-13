@@ -339,9 +339,14 @@ def plan_levels(bars: pd.DataFrame, metrics: dict, regime: str, ta_stats: dict, 
     }
 
     plan_ok = True
-    if stop["pct"] < -plan["max_stop_pct"]:
-        plan_ok = False
-        notes.append(f"Batas rugi lebih lebar dari {format_id_number(plan['max_stop_pct'] * 100)}% — terlalu lebar untuk swing harian.")
+    batas_stop = max(plan["max_stop_pct"], plan["max_stop_atr"] * atr / entry_mid)  # adaptif: saham bervolatilitas tinggi
+    if abs(stop["pct"]) > batas_stop:
+        # Lebar stop bukan alasan menolak ide — dikelola lewat ukuran posisi (`lots_hint`), bukan plan_ok (ADR-048).
+        notes.append(
+            _trim(
+                f"Batas rugi {format_id_number(abs(stop['pct']) * 100, 1)}% — lebar untuk swing; perkecil ukuran posisi, jangan longgarkan stop."
+            )
+        )
     if tp2["rr"] < plan["rr_min_tp2"] - 1e-9:  # level TP2 dihitung tepat di ambang minimal → toleransi float
         plan_ok = False
         notes.append(f"Imbal hasil terhadap risiko target kedua hanya {format_id_number(tp2['rr'], 2)}:1 (minimal {format_id_number(plan['rr_min_tp2'], 1)}:1) setelah biaya.")
@@ -366,6 +371,7 @@ def plan_levels(bars: pd.DataFrame, metrics: dict, regime: str, ta_stats: dict, 
         "plan_ok": plan_ok,
         "notes": notes,
         "volume_ratio": features["volume_ratio"],
+        "risk_pct": abs(stop["pct"]),
         "entry_tool_reason": _trim(TOOL_REASON.get(entry_tool, "")),
         "confirm_reason": confirm_reason(confirm, features, cfg),
     }

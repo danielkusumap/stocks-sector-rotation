@@ -665,6 +665,7 @@ class TaPlan(BaseModel):
     invalidation: str | None
     plan_ok: bool
     notes: list[str]
+    risk_pct: float | None = None  # B18c: |stop.pct| supaya UI bisa menampilkan risiko per lembar
 
 
 class WeeklyStockPick(BaseModel):

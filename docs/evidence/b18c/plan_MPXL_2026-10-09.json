@@ -1,0 +1,46 @@
+{
+ "regime": "tren_naik",
+ "entry_tool": "pullback_ma20",
+ "confirm_tool": "volume",
+ "entry_mode": "wait_pullback",
+ "entry_zone": {
+  "low": 216.27862616455093,
+  "high": 229.62137383544905,
+  "reason": "Harga sudah 3,0 kali volatilitas harian di atas penyangga 20 hari (223) — jangan chase; tunggu pullback ke penyangga."
+ },
+ "stop": {
+  "level": 200.7120872151698,
+  "basis": "lantai_atr",
+  "reason": "Batas rugi di bawah struktur terlalu ketat (kurang dari satu kali volatilitas harian) sehingga rawan kena gerak acak; dipakai lantai…",
+  "pct": -0.09974394610823145
+ },
+ "tp1": {
+  "level": 332.0,
+  "pct": 0.4891231217761831,
+  "rr": 4.676158368509288,
+  "basis": "resistance_20",
+  "reason": "Puncak 20 hari terakhir adalah tempat penjual menumpuk — ambil sebagian di situ."
+ },
+ "tp2": {
+  "level": 332.0,
+  "pct": 0.4891231217761831,
+  "rr": 4.676158368509288,
+  "basis": "puncak_40",
+  "reason": "Target terukur dari level 332; imbal hasil terhadap risiko setelah biaya 0,40% masih 4,68:1."
+ },
+ "hold": {
+  "median_periods": 2.0,
+  "n_events": 9,
+  "win_rate": 0.6667,
+  "hit_tp1": 0.0,
+  "hit_tp2": 0.0,
+  "reason": "Dari 9 penembusan terakhir: target pertama historis kena 0%, lama tahan median 2 hari."
+ },
+ "invalidation": "Batal bila tutup harian di bawah penyangga 20 hari (223) atau di bawah batas rugi (201); pasar: IHSG tutup di bawah 5.973 → tunda entry baru.",
+ "plan_ok": true,
+ "notes": [],
+ "volume_ratio": 3.4785122962831836,
+ "risk_pct": 0.09974394610823145,
+ "entry_tool_reason": "Harga dekat penyangga 20 hari saat tren masih naik — beli di penyangga membuat batas rugi lebih dekat.",
+ "confirm_reason": "Volume bar terakhir 3,5 kali rata-rata 20 hari (minimal 1,5 kali)."
+}
