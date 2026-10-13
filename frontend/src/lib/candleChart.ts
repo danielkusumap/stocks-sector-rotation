@@ -1,4 +1,4 @@
-import type { Candle } from "./api";
+import type { Candle, Layer } from "./api";
 import { formatNum, formatRp } from "./format";
 
 /**
@@ -186,4 +186,114 @@ export function chartAriaLabel({
     hasLevels ? "dengan level rencana" : "tanpa level rencana",
     "harga penyesuaian",
   ].join(" · ");
+}
+
+// ── F21: lapisan indikator (Ultimate RSI, VWAP+σ, POC) — docs/06 §6.6 ─────────
+
+/** Skala URSI **selalu** 0–100 (docs/06 §6.6); nilai dari API dijepit ke rentang itu. */
+export function ursiY(value: number, height: number): number {
+  const clamped = Math.max(0, Math.min(100, value));
+  return height - (clamped / 100) * height;
+}
+
+export interface UrisGuides {
+  y50: number;
+  /** Ambang overbought (`ob`) & oversold (`os`) dari API — bukan angka di frontend. */
+  yOb: number;
+  yOs: number;
+}
+
+/** Garis bantu panel URSI: 50, ambang `ob`, `os` (nilainya dari respons backend). */
+export function ursiGuides(ob: number, os: number, height: number): UrisGuides {
+  return { y50: ursiY(50, height), yOb: ursiY(ob, height), yOs: ursiY(os, height) };
+}
+
+/** Label panel URSI: `Ultimate RSI (14, SMA)` — parameter dari API. */
+export function ursiTitle(len: number | null | undefined, method: string | null | undefined): string {
+  const parts = [len === null || len === undefined ? null : formatNum(len, 0), method ? method.toUpperCase() : null]
+    .filter((part): part is string => part !== null);
+  return parts.length > 0 ? `Ultimate RSI (${parts.join(", ")})` : "Ultimate RSI";
+}
+
+/** Di rezim range panel URSI disembunyikan dan diganti catatan ini (docs/06 §6.6). */
+export function ursiRangeNote(regime: string | null | undefined): string | null {
+  return regime === "range" ? "di rentang, pakai RSI klasik (kontrarian)" : null;
+}
+
+/** Header panel VWAP: `VWAP 20 · anchor 14 Sep` (anchor dari API, diformat lib/format). */
+export function vwapAnchorLabel(len: number | null | undefined, anchorDate: string | null | undefined): string {
+  const head = `VWAP ${len === null || len === undefined ? "—" : formatNum(len, 0)}`;
+  if (!anchorDate) return head;
+  const parsed = new Date(`${anchorDate}T00:00:00+07:00`);
+  if (Number.isNaN(parsed.getTime())) return head;
+  const short = new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short" }).format(parsed);
+  return `${head} · anchor ${short}`;
+}
+
+/**
+ * Peringatan jujur saat VWAP dipaksa tampil di luar rezim range (docs/06 §6.6):
+ * VWAP bukan alat utama saat tren (skill `idx-ta-trading-plan`).
+ */
+export function vwapWarning(regime: string | null | undefined): string | null {
+  if (regime === "range" || regime === "tipis") return null;
+  return "bukan alat utama saat tren";
+}
+
+/** Label POC **wajib** basisnya (docs/06 §6.6): `daily` → "perkiraan", intraday → menit. */
+export function pocLabel(basis: string | null | undefined, barsUsed: number | null | undefined): string {
+  const bars = barsUsed === null || barsUsed === undefined ? null : `${formatNum(barsUsed, 0)} bar`;
+  if (basis === "intraday") return `dari bar 5 menit${bars ? ` (${bars})` : ""}`;
+  return `perkiraan dari bar harian${bars ? ` (${bars})` : ""}`;
+}
+
+/** Lapisan yang diminta user dari URL (default `indicators`, docs/06 §6.6). */
+export const LAYERS_DEFAULT: readonly Layer[] = ["indicators"];
+
+export function layerList(search: URLSearchParams): Layer[] {
+  const raw = search.get("layers");
+  if (raw === null) return [...LAYERS_DEFAULT];
+  return raw
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item): item is Layer => item === "indicators" || item === "smc" || item === "elliott");
+}
+
+/** Tulis pilihan lapisan ke URL; `layers=` kosong = tanpa lapisan (default dibuang dari URL). */
+export function setLayers(search: URLSearchParams, layers: readonly Layer[]): URLSearchParams {
+  const params = new URLSearchParams(search);
+  const list = [...layers];
+  const isDefault = list.length === LAYERS_DEFAULT.length && list.every((layer, index) => LAYERS_DEFAULT[index] === layer);
+  if (list.length === 0) params.set("layers", "");
+  else if (isDefault) params.delete("layers");
+  else params.set("layers", list.join(","));
+  return params;
+}
+
+/** Nilai `layers` untuk request API: `undefined` = biarkan default backend (tanpa parameter). */
+export function layersParam(search: URLSearchParams): Layer[] | undefined {
+  const raw = search.get("layers");
+  if (raw === null) return undefined;
+  const list = layerList(search);
+  return list;
+}
+
+/** Label tombol toggle lapisan + keterangan yang ditampilkan sebagai `title` (docs/06 §6.6/§6.7). */
+export const LAYER_LABEL: Record<Layer, string> = {
+  indicators: "Indikator",
+  smc: "SMC",
+  elliott: "Elliott",
+};
+
+/** Urutan tombol lapisan di UI (docs/06 §6.6/§6.7) — dipakai LayerToggles. */
+export const LAYER_ORDER: readonly Layer[] = ["indicators", "smc", "elliott"];
+
+export const LAYER_HINT: Record<Layer, string> = {
+  indicators: "Ultimate RSI, VWAP+σ, dan POC",
+  smc: "lapisan konteks, bukan sinyal",
+  elliott: "kandidat, bisa berubah",
+};
+
+/** Nyalakan/matikan satu lapisan, urutan tetap (docs/06 §6.6). */
+export function toggleLayer(layers: readonly Layer[], layer: Layer): Layer[] {
+  return layers.includes(layer) ? layers.filter((item) => item !== layer) : [...layers, layer];
 }

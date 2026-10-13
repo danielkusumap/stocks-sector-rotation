@@ -608,13 +608,16 @@ export interface SeriesPoint {
   value: number;
 }
 
+/** Lapisan tambahan yang bisa dinyalakan user (`docs/06` §6.6/§6.7, `docs/05` §2 v2). */
+export type Layer = "indicators" | "smc" | "elliott";
+
 export interface StockSeriesParams extends CommonParams {
   /** Panjang jendela grafik (default `6m`). */
   window?: Window;
   /** Jumlah bar (default `config.chart.window_bars`, maks 400). */
   bars?: number;
   /** Lapisan tambahan: `indicators` (Ultimate RSI/VWAP/POC), `smc`, `elliott`; kosong = dasar saja. */
-  layers?: readonly string[];
+  layers?: readonly Layer[];
   /** Jumlah event (default `config.chart.events`, maks 100). */
   events?: number;
   /** Periode MA (default `config.ta.ma_periods`). */
@@ -672,7 +675,7 @@ export interface StockSeriesResponse {
   events: StockSeriesEvent[];
   volume_confirm_mult: number;
   /** Lapisan yang benar-benar dikirim backend (v2: `indicators`, `smc`, `elliott`). */
-  layers: string[];
+  layers: Layer[];
   indicators?: StockIndicators;
   smc?: SmcLayers;
   elliott?: ElliottLayers;

@@ -9,6 +9,17 @@ import {
   layoutCandles,
   levelLabel,
   needsBorder,
+  layerList,
+  layersParam,
+  pocLabel,
+  setLayers,
+  toggleLayer,
+  ursiGuides,
+  ursiRangeNote,
+  ursiTitle,
+  ursiY,
+  vwapAnchorLabel,
+  vwapWarning,
   overlayVisibility,
   priceDomain,
   scaleY,
@@ -107,5 +118,73 @@ describe("candleChart — aturan tampil overlay & label", () => {
     expect(aria).toContain("BBRI");
     expect(aria).toContain("rezim tren naik");
     expect(aria).toContain("harga penyesuaian");
+  });
+});
+
+describe("lapisan indikator F21 (docs/06 §6.6)", () => {
+  it("skala URSI tetap 0–100 dan nilai di luar dijepit", () => {
+    expect(ursiY(100, 60)).toBe(0);
+    expect(ursiY(0, 60)).toBe(60);
+    expect(ursiY(50, 60)).toBe(30);
+    expect(ursiY(140, 60)).toBe(0);
+    expect(ursiY(-8, 60)).toBe(60);
+  });
+
+  it("garis bantu memakai ambang dari API", () => {
+    const guides = ursiGuides(75, 25, 100);
+    expect(guides.y50).toBe(50);
+    expect(guides.yOb).toBe(25);
+    expect(guides.yOs).toBe(75);
+  });
+
+  it("judul URSI dari parameter API, aman saat null", () => {
+    expect(ursiTitle(14, "sma")).toBe("Ultimate RSI (14, SMA)");
+    expect(ursiTitle(7, null)).toBe("Ultimate RSI (7)");
+    expect(ursiTitle(null, null)).toBe("Ultimate RSI");
+  });
+
+  it("catatan kontrarian hanya di rezim range", () => {
+    expect(ursiRangeNote("range")).toBe("di rentang, pakai RSI klasik (kontrarian)");
+    expect(ursiRangeNote("tren_naik")).toBeNull();
+    expect(ursiRangeNote(null)).toBeNull();
+  });
+
+  it("label anchor VWAP memakai tanggal dari API", () => {
+    expect(vwapAnchorLabel(20, "2026-09-14")).toBe("VWAP 20 · anchor 14 Sep");
+    expect(vwapAnchorLabel(null, null)).toBe("VWAP —");
+  });
+
+  it("peringatan VWAP hanya saat rezim bukan range/tipis", () => {
+    expect(vwapWarning("tren_naik")).toBe("bukan alat utama saat tren");
+    expect(vwapWarning("range")).toBeNull();
+    expect(vwapWarning("tipis")).toBeNull();
+  });
+
+  it("label POC wajib jujur soal basis bar", () => {
+    expect(pocLabel("daily", 60)).toBe("perkiraan dari bar harian (60 bar)");
+    expect(pocLabel("intraday", 240)).toBe("dari bar 5 menit (240 bar)");
+    expect(pocLabel("daily", null)).toBe("perkiraan dari bar harian");
+  });
+
+  it("layers di URL: default `indicators`, `layers=` = tanpa lapisan", () => {
+    expect(layerList(new URLSearchParams())).toEqual(["indicators"]);
+    expect(layerList(new URLSearchParams("layers="))).toEqual([]);
+    expect(layerList(new URLSearchParams("layers=smc,elliott"))).toEqual(["smc", "elliott"]);
+    expect(layerList(new URLSearchParams("layers=smc,bogus"))).toEqual(["smc"]);
+    expect(setLayers(new URLSearchParams("window=1y"), ["indicators"]).toString()).toBe("window=1y");
+    expect(setLayers(new URLSearchParams(), []).toString()).toBe("layers=");
+    expect(setLayers(new URLSearchParams("layers=smc"), ["smc"]).get("layers")).toBe("smc");
+  });
+
+  it("layersParam membedakan `tanpa parameter` (default backend) dari daftar kosong", () => {
+    expect(layersParam(new URLSearchParams())).toBeUndefined();
+    expect(layersParam(new URLSearchParams("layers="))).toEqual([]);
+    expect(layersParam(new URLSearchParams("layers=smc"))).toEqual(["smc"]);
+  });
+
+  it("toggle menyalakan/mematikan satu lapisan", () => {
+    expect(toggleLayer([], "smc")).toEqual(["smc"]);
+    expect(toggleLayer(["indicators", "smc"], "smc")).toEqual(["indicators"]);
+    expect(toggleLayer(["smc"], "smc")).toEqual([]);
   });
 });

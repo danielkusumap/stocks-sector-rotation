@@ -148,3 +148,112 @@ test("tinggi panel sama sebelum & sesudah data datang (tanpa CLS)", async ({ pag
   const after = await page.getByTestId("candle-chart").boundingBox();
   expect(Math.abs((after?.height ?? 0) - (before?.height ?? 0))).toBeLessThan(4);
 });
+
+// ── F21: toggle lapisan + Ultimate RSI, VWAP+σ, POC (docs/06 §6.6) ───────────
+
+test("lapisan Indikator aktif bawaan: URSI, VWAP+σ, POC + label jujur POC", async ({ page }) => {
+  const requests: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("/series/stock/")) requests.push(new URL(request.url()).search || "(tanpa query)");
+  });
+  await page.goto("/stocks/BBRI");
+  const chart = page.getByTestId("candle-chart");
+  await expect(chart).toBeVisible();
+
+  // tombol toggle: aktif bawaan, tanpa `layers` di URL
+  await expect(page.getByTestId("layer-indicators")).toHaveAttribute("aria-pressed", "true");
+  expect(new URL(page.url()).searchParams.get("layers")).toBeNull();
+
+  const data = (await series(page, "BBRI", "window=6m&layers=indicators")) as {
+    indicators: {
+      ursi: { len: number; points: unknown[] };
+      vwap: { len: number; anchor_date: string; points: unknown[] };
+      poc: { basis: string; bars_used: number; poc: number };
+    };
+  };
+
+  // URSI: skala 0–100, nilai & sinyal digambar; jumlah titik = jumlah titik dari API
+  const ursi = chart.locator('[data-overlay="ursi"]');
+  await expect(ursi).toHaveCount(1);
+  await expect(ursi).toHaveAttribute("pointer-events", "none");
+  const ursiPoints = await ursi.locator("polyline").first().getAttribute("points");
+  expect(ursiPoints?.trim().split(/\s+/)).toHaveLength(data.indicators.ursi.points.length);
+  await expect(ursi).toContainText(`Ultimate RSI (${data.indicators.ursi.len}, SMA)`);
+
+  // VWAP: pita + garis; anchor = tanggal dari API (format Indonesia)
+  await expect(chart.locator('[data-overlay="vwap"]')).toHaveCount(1);
+  const anchor = new Date(`${data.indicators.vwap.anchor_date}T00:00:00+07:00`);
+  const short = new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short" }).format(anchor);
+  await expect(page.getByTestId("vwap-anchor")).toContainText(`VWAP ${data.indicators.vwap.len}`);
+  await expect(page.getByTestId("vwap-anchor")).toContainText(`anchor ${short}`);
+  // rezim default = tren → VWAP wajib memakai peringatan
+  await expect(page.getByTestId("vwap-warning")).toHaveText("bukan alat utama saat tren");
+
+  // POC: basis harian → label "perkiraan dari bar harian (N bar)", bukan kutipan presisi
+  await expect(chart.locator('[data-overlay="poc"]')).toHaveCount(1);
+  await expect(page.getByTestId("poc-label")).toContainText("perkiraan dari bar harian");
+  await expect(page.getByTestId("poc-label")).toContainText(`${data.indicators.poc.bars_used} bar`);
+
+  // 1 permintaan per halaman (StrictMode dev boleh 2×) & parameter layers ikut
+  expect([...new Set(requests)]).toEqual(["?window=6m&layers=indicators"]);
+  await expect(chart).not.toContainText("NaN");
+});
+
+test("matikan lapisan: URL `layers=` & 0 elemen indikator", async ({ page }) => {
+  const requests: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("/series/stock/")) requests.push(new URL(request.url()).search);
+  });
+  await page.goto("/stocks/BBRI");
+  await expect(page.getByTestId("candle-chart")).toBeVisible();
+  await page.getByTestId("layer-indicators").click();
+
+  await expect(page).toHaveURL(/layers=$/);
+  await expect(page.getByTestId("layer-indicators")).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator('[data-overlay="ursi"]')).toHaveCount(0);
+  await expect(page.locator('[data-overlay="vwap"]')).toHaveCount(0);
+  await expect(page.locator('[data-overlay="poc"]')).toHaveCount(0);
+  await expect(page.getByTestId("poc-label")).toHaveCount(0);
+  expect([...new Set(requests)].at(-1)).toBe("?window=6m&layers=");
+
+  // nyalakan lagi → parameter hilang dari URL (default) & panel kembali
+  await page.getByTestId("layer-indicators").click();
+  expect(new URL(page.url()).searchParams.get("layers")).toBeNull();
+  await expect(page.locator('[data-overlay="ursi"]')).toHaveCount(1);
+});
+
+test("lapisan bertahan saat filter lain berubah (window) & tidak mengganggu level plan", async ({ page }) => {
+  await page.goto("/stocks/BBRI?layers=indicators");
+  await expect(page.getByTestId("candle-chart")).toBeVisible();
+  await page.getByRole("button", { name: "1 thn" }).click();
+  await expect(page).toHaveURL(/window=1y/);
+  await expect(page).toHaveURL(/layers=indicators/);
+  await expect(page.locator('[data-overlay="ursi"]')).toHaveCount(1);
+  await expect(page.locator('[data-overlay="levels"]')).toHaveCount(1);
+});
+
+test("rezim range: panel URSI disembunyikan + catatan kontrarian, VWAP tanpa peringatan", async ({ page }) => {
+  await page.goto("/stocks/BBRI?mock=range");
+  const chart = page.getByTestId("candle-chart");
+  await expect(chart).toBeVisible();
+  await expect(page.locator('[data-overlay="ursi"]')).toHaveCount(0);
+  await expect(page.getByTestId("ursi-range-note")).toHaveText("di rentang, pakai RSI klasik (kontrarian)");
+  await expect(page.getByTestId("vwap-warning")).toHaveCount(0);
+  await expect(page.locator('[data-overlay="vwap"]')).toHaveCount(1);
+  // kotak hover tetap tidak menutupi 20 bar terakhir (aturan §6.3) setelah panel URSI ditambah
+  await expect(page.getByTestId("candle-skeleton")).toHaveCount(0);
+});
+
+test("@a11y tanpa lapisan tetap lolos: tinggi grafik ikut menyusut, tanpa sisa ruang URSI", async ({ page }) => {
+  await page.goto("/stocks/BBRI?mock=nolayer");
+  const chart = page.getByTestId("candle-chart");
+  await expect(chart).toBeVisible();
+  await expect(page.getByTestId("layer-indicators")).toHaveAttribute("aria-pressed", "false");
+  const box = (await chart.boundingBox())!;
+  const withLayers = await page.evaluate(async () => {
+    const svg = document.querySelector('[data-testid="candle-chart"] svg') as SVGSVGElement | null;
+    return svg?.getAttribute("viewBox") ?? null;
+  });
+  expect(withLayers).toBe("0 0 780 442");
+  expect(box.height).toBeGreaterThan(100);
+});

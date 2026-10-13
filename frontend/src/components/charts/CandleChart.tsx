@@ -10,8 +10,15 @@ import {
   levelLabel,
   needsBorder,
   overlayVisibility,
+  pocLabel,
   priceDomain,
   scaleY,
+  ursiGuides,
+  ursiRangeNote,
+  ursiTitle,
+  ursiY,
+  vwapAnchorLabel,
+  vwapWarning,
   volumeHeight,
   xOfIndex,
 } from "../../lib/candleChart";
@@ -33,7 +40,8 @@ const PAD_RIGHT = 56;
 const MAIN_H = Math.round(VB_W * 0.45); // rasio 1:0,45 (docs/06 §6.5)
 const GAP = 10;
 const VOL_H = Math.round(MAIN_H * 0.18);
-const VB_H = MAIN_H + GAP + VOL_H + 18;
+/** Sub-panel Ultimate RSI 18% tinggi (docs/06 §6.6), hanya ada saat lapisan `indicators` aktif. */
+const URSI_H = Math.round(MAIN_H * 0.18);
 
 const PLOT = { width: VB_W - PAD_LEFT - PAD_RIGHT, height: MAIN_H };
 const VOL_PLOT = { width: PLOT.width, height: VOL_H };
@@ -53,6 +61,16 @@ export function CandleChart({ data }: { data: StockSeriesResponse }) {
   }
 
   const candles = data.candles;
+  // lapisan indikator (F21): hanya dipakai bila backend mengirimnya & ada titiknya
+  const indicators = data.indicators;
+  const ursi = indicators?.ursi && indicators.ursi.points.length > 0 ? indicators.ursi : null;
+  const vwap = indicators?.vwap && indicators.vwap.points.length > 0 ? indicators.vwap : null;
+  const poc = indicators?.poc ?? null;
+  const volTop = MAIN_H + GAP;
+  // URSI disembunyikan di rezim range (docs/06 §6.6) → diganti catatan di legenda
+  const showUrsI = ursi !== null && data.regime !== "range";
+  const ursiTop = volTop + VOL_H + GAP;
+  const VB_H = (showUrsI ? ursiTop + URSI_H : volTop + VOL_H) + 18;
   const count = candles.length;
   const overlays = data.overlays;
   const levels = data.levels;
@@ -115,6 +133,29 @@ export function CandleChart({ data }: { data: StockSeriesResponse }) {
         <Pill tone={regimeTone(data.regime) === "down" ? "failed" : regimeTone(data.regime) === "warn" ? "partial" : "ok"} label={REGIME_LABEL[data.regime] ?? data.regime} />
         <span className="text-fg-muted">{data.active_tools.map((tool) => TOOL_LABEL[tool] ?? tool).join(" · ")}</span>
         <span className="text-fg-faint">{data.regime_reason}</span>
+        {/* VWAP/VWAP-anchor/POC: label jujur wajib (docs/06 §6.6) */}
+        {vwap && (
+          <>
+            <span className="font-mono text-fg-muted" data-testid="vwap-anchor">
+              {vwapAnchorLabel(vwap.len, vwap.anchor_date)}
+            </span>
+            {vwapWarning(data.regime) && (
+              <span className="text-warn" data-testid="vwap-warning">
+                {vwapWarning(data.regime)}
+              </span>
+            )}
+          </>
+        )}
+        {poc && (
+          <span className="text-warn" data-testid="poc-label">
+            POC {pocLabel(poc.basis, poc.bars_used)}
+          </span>
+        )}
+        {ursiRangeNote(data.regime) && (
+          <span className="text-fg-faint" data-testid="ursi-range-note">
+            {ursiRangeNote(data.regime)}
+          </span>
+        )}
       </div>
 
       <div className="relative">
@@ -164,6 +205,54 @@ export function CandleChart({ data }: { data: StockSeriesResponse }) {
           <polyline points={line(overlays.donchian.slow.high)} fill="none" stroke="var(--border-strong)" strokeWidth={1} strokeDasharray="1 3" opacity={0.5} />
           <polyline points={line(overlays.donchian.slow.low)} fill="none" stroke="var(--border-strong)" strokeWidth={1} strokeDasharray="1 3" opacity={0.5} />
         </g>
+
+        {/* VWAP + pita ±1σ/±2σ (lapisan `indicators`) — garis & pita dari API */}
+        {vwap && (
+          <g data-overlay="vwap" pointerEvents="none">
+            {vwap.points.map((point) => {
+              const x = xOfDate(point.date);
+              if (x === null) return null;
+              const band = (a: number, b: number, opacity: number, dashed: boolean) => (
+                <line
+                  key={`${point.date}-${a}-${b}`}
+                  x1={x}
+                  x2={x}
+                  y1={scaleY(a, domain, PLOT)}
+                  y2={scaleY(b, domain, PLOT)}
+                  stroke="var(--accent)"
+                  strokeWidth={dashed ? 1 : 8}
+                  strokeDasharray={dashed ? "3 3" : undefined}
+                  opacity={dashed ? 0.35 : opacity}
+                />
+              );
+              return (
+                <g key={point.date}>
+                  {band(point.upper1, point.lower1, 0.1, false)}
+                  {band(point.upper2, point.upper2 + 0.0001, 0.35, true)}
+                  {band(point.lower2, point.lower2 - 0.0001, 0.35, true)}
+                  <line x1={x} x2={x} y1={scaleY(point.upper2, domain, PLOT)} y2={scaleY(point.upper2, domain, PLOT)} stroke="var(--accent)" strokeWidth={1} strokeDasharray="3 3" opacity={0.35} />
+                  <line x1={x} x2={x} y1={scaleY(point.lower2, domain, PLOT)} y2={scaleY(point.lower2, domain, PLOT)} stroke="var(--accent)" strokeWidth={1} strokeDasharray="3 3" opacity={0.35} />
+                  <line x1={x} x2={x} y1={scaleY(point.vwap, domain, PLOT)} y2={scaleY(point.vwap, domain, PLOT)} stroke="var(--accent)" strokeWidth={1.5} />
+                </g>
+              );
+            })}
+          </g>
+        )}
+
+        {/* POC + value area (lapisan `indicators`): label basis ada di legenda */}
+        {poc && (
+          <g data-overlay="poc" pointerEvents="none">
+            <rect
+              x={PAD_LEFT}
+              y={scaleY(poc.value_area.high, domain, PLOT)}
+              width={PLOT.width}
+              height={Math.max(1, scaleY(poc.value_area.low, domain, PLOT) - scaleY(poc.value_area.high, domain, PLOT))}
+              fill="var(--warn)"
+              opacity={0.06}
+            />
+            <line x1={PAD_LEFT} x2={VB_W - PAD_RIGHT} y1={scaleY(poc.poc, domain, PLOT)} y2={scaleY(poc.poc, domain, PLOT)} stroke="var(--warn)" strokeWidth={1} />
+          </g>
+        )}
 
         {/* MA20 solid, MA50 putus-putus */}
         <g data-overlay="ma">
@@ -254,7 +343,7 @@ export function CandleChart({ data }: { data: StockSeriesResponse }) {
             <rect
               key={candle.date}
               x={xOfIndex(index, count, PLOT) + PAD_LEFT - bodyWidth / 2}
-              y={MAIN_H + GAP + VOL_H - volumeHeight(candle.volume, maxVolume, VOL_PLOT.height)}
+              y={volTop + VOL_H - volumeHeight(candle.volume, maxVolume, VOL_PLOT.height)}
               width={bodyWidth}
               height={volumeHeight(candle.volume, maxVolume, VOL_PLOT.height)}
               fill={candle.close >= candle.open ? "var(--up)" : "var(--down)"}
@@ -265,7 +354,7 @@ export function CandleChart({ data }: { data: StockSeriesResponse }) {
             points={overlays.volume_ma
               .map((point) => {
                 const x = xOfDate(point.date);
-                return x === null ? null : `${x},${MAIN_H + GAP + VOL_H - volumeHeight(point.value, maxVolume, VOL_PLOT.height)}`;
+                return x === null ? null : `${x},${volTop + VOL_H - volumeHeight(point.value, maxVolume, VOL_PLOT.height)}`;
               })
               .filter((pair): pair is string => pair !== null)
               .join(" ")}
@@ -276,16 +365,64 @@ export function CandleChart({ data }: { data: StockSeriesResponse }) {
           <line
             x1={PAD_LEFT}
             x2={VB_W - PAD_RIGHT}
-            y1={MAIN_H + GAP + VOL_H - volumeHeight(maxVolume * 0.75, maxVolume, VOL_PLOT.height)}
-            y2={MAIN_H + GAP + VOL_H - volumeHeight(maxVolume * 0.75, maxVolume, VOL_PLOT.height)}
+            y1={volTop + VOL_H - volumeHeight(maxVolume * 0.75, maxVolume, VOL_PLOT.height)}
+            y2={volTop + VOL_H - volumeHeight(maxVolume * 0.75, maxVolume, VOL_PLOT.height)}
             stroke="var(--warn)"
             strokeWidth={1}
             strokeDasharray="4 3"
           />
-          <text x={PAD_LEFT - 4} y={MAIN_H + GAP + 10} textAnchor="end" fontSize={10} fill="var(--fg-faint)">
+          <text x={PAD_LEFT - 4} y={volTop + 10} textAnchor="end" fontSize={10} fill="var(--fg-faint)">
             Vol
           </text>
         </g>
+
+        {/* sub-panel Ultimate RSI (docs/06 §6.6): skala tetap 0–100, garis 50 + ambang ob/os */}
+        {showUrsI && ursi && (
+          <g data-overlay="ursi" pointerEvents="none">
+            <rect x={PAD_LEFT} y={ursiY(100, URSI_H)} width={PLOT.width} height={Math.max(1, ursiY(ursi.ob, URSI_H))} fill="var(--up)" opacity={0.08} transform={`translate(0, ${ursiTop})`} />
+            <rect x={PAD_LEFT} y={ursiY(ursi.os, URSI_H)} width={PLOT.width} height={Math.max(1, URSI_H - ursiY(ursi.os, URSI_H))} fill="var(--down)" opacity={0.08} transform={`translate(0, ${ursiTop})`} />
+            {[ursiGuides(ursi.ob, ursi.os, URSI_H).y50, ursiGuides(ursi.ob, ursi.os, URSI_H).yOb, ursiGuides(ursi.ob, ursi.os, URSI_H).yOs].map((y, index) => (
+              <line
+                key={index}
+                x1={PAD_LEFT}
+                x2={VB_W - PAD_RIGHT}
+                y1={ursiTop + y}
+                y2={ursiTop + y}
+                stroke={index === 0 ? "var(--border)" : "var(--border-strong)"}
+                strokeWidth={1}
+                strokeDasharray={index === 0 ? undefined : "3 3"}
+              />
+            ))}
+            <polyline
+              points={ursi.points
+                .map((point) => {
+                  const x = xOfDate(point.date);
+                  return x === null ? null : `${x},${ursiTop + ursiY(point.value, URSI_H)}`;
+                })
+                .filter((pair): pair is string => pair !== null)
+                .join(" ")}
+              fill="none"
+              stroke="var(--fg)"
+              strokeWidth={1.5}
+            />
+            <polyline
+              points={ursi.points
+                .map((point) => {
+                  const x = xOfDate(point.date);
+                  return x === null ? null : `${x},${ursiTop + ursiY(point.signal, URSI_H)}`;
+                })
+                .filter((pair): pair is string => pair !== null)
+                .join(" ")}
+              fill="none"
+              stroke="var(--fg-faint)"
+              strokeWidth={1}
+              strokeDasharray="4 3"
+            />
+            <text x={PAD_LEFT - 4} y={ursiTop + 10} textAnchor="end" fontSize={10} fill="var(--fg-faint)">
+              {ursiTitle(ursi.len, ursi.method)}
+            </text>
+          </g>
+        )}
 
         {/* garis bidik hover */}
         {hover !== null && (

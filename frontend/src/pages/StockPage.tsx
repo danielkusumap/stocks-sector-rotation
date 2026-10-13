@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation, useParams } from "react-router";
+import { Link, useLocation, useParams, useSearchParams } from "react-router";
 import { CandleChart } from "../components/charts/CandleChart";
 import { QuadrantChart } from "../components/charts/QuadrantChart";
 import { AnalysisPanel } from "../components/domain/AnalysisPanel";
@@ -20,6 +20,9 @@ import { useFilterState } from "../hooks/useFilterState";
 import { useSetPeriodLabel } from "../components/layout/ScopeControls";
 import { formatNum, formatRp, formatRpCompact, formatDate } from "../lib/format";
 import { periodFromStatus } from "../lib/period";
+import { layerList, layersParam, setLayers, toggleLayer } from "../lib/candleChart";
+import { LayerToggles } from "../components/domain/LayerToggles";
+import type { Layer } from "../lib/api";
 import { regimeLabel, regimeToneOf } from "../lib/stockAnalysis";
 import { polyline } from "../lib/seriesChart";
 import { nextSort, stockSortOf } from "../lib/stockTable";
@@ -153,8 +156,17 @@ function StockDetail({ ticker }: { ticker: string }) {
     weighting: filters.weighting,
   });
   const [picked, setPicked] = useState<string | null>(ticker);
-  // grafik candle: `window` dari URL (filter lain), angka overlay dari API
-  const series = useStockSeries(ticker, { window: filters.window });
+  // grafik candle: `window` + `layers` dari URL, semua angka overlay dari API
+  const [searchParams] = useSearchParams();
+  const layers = layerList(searchParams);
+  const toggle = (layer: Layer) => {
+    // satu-satunya jalur tulis: `setFilters` supaya `layers` ikut terjaga saat filter lain berubah
+    setFilters({ layers: setLayers(new URLSearchParams(), toggleLayer(layers, layer)).get("layers") });
+  };
+  const series = useStockSeries(ticker, {
+    window: filters.window,
+    layers: layersParam(searchParams),
+  });
   // analisa lengkap (docs/06 §5.3): satu hook, satu permintaan — badge rezim di header & AnalysisPanel
   const plan = useStockPlan(ticker, filters.as_of ? { as_of: filters.as_of } : {});
 
@@ -277,7 +289,9 @@ function StockDetail({ ticker }: { ticker: string }) {
       <Panel
         title="Grafik & analisa teknikal"
         actions={
-          <span className="flex items-center gap-2">
+          <span className="flex flex-wrap items-center gap-2">
+            {/* toggle lapisan: `Indikator` bawaan aktif; pilihan hidup di URL (docs/06 §6.6) */}
+            <LayerToggles layers={layers} onToggle={toggle} />
             <span className="text-sm text-fg-muted">Jendela</span>
             <Segmented
               label="Jendela grafik"
@@ -293,9 +307,10 @@ function StockDetail({ ticker }: { ticker: string }) {
         }
       >
         {series.isPending ? (
-          // tinggi sama dengan grafik akhirnya (viewBox 780×442) → tanpa CLS
+          // tinggi sama dengan grafik akhirnya (viewBox 780×515 = candle+volume+URSI, lapisan
+          // `indicators` aktif secara bawaan) → tanpa CLS saat data datang
           <div className="p-3" data-testid="candle-skeleton">
-            <Skeleton className="aspect-[780/442] w-full" />
+            <Skeleton className="aspect-[780/515] w-full" />
           </div>
         ) : series.isError ? (
           <ErrorState error={series.error} onRetry={() => void series.refetch()} />

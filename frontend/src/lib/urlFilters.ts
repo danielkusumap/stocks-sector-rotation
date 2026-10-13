@@ -36,6 +36,8 @@ export interface FilterState {
   q: string;
   limit: number;
   offset: number;
+  /** Lapisan grafik apa adanya dari URL (`docs/06` §6.6); `null` = parameter tak ada = default. */
+  layers: string | null;
 }
 
 export const DEFAULT_FILTERS: FilterState = {
@@ -54,6 +56,7 @@ export const DEFAULT_FILTERS: FilterState = {
   q: "",
   limit: 50,
   offset: 0,
+  layers: null,
 };
 
 const SORTS: readonly string[] = [...SECTOR_SORTS, ...STOCK_SORTS];
@@ -107,6 +110,8 @@ export function readFilters(
     q,
     limit: intIn(p.get("limit"), defaults.limit, 1, 500),
     offset: intIn(p.get("offset"), defaults.offset, 0, 1_000_000),
+    // apa adanya (termasuk ""): `layers=` berarti "tanpa lapisan", `null` berarti default backend
+    layers: p.get("layers"),
   };
 }
 
@@ -133,5 +138,6 @@ export function toSearch(
   if (filters.q !== defaults.q) params.q = filters.q;
   if (filters.limit !== defaults.limit) params.limit = filters.limit;
   if (filters.offset !== defaults.offset) params.offset = filters.offset;
+  if (filters.layers !== defaults.layers) params.layers = filters.layers;
   return toSearchParams(params);
 }
