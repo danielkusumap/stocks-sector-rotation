@@ -450,3 +450,19 @@ Format:
 - **Alternatif yang ditolak:** satu permintaan per baris (dilarang AC), atau menyalin angka TA ke `/stocks`
   & `/sectors/summary` (mengubah bentuk respons = naikkan `api_version`, dan backend B17 sudah memisahkannya).
 
+## ADR-044 — Plan mingguan: `reason` per elemen dari API, alasan alat/konfirmasi = field opsional
+
+- **Konteks (F18):** `docs/06` §5.2 minta blok plan memuat nama alat + kalimat alasannya dan baris konfirmasi
+  (contoh: "volume 1,8× rata-rata 20 hari"). Contoh `docs/05` §3 (kontrak beku) memuat `reason` di
+  `entry_zone/stop/tp1/tp2/hold`, tetapi **tidak** memuat alasan untuk `entry_tool`/`confirm_tool`.
+- **Keputusan:** `WeeklyPlan.entry_tool_reason` dan `confirm_reason` ditambahkan sebagai field **opsional**
+  (aditif → `api_version` tetap 1.2). Kalau backend tidak mengirimnya, UI menampilkan nama alat Indonesia +
+  baris konfirmasi **tanpa** kalimat tambahan; `planRows` memakai `entry_zone.reason` sebagai alasan alat.
+  Frontend **tidak** menyusun kalimat dari `volume_ratio` (aturan: frontend tidak mengarang kalimat finansial).
+- **Dampak / permintaan ke backend (B18):** kirim `entry_tool_reason` & `confirm_reason` (≤140 char, Bahasa
+  Indonesia, tanpa istilah mentah) + tambahkan keduanya ke contoh `docs/05` §3.
+- **Mock:** `mocks/plans.ts` mengirim keduanya supaya tampilan yang diharapkan bisa diuji; angka plan
+  diturunkan dari fixture pick (zona = entry ± ½ ATR, TP1 = tengah entry–target, TP2 = target, R:R bersih
+  biaya 0,40%) sehingga tidak ada angka baru yang bertentangan dengan `/weekly/picks`.
+- **Knob dev:** `?mock=notrade` (tanpa level), `?mock=planfail` (`plan_ok=false` + notes), `?mock=noplan`
+  (pick lama tanpa `plan` — dipakai membuktikan AC 6: tidak ada `NaN`/`undefined`).

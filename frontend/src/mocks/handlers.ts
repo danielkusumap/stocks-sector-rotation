@@ -29,6 +29,7 @@ import weeklyJson from "./fixtures/weekly.json";
 import { weekRangeLabel, weekStart } from "../lib/weeklyPicks";
 import { adminHandlers } from "./admin";
 import { taHandlers } from "./ta";
+import { planFor } from "./plans";
 
 /**
  * Mock server (MSW) — dibangun dari bentuk JSON di docs/05 apa adanya, supaya UI
@@ -759,14 +760,21 @@ export const handlers = [
       .map((s) => s.ref_id);
 
     const body: WeeklyPicksResponse = {
-      api_version: "1.1",
+      api_version: "1.2",
       week_end: weekEnd,
       // label Bahasa Indonesia datang dari backend (docs/05 §3); mock menyusunnya sendiri
       week_start: weekStart(weekEnd),
       week_label: weekRangeLabel(weekEnd),
       is_final: sp.get("week_end") !== null ? sp.get("week_end") === weekly.week_end : weekly.is_final,
       sectors: weekly.sectors.filter((s) => sectorCodes.includes(s.ref_id)),
-      stocks: weekly.stocks.filter((s) => sectorCodes.includes(s.sector_code)),
+      // `plan` diturunkan dari angka fixture pick sendiri (docs/08 F18 no.4);
+      // knob `?mock=notrade|planfail` mengubah pick pertama saja.
+      stocks: weekly.stocks
+        .filter((s) => sectorCodes.includes(s.sector_code))
+        // `?mock=noplan` = pick lama tanpa plan (docs/08 F18 AC 6)
+        .map((pick, index) =>
+          sp.get("mock") === "noplan" ? { ...pick, plan: null } : { ...pick, plan: planFor(pick, index, sp.get("mock")) },
+        ),
     };
     return HttpResponse.json(body);
   }),

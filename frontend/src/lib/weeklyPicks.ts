@@ -1,6 +1,6 @@
-import type { WeeklySectorPick, WeeklyStockPick } from "./api";
+import type { WeeklyPlan, WeeklySectorPick, WeeklyStockPick } from "./api";
 import { parseIso } from "./calendar";
-import { formatDate } from "./format";
+import { formatDate, formatNum, formatPct, formatRp } from "./format";
 import { QUADRANT_LABEL } from "./quadrant";
 
 /**
@@ -221,4 +221,173 @@ export function weekOptions({
     });
   }
   return options;
+}
+
+// ── Trading plan (`docs/06` §5.2, `docs/05` §3 `api_version` 1.2) ─────────────
+// Semua angka (level, %, R:R, peluang) datang dari API; di sini hanya label Indonesia.
+
+/** Nama rezim untuk badge (`docs/06` §5.2). */
+export const REGIME_LABEL: Record<string, string> = {
+  tren_naik: "Tren naik",
+  range: "Range",
+  turun: "Turun",
+  tipis: "Likuiditas tipis",
+};
+
+/** Tona badge rezim: netral untuk tren, `warn` untuk range/tipis, `down` untuk turun. */
+export function regimeTone(regime: string): "neutral" | "warn" | "down" {
+  if (regime === "turun") return "down";
+  if (regime === "range" || regime === "tipis") return "warn";
+  return "neutral";
+}
+
+/** Alat utama dalam kalimat user (`docs/06` §5.2) — nama mentah tidak boleh tampil. */
+export const TOOL_LABEL: Record<string, string> = {
+  pullback_ma20: "pantulan ke penyangga 20 hari",
+  breakout_donchian: "tembus puncak 20 hari",
+  sr_channel: "pantulan di kanal penyangga–penahan",
+  pivot_level: "level pivot",
+  none: "tidak ada",
+};
+
+export const CONFIRM_LABEL: Record<string, string> = {
+  volume: "volume di atas rata-rata 20 hari",
+  rsi_tepi_range: "momentum di tepi bawah rentang",
+  none: "tanpa konfirmasi",
+};
+
+export function toolLabel(tool: string | null | undefined): string {
+  if (!tool) return "—";
+  return TOOL_LABEL[tool] ?? tool;
+}
+
+export function confirmLabel(tool: string | null | undefined): string {
+  if (!tool) return "—";
+  return CONFIRM_LABEL[tool] ?? tool;
+}
+
+export interface PlanRow {
+  key: string;
+  label: string;
+  value: string;
+  reason: string;
+}
+
+/** `null` → `—`; dipakai untuk level harga plan (rupiah, tanpa desimal). */
+function level(value: number | null | undefined): string {
+  return value === null || value === undefined ? "—" : formatRp(value);
+}
+
+/** Satu baris `level (pct)`; `pct` memang perubahan dari entry → pakai `formatPct` (bertanda). */
+function levelPct(value: number | null | undefined, pct: number | null | undefined): string {
+  return `${level(value)} (${formatPct(pct)})`;
+}
+
+/** R:R bersih biaya dari API, 2 desimal; `null` → `—`. */
+function rrText(value: number | null | undefined): string {
+  return value === null || value === undefined ? "—" : `${formatNum(value, 2)}:1`;
+}
+
+/**
+ * Baris ringkas pick (`docs/06` §5.2): `zona … · SL … · TP1 … · TP2 … · R:R …`.
+ * `no_trade` → satu kalimat tanpa angka level.
+ */
+export function planSummary(plan: WeeklyPlan | null | undefined): string | null {
+  if (!plan) return null;
+  if (plan.entry_mode === "no_trade") return noTradeSentence(plan);
+  const parts = [
+    `zona ${level(plan.entry_zone.low)}–${level(plan.entry_zone.high)}`,
+    `SL ${levelPct(plan.stop.level, plan.stop.pct)}`,
+    `TP1 ${levelPct(plan.tp1.level, plan.tp1.pct)}`,
+    `TP2 ${levelPct(plan.tp2.level, plan.tp2.pct)}`,
+    `R:R ${rrText(plan.tp2.rr ?? plan.tp1.rr)}`,
+  ];
+  return parts.join(" · ");
+}
+
+/** Kalimat tunggal untuk `entry_mode = no_trade` (alasannya dari `notes`/rezim). */
+export function noTradeSentence(plan: WeeklyPlan): string {
+  const reason = plan.notes[0] ?? `rezim ${REGIME_LABEL[plan.regime] ?? plan.regime}`;
+  return `tidak ada rencana beli (${reason.replace(/\.$/, "").toLowerCase()})`;
+}
+
+/** Urutan baris blok plan = `docs/06` §5.2 no. 1–6; alasan tiap elemen dari API. */
+export function planRows(plan: WeeklyPlan | null | undefined): PlanRow[] {
+  if (!plan) return [];
+  const rows: PlanRow[] = [
+    {
+      key: "tool",
+      label: "Alat utama",
+      value: toolLabel(plan.entry_tool),
+      reason: plan.entry_tool_reason ?? plan.entry_zone.reason,
+    },
+    {
+      key: "confirm",
+      label: "Konfirmasi",
+      value: confirmLabel(plan.confirm_tool),
+      reason: plan.confirm_reason ?? "",
+    },
+    {
+      key: "zone",
+      label: "Zona entry",
+      value: `${level(plan.entry_zone.low)}–${level(plan.entry_zone.high)}`,
+      reason: plan.entry_zone.reason,
+    },
+    {
+      key: "stop",
+      label: "Batas rugi",
+      value: `${levelPct(plan.stop.level, plan.stop.pct)}${plan.stop.basis ? ` · ${plan.stop.basis.replace(/_/g, " ")}` : ""}`,
+      reason: plan.stop.reason,
+    },
+    {
+      key: "tp1",
+      label: "Target 1",
+      value: `${levelPct(plan.tp1.level, plan.tp1.pct)} · R:R ${rrText(plan.tp1.rr)}`,
+      reason: plan.tp1.reason,
+    },
+    {
+      key: "tp2",
+      label: "Target 2",
+      value: `${levelPct(plan.tp2.level, plan.tp2.pct)} · R:R ${rrText(plan.tp2.rr)}`,
+      reason: plan.tp2.reason,
+    },
+    {
+      key: "hold",
+      label: "Ekspektasi lama tahan",
+      value: holdText(plan.hold),
+      reason: plan.hold.reason,
+    },
+  ];
+  if (plan.invalidation) {
+    rows.push({ key: "invalidation", label: "Skenario batal", value: plan.invalidation, reason: "" });
+  }
+  return rows;
+}
+
+/** `median 7 bar · TP1 kena 62% · TP2 kena 34%`; riwayat kurang → "belum cukup riwayat". */
+export function holdText(hold: WeeklyPlan["hold"]): string {
+  if (hold.hit_tp1 === null || hold.hit_tp1 === undefined) return "belum cukup riwayat";
+  const parts: string[] = [];
+  if (hold.median_periods !== null && hold.median_periods !== undefined) {
+    parts.push(`median ${formatNum(hold.median_periods, 0)} bar`);
+  }
+  parts.push(`TP1 kena ${chance(hold.hit_tp1)}`);
+  if (hold.hit_tp2 !== null && hold.hit_tp2 !== undefined) parts.push(`TP2 kena ${chance(hold.hit_tp2)}`);
+  if (hold.n_events !== null && hold.n_events !== undefined) {
+    parts.push(`dari ${formatNum(hold.n_events, 0)} breakout`);
+  }
+  return parts.join(" · ");
+}
+
+/** Peluang historis **tanpa tanda** (`62%`), bukan `+62%` (docs/06 §5.2). */
+export function chance(value: number | null | undefined): string {
+  return value === null || value === undefined ? "—" : `${formatNum(value * 100, 0)}%`;
+}
+
+/** Label keadaan plan: `perlu ditinjau` saat `plan_ok=false`, `tidak ada rencana beli` saat `no_trade`. */
+export function planStateLabel(plan: WeeklyPlan | null | undefined): string | null {
+  if (!plan) return null;
+  if (plan.entry_mode === "no_trade") return "tidak ada rencana beli";
+  if (!plan.plan_ok) return "perlu ditinjau";
+  return null;
 }

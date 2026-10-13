@@ -607,6 +607,51 @@ export interface WeeklySectorPick {
   rationale: string;
 }
 
+/** Rezim pasar untuk plan (`docs/03` §6.4.0, skill `idx-ta-trading-plan`): alat dipilih per rezim. */
+export type TaRegime = "tren_naik" | "range" | "turun" | "tipis";
+export type PlanEntryTool = "pullback_ma20" | "breakout_donchian" | "sr_channel" | "pivot_level" | "none";
+export type PlanConfirmTool = "volume" | "rsi_tepi_range" | "none";
+
+/** Satu level plan (`stop`/`tp1`/`tp2`): angka apa adanya dari API — frontend tidak menghitung. */
+export interface PlanLevel {
+  level: number | null;
+  /** Perubahan dari zona entry (rasio, mis. `-0.0285`); `null` saat `no_trade`. */
+  pct: number | null;
+  /** Imbal hasil terhadap risiko **bersih biaya** (`docs/05` §3) — jangan dihitung ulang. */
+  rr?: number | null;
+  basis: string | null;
+  reason: string;
+}
+
+export interface PlanHold {
+  median_periods: number | null;
+  n_events: number | null;
+  win_rate: number | null;
+  /** Peluang historis kena TP1/TP2; `null` = riwayat kurang (`docs/05` §3). */
+  hit_tp1: number | null;
+  hit_tp2: number | null;
+  reason: string;
+}
+
+/** `plan` pada pick mingguan (`docs/05` §3, `api_version` 1.2) — sumber kebenaran plan. */
+export interface WeeklyPlan {
+  regime: TaRegime;
+  entry_tool: PlanEntryTool;
+  confirm_tool: PlanConfirmTool;
+  entry_mode: "pullback" | "breakout" | "wait_pullback" | "no_trade" | string;
+  entry_zone: { low: number | null; high: number | null; reason: string };
+  stop: PlanLevel;
+  tp1: PlanLevel;
+  tp2: PlanLevel;
+  hold: PlanHold;
+  invalidation: string | null;
+  plan_ok: boolean;
+  notes: string[];
+  /** Alasan alat/konfirmasi: belum ada di contoh `docs/05` §3 → opsional (lihat DECISIONS). */
+  entry_tool_reason?: string | null;
+  confirm_reason?: string | null;
+}
+
 export interface WeeklyStockPick {
   ticker: string;
   name: string;
@@ -629,6 +674,8 @@ export interface WeeklyStockPick {
     no_suspension: boolean;
   };
   rationale: string;
+  /** `null` = plan pekan ini belum tersedia untuk ticker ini (bukan error, `docs/06` §5.2). */
+  plan?: WeeklyPlan | null;
 }
 
 export interface WeeklyPicksParams {

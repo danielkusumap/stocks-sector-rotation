@@ -1,10 +1,19 @@
 import { describe, expect, it } from "vitest";
-import type { WeeklySectorPick, WeeklyStockPick } from "./api";
+import type { WeeklyPlan, WeeklySectorPick, WeeklyStockPick } from "./api";
 import {
+  REGIME_LABEL,
   WEEKLY_DEFAULT_MIN_STREAK,
+  chance,
+  confirmLabel,
+  holdText,
+  planRows,
+  planStateLabel,
+  planSummary,
+  regimeTone,
   jakartaToday,
   readWeeklyParams,
   ruleRows,
+  toolLabel,
   weekEndOf,
   weekOptions,
   weekRangeLabel,
@@ -220,5 +229,82 @@ describe("weekOptions", () => {
   it("pekan di URL yang belum ada di meta/dates tetap muncul", () => {
     const options = weekOptions({ dates: ["2026-10-09"], running: null, selected: "2026-09-25" });
     expect(options.map((o) => o.value)).toEqual(["2026-09-25", "2026-10-09"]);
+  });
+});
+
+// ── F18: trading plan (`docs/06` §5.2) ───────────────────────────────────────
+describe("plan TA: label & baris (semua angka dari API)", () => {
+  const plan: WeeklyPlan = {
+    regime: "tren_naik",
+    entry_tool: "pullback_ma20",
+    confirm_tool: "volume",
+    entry_mode: "pullback",
+    entry_zone: { low: 4088, high: 4135, reason: "Zona di sekitar penyangga 20 hari." },
+    stop: { level: 3991, pct: -0.0285, basis: "struktur_swing_low", reason: "Di bawah titik terendah 10 hari." },
+    tp1: { level: 4360, pct: 0.0625, rr: 2.19, basis: "resistance_20", reason: "Puncak 20 hari." },
+    tp2: { level: 4580, pct: 0.1161, rr: 4.07, basis: "donchian_40", reason: "Puncak 40 hari." },
+    hold: { median_periods: 7, n_events: 29, win_rate: 0.34, hit_tp1: 0.62, hit_tp2: 0.34, reason: "29 breakout." },
+    invalidation: "Batal bila tutup di bawah 4.110.",
+    plan_ok: true,
+    notes: [],
+  };
+
+  it("rezim → label + tona (netral/warn/down)", () => {
+    expect(REGIME_LABEL.tren_naik).toBe("Tren naik");
+    expect(REGIME_LABEL.tipis).toBe("Likuiditas tipis");
+    expect(regimeTone("tren_naik")).toBe("neutral");
+    expect(regimeTone("range")).toBe("warn");
+    expect(regimeTone("tipis")).toBe("warn");
+    expect(regimeTone("turun")).toBe("down");
+  });
+
+  it("nama alat tidak pernah mentah", () => {
+    expect(toolLabel("breakout_donchian")).toBe("tembus puncak 20 hari");
+    expect(confirmLabel("volume")).toBe("volume di atas rata-rata 20 hari");
+    expect(toolLabel(null)).toBe("—");
+  });
+
+  it("baris ringkas: zona/SL/TP1/TP2/R:R (persen bertanda karena perubahan dari entry)", () => {
+    expect(planSummary(plan)).toBe(
+      "zona 4.088–4.135 · SL 3.991 (−2,85%) · TP1 4.360 (+6,25%) · TP2 4.580 (+11,61%) · R:R 4,07:1",
+    );
+    expect(planSummary(null)).toBeNull();
+  });
+
+  it("no_trade → satu kalimat tanpa angka level", () => {
+    const noTrade: WeeklyPlan = {
+      ...plan,
+      regime: "turun",
+      entry_mode: "no_trade",
+      notes: ["Rezim turun — tidak ada rencana beli sampai harga kembali di atas penyangga 20 hari."],
+      plan_ok: false,
+    };
+    const text = planSummary(noTrade) ?? "";
+    expect(text).toContain("tidak ada rencana beli");
+    expect(text).not.toMatch(/SL |TP1 |zona /);
+    expect(planStateLabel(noTrade)).toBe("tidak ada rencana beli");
+  });
+
+  it("peluang tanpa tanda & 'belum cukup riwayat' saat hit null", () => {
+    expect(chance(0.62)).toBe("62%");
+    expect(chance(null)).toBe("—");
+    expect(holdText(plan.hold)).toBe("median 7 bar · TP1 kena 62% · TP2 kena 34% · dari 29 breakout");
+    expect(holdText({ ...plan.hold, hit_tp1: null, hit_tp2: null })).toBe("belum cukup riwayat");
+  });
+
+  it("planRows: urutan docs/06 §5.2 + alasan ikut", () => {
+    const rows = planRows(plan);
+    expect(rows.map((r) => r.key)).toEqual(["tool", "confirm", "zone", "stop", "tp1", "tp2", "hold", "invalidation"]);
+    expect(rows[0].value).toBe("pantulan ke penyangga 20 hari");
+    expect(rows[3].value).toBe("3.991 (−2,85%) · struktur swing low");
+    expect(rows[4].value).toContain("R:R 2,19:1");
+    expect(rows[7].value).toBe("Batal bila tutup di bawah 4.110.");
+    // tidak ada nilai yang menampilkan nama alat mentah
+    expect(rows.map((r) => r.value).join(" ")).not.toContain("pullback_ma20");
+  });
+
+  it("plan_ok=false → 'perlu ditinjau'", () => {
+    expect(planStateLabel({ ...plan, plan_ok: false })).toBe("perlu ditinjau");
+    expect(planStateLabel(plan)).toBeNull();
   });
 });
