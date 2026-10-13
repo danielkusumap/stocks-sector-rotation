@@ -129,13 +129,15 @@ def sectors_summary(
         "transition": transition, "min_streak": min_streak, "min_turnover_idr": min_turnover_idr,
         "ret_positive_only": ret_positive_only, "only_partial": only_partial, "sort": sort, "dir": dir, "limit": limit, "offset": offset,
     }
-    cached = cache.get("sectors/summary", params, None)
-    if cached is not None:
-        return cached
-
     conn = db.connect()
     try:
         as_of = read.resolve_as_of(conn, timeframe, scope="sector", weighting=weighting, as_of=as_of)
+        # Kunci cache memuat `as_of`: tanpa itu permintaan tanggal lain dilayani badan respons
+        # permintaan pertama selama TTL (docs/07 B16).
+        cached = cache.get("sectors/summary", params, as_of)
+        if cached is not None:
+            return cached
+
         streaks = read.streak_map(conn)
         items = [
             _summary_row(conn, dict(row), timeframe, weighting, streaks)
@@ -175,7 +177,7 @@ def sectors_summary(
         }
     finally:
         conn.close()
-    cache.put("sectors/summary", params, None, body)
+    cache.put("sectors/summary", params, as_of, body)
     return body
 
 

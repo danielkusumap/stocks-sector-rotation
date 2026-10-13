@@ -299,3 +299,24 @@ def test_cache_dipakai_dan_dibersihkan(client, read_db):
     cache.clear()
     # cache dibersihkan → DB dibaca ulang (kolom dari `sector_metrics` yang sudah dihapus jadi null)
     assert client.get("/api/v1/sectors/summary").json()["items"][0]["ret_1w"] is None
+
+
+# --- `as_of` benar-benar dipakai (docs/07 B16) --------------------------------
+
+OLD = "2026-09-30"
+
+
+def test_as_of_dipakai_dan_cache_per_tanggal(client):
+    """`as_of` tidak boleh dilayani badan respons tanggal lain (dulu: cache tanpa `as_of`)."""
+    summary = client.get("/api/v1/sectors/summary").json()
+    summary_old = client.get(f"/api/v1/sectors/summary?as_of={OLD}").json()
+    assert summary_old["data_status"]["as_of"] == OLD
+    assert summary_old["items"] != summary["items"]  # snapshot tanggal itu, bukan ulangan respons pertama
+
+    rrg_latest = client.get("/api/v1/rrg?scope=sector").json()
+    rrg_old = client.get(f"/api/v1/rrg?scope=sector&as_of={OLD}").json()
+    assert rrg_old["as_of"] == OLD and rrg_old["items"] != rrg_latest["items"]
+
+    stocks_old = client.get(f"/api/v1/stocks?as_of={OLD}").json()
+    assert stocks_old["data_status"]["as_of"] == OLD
+    assert stocks_old["items"] != client.get("/api/v1/stocks").json()["items"]

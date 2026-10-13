@@ -24,7 +24,7 @@ LIST_SQL = """
     LEFT JOIN rrg_daily r ON r.scope = 'stock' AND r.ref_id = sm.ticker
                          AND r.as_of_date = sm.as_of_date AND r.timeframe = sm.timeframe
     WHERE sm.timeframe = ? AND st.is_active = 1
-      AND sm.as_of_date = (SELECT MAX(as_of_date) FROM stock_metrics WHERE timeframe = ?)
+      AND sm.as_of_date = COALESCE(?, (SELECT MAX(as_of_date) FROM stock_metrics WHERE timeframe = ?))
     ORDER BY sm.ticker
 """
 DETAIL_SQL = """
@@ -76,7 +76,7 @@ def list_stocks(
     conn = db.connect()
     try:
         as_of = read.resolve_as_of(conn, timeframe, scope="stock", as_of=as_of)
-        items = [dict(r) for r in conn.execute(LIST_SQL, (timeframe, timeframe))]
+        items = [dict(r) for r in conn.execute(LIST_SQL, (timeframe, as_of, timeframe))]
 
         wanted_sectors = read.split_multi(sector)
         wanted_quadrants = read.split_kwargs(quadrant)

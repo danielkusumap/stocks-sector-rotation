@@ -110,13 +110,16 @@ def get_rrg(
         raise HTTPException(400, {"code": "invalid_scope", "message": "scope harus sector atau stock", "detail": {"received": scope}})
 
     params = {"timeframe": timeframe, "scope": scope, "window": window, "weighting": weighting, "tail_points": tail_points, "limit": limit, "sector": sorted(sector)}
-    cached = cache.get("rrg", params, None)
-    if cached is not None:
-        return cached
 
     conn = db.connect()
     try:
         as_of = read.resolve_as_of(conn, timeframe, scope=scope, weighting=weighting, as_of=as_of)
+        # Kunci cache memuat `as_of`: tanpa itu permintaan tanggal lain dilayani badan respons
+        # permintaan pertama selama TTL (docs/07 B16).
+        cached = cache.get("rrg", params, as_of)
+        if cached is not None:
+            return cached
+
         wanted = read.split_multi(sector)
         rows = [dict(r) for r in conn.execute(ITEMS_SQL, (timeframe, weighting, as_of, scope))]
         if wanted:
@@ -172,7 +175,7 @@ def get_rrg(
         }
     finally:
         conn.close()
-    cache.put("rrg", params, None, body)
+    cache.put("rrg", params, as_of, body)
     return body
 
 
