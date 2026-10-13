@@ -12,7 +12,7 @@ import pandas as pd
 from fastapi import APIRouter, HTTPException, Query
 
 from .. import db
-from ..compute import indicators, plan as plan_compute
+from ..compute import indicators, plan as plan_compute, structure
 from ..config import get_settings
 from ..labels import REGIME_LABEL
 from ..repo import read
@@ -380,8 +380,8 @@ def stock_series(
             "volume_confirm_mult": cfg.weekly["plan"]["volume_mult"],
             "layers": requested,
             "indicators": _indicators(all_bars, cfg, index) if len(visible) and "indicators" in requested else None,
-            "smc": None,  # B22 — default mati (lapisan konteks, bukan aturan plan)
-            "elliott": None,  # B22
+            "smc": structure.smc_layers(all_bars, cfg) if len(visible) and "smc" in requested else None,
+            "elliott": structure.elliott_layers(all_bars, cfg) if len(visible) and "elliott" in requested else None,
             "data_status": read.data_status(
                 conn,
                 as_of=(row or {}).get("as_of_date") or (str(visible["date"].iloc[-1]) if len(visible) else None),
