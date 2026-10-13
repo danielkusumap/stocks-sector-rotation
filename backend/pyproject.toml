@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "httpx"]
+dev = ["pytest", "httpx", "pytest-xdist"]   # xdist: suite penuh jalan paralel (ADR-046)
 
 # Paket `backend.*` hidup di root repo (bukan di folder ini), karena CLI dijalankan
 # dari root: `python -m backend.cli`. package-dir memetakan nama paket ke folder ini.
@@ -38,3 +38,7 @@ packages = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+  "slow: pipeline penuh / ingest multi-batch / run nyata kecil — dilewati di loop cepat (pytest -m 'not slow')",
+  "integration: uji lewat HTTP async + polling run",
+]

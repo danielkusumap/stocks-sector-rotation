@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+
 import json
 import subprocess
 import sys
@@ -73,6 +75,7 @@ def test_health_ok_when_db_initialized(tmp_path, monkeypatch):
     assert body["api_version"] == "1.0"
 
 
+@pytest.mark.slow
 def test_cli_db_init_runs_twice():
     for _ in range(2):
         r = subprocess.run(

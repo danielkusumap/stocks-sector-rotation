@@ -323,7 +323,14 @@ Commit: `B21: lapisan indicators di series/stock (Ultimate RSI, VWAP, POC)`.
 **Bukti:** dump JSON 2 ticker (1 `range`, 1 `tren_naik`) dengan semua lapisan ke `docs/evidence/b22/` + verifikasi manual satu FVG & satu BOS (tempel bar-nya) + `pytest -q backend`.
 Commit: `B22: lapisan konteks smc & elliott di series/stock`.
 
-## B23 — Backend test lebih cepat: marker `slow` + template DB sesi
+## B23 — Backend test lebih cepat: marker `slow` + template DB sesi — **SELESAI (dikerjakan Hermes, 13 Okt 2026)**
+
+> **Jangan dikerjakan ulang.** Angka nyata: `pytest -q backend` **82,8 s → 77,5 s** serial, dan **32,9 s** dengan
+> `-n auto` (8 core, `pytest-xdist`, ADR-046); jalur cepat `-m 'not slow' backend -n auto` **28,2 s**
+> (193 passed, 3 deselected). Yang berubah: fixture `template_db` sesi + `tmp_config` menyalin DB (bukan
+> `init_db` per test), marker `slow` di 3 test terberat, `pytest-xdist` masuk dev extra.
+> Temuan jujur: sisa biaya bukan setup DB tapi **komputasi per test** — karena itu jalur tercepat tetap
+> "satu berkas uji", bukan suite penuh.
 
 **Kenapa ada:** `pytest -q backend` ±70 s karena tiap berkas uji membangun DB sendiri (init + import fixture) dan modul berat (pandas/yfinance) diimpor ulang per berkas. Datanya kecil — yang mahal setup berulang.
 

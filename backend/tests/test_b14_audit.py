@@ -58,8 +58,8 @@ def test_weekly_picks_tidak_membocorkan_field_di_luar_kontrak(signal_inputs, mon
     assert set(body["sectors"][0]) == {"ref_id", "name", "rank", "score", "streak_weeks", "rule_hits", "rationale"}
     assert set(body["stocks"][0]) == {
         "ticker", "name", "sector_code", "rank", "score", "streak_weeks",
-        "entry_ref", "stop", "target", "atr14", "lots_hint", "rule_hits", "rationale",
-    }  # `week_end`/`sector_id` dari SQL tidak lagi bocor ke respons
+        "entry_ref", "stop", "target", "atr14", "lots_hint", "rule_hits", "rationale", "plan",
+    }  # `week_end`/`sector_id` dari SQL tidak lagi bocor ke respons; `plan` = docs/05 §3 (api_version 1.2)
 
 
 def test_freshness_dan_runs_ikut_model(client, tmp_db):
@@ -174,6 +174,7 @@ def _stock_picks(db_path) -> set[str]:
         conn.close()
 
 
+@pytest.mark.slow
 def test_require_sektor_kandidat_dihormati(two_sector_inputs, monkeypatch):
     cfg = get_settings()
     monkeypatch.setitem(cfg.weekly, "require_sektor_kandidat", True)
@@ -187,6 +188,7 @@ def test_require_sektor_kandidat_dihormati(two_sector_inputs, monkeypatch):
     assert "DDDD" in longgar and "AAAA" in longgar
 
 
+@pytest.mark.slow
 def test_compute_all_menyiapkan_prasyarat_w1_fri(read_db, monkeypatch):
     """Temuan gladi bersih: `stage=all` (tombol 4) tidak menghitung `w1_fri` sehingga langkah
     sinyalnya selalu 0 baris. Sekarang tombol 4 menghitung RRG/metrik/skor `w1_fri` sektor."""

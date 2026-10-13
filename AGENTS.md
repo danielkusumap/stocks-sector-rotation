@@ -37,7 +37,8 @@ Ada **dua agen yang bekerja terpisah**: satu di `backend/`, satu di `frontend/`.
 14. Jangan `git push` ke remote apa pun kecuali user secara eksplisit meminta. Repo ini lokal dulu.
 15. **Verifikasi berjenjang — cek termurah dulu, jangan tes berat berulang.** Urutannya: `tsc --noEmit`/`compileall`
     → **satu** berkas uji (`pytest backend/tests/<file> -q`, `vitest run src/lib/x.test.ts`) → satu spec e2e
-    (`playwright test e2e/x.spec.ts`) → **gerbang penuh sekali per task di akhir** (`pytest -q backend`,
+    (`playwright test e2e/x.spec.ts`) → **gerbang penuh sekali per task di akhir**
+    (`pytest -q backend -n auto` = paralel 8 core ±33 s; `pytest -q -m 'not slow' backend -n auto` ±28 s),
     `vitest run` + `playwright test` + `npm run build`). Jangan menjalankan suite penuh setelah tiap mikro-edit,
     jangan mengulang cek yang sudah hijau, dan jangan menyalakan server untuk hal yang sudah ditutup test.
     Cek > 60 s butuh alasan eksplisit; sebut di laporan cek yang sengaja dilewati. Detail + daftar kesalahan
