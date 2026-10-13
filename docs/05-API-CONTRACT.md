@@ -270,6 +270,46 @@ Detail satu entitas (`scope` = `sector|stock`; `ref_id` = kode sektor atau ticke
 ```
 Aturan: `stats` **selalu** memuat kedua varian (`filter_on` & `filter_off`) supaya perbandingan "dengan/tanpa filter" tidak butuh dua permintaan; `latest` = event terbaru pada `trend_filter` yang dipilih; `ma_series` hanya memuat bar yang punya MA (warmup dibuang) dan urut lama→baru; entitas tanpa event → `latest: null`, `events: []` (HTTP 200, bukan error).
 
+### `GET /api/v1/plan/stock/{ticker}`
+**Analisa lengkap satu saham** untuk halaman detail (`docs/06` §5.3, rumus `docs/03` §6.5) — berlaku untuk **semua emiten**, bukan hanya pick mingguan. Membaca baris `stock_plan` (satu sumber kebenaran; `/series/stock/{ticker}` memakai baris yang sama untuk legendanya).
+Query: `as_of` (default bar terakhir yang ada).
+```json
+{ "api_version": "1.0", "as_of": "2026-10-13",
+  "stock": { "ticker": "BBRI", "name": "Bank Rakyat Indonesia", "sector_code": "IDXFINANCE", "board": "Utama" },
+  "price": { "close": 4210.0, "prev_close": 4184.0, "ret_1d": 0.0062, "price_basis": "adj_close" },
+  "regime": { "code": "tren_naik", "label": "Tren naik",
+               "reason": "Harga di atas penyangga 20 & 50 hari dan sektornya Memimpin — alat utama pantulan ke penyangga.",
+               "active_tools": ["pullback_ma20", "volume"] },
+  "summary_lines": [ "Harga 4.210 di atas penyangga 20 hari (4.088) dan 50 hari (3.960); rezim: tren naik.",
+                      "Zona beli 4.088–4.135, batas rugi 3.991 (−2,85%), target 4.360 (+6,25%) dan 4.580 (+11,61%); imbal hasil terhadap risiko 4,07:1.",
+                      "Dari 29 breakout sebelumnya: target pertama kena 62% (median 7 bar), batas rugi kena lebih dulu 24%." ],
+  "plan": { "entry_mode": "pullback", "entry_zone": { "low": 4088.0, "high": 4135.0, "reason": "…" },
+             "stop": { "level": 3991.0, "pct": -0.0285, "basis": "struktur_swing_low", "reason": "…" },
+             "tp1": { "level": 4360.0, "pct": 0.0625, "rr": 2.19, "basis": "resistance_20", "reason": "…" },
+             "tp2": { "level": 4580.0, "pct": 0.1161, "rr": 4.07, "basis": "donchian_40", "reason": "…" },
+             "hold": { "median_periods": 7, "n_events": 29, "win_rate": 0.34, "hit_tp1": 0.62, "hit_tp2": 0.34, "reason": "…" },
+             "invalidation": "Batal bila tutup harian di bawah penyangga 20 hari (4.110) atau batas rugi 3.991.",
+             "plan_ok": true, "notes": [] },
+  "scenario": { "p_tp1_first": 0.62, "p_sl_first": 0.24, "p_timeout": 0.14,
+                "p_tp2_first": 0.34, "median_periods_tp1": 7, "median_periods_sl": 4,
+                "n_events": 29, "n_open_dikeluarkan": 1, "basis": "event breakout MA20 (filter tren aktif), horizon 60 bar" },
+  "levels_table": [ { "label": "Zona beli", "low": 4088.0, "high": 4135.0 }, { "label": "Batas rugi", "level": 3991.0 },
+                     { "label": "Target 1", "level": 4360.0 }, { "label": "Target 2", "level": 4580.0 },
+                     { "label": "Penyangga 20 hari", "level": 4088.4 }, { "label": "Penyangga 50 hari", "level": 3960.1 },
+                     { "label": "Puncak 20 hari", "level": 4360.0 }, { "label": "Puncak 40 hari", "level": 4580.0 },
+                     { "label": "Terendah 10 hari", "level": 3980.0 } ],
+  "coverage": { "bars_available": 473, "bars_from": "2024-10-14", "bars_to": "2026-10-13",
+                 "n_events": 29, "price_basis": "adj_close" },
+  "data_status": { "...": "lihat konvensi" } }
+```
+Aturan:
+- Ticker tanpa riwayat cukup → `regime.code = "tidak_cukup_data"`, `plan`/`scenario` `null`, `summary_lines` memuat alasannya, HTTP **200** (bukan 404/500).
+- Ticker tidak ada di `stock` → `404 not_found` (sama seperti `/stocks/{ticker}`).
+- `scenario` `null` bila `n_events < weekly.plan.min_events_scenario` — UI menampilkan "belum cukup riwayat", bukan angka dari sampel kecil.
+- `plan.plan_ok = false` → tetap 200 + `notes[]`; UI menandai "perlu ditinjau".
+- Semua angka harga penyesuaian; label UI "harga penyesuaian". Frontend tidak menghitung apa pun (R:R, %, peluang semua dari sini).
+- `levels_table` disediakan supaya UI tidak perlu merakit ulang daftar level dari banyak blok (satu tempat, urutan tetap).
+
 ### `GET /api/v1/rotation/matrix`
 Matriks transisi kuadran (untuk panel "apa yang berubah").
 Query: `timeframe, window`, `scope` (default `sector`).
@@ -293,6 +333,55 @@ Seri untuk chart garis/area. Query: `from, to, timeframe, weighting`.
   "points": [ { "date": "2026-10-08", "index_close": 104.31, "bench_close": 6031.28, "rs": 103.0, "turnover_idr": 950000000000 } ] }
 ```
 
+### `GET /api/v1/series/stock/{ticker}`
+Bahan **grafik candle + overlay analisa teknikal** di halaman detail saham (docs/06 §6.5). Semua overlay dihitung backend dari harga penyesuaian (`docs/03` §6.4.9 & §10) — frontend tidak menghitung satu pun indikator.
+Query: `window` (default `6m`), `bars` (default `config.chart.window_bars`, maks 400), `ma` (daftar periode, default `config.ta.ma_periods`), `events` (default `config.chart.events`, maks 100), `weighting` (untuk rezim sektor saham), **`layers`** (daftar lapisan tambahan, default = `indicators`; nilai sah: `indicators` (Ultimate RSI + VWAP + POC), `smc`, `elliott`; kosong = hanya MA/Donchian/kanal/level/event).
+```json
+{ "api_version": "1.0", "ticker": "BBRI", "name": "Bank Rakyat Indonesia", "price_basis": "adj_close",
+  "regime": "tren_naik", "active_tools": ["pullback_ma20", "volume"], "regime_reason": "Harga di atas penyangga 20 & 50 hari dan sektornya Memimpin — alat utama pantulan ke penyangga.",
+  "candles": [ { "date": "2026-10-12", "open": 4188.0, "high": 4260.0, "low": 4170.0, "close": 4210.0, "volume": 91200000 } ],
+  "overlays": {
+    "ma": { "20": [ { "date": "2026-10-12", "value": 4088.4 } ], "50": [ { "date": "2026-10-12", "value": 3960.1 } ] },
+    "donchian": { "fast": { "high": [ {"date":"2026-10-12","value":4360.0} ], "low": [ {"date":"2026-10-12","value":3910.0} ] },
+                   "slow": { "high": [ … ], "low": [ … ] } },
+    "channels": [ { "low": 3980.0, "high": 4020.0, "strength": 3, "kind": "support", "from": "2026-08-14", "to": null } ],
+    "volume_ma": [ { "date": "2026-10-12", "value": 51200000 } ] },
+  "levels": { "week_end": "2026-10-09", "entry_zone": { "low": 4088.0, "high": 4135.0 },
+               "stop": 3991.0, "tp1": 4360.0, "tp2": 4580.0, "rr_tp2": 4.07, "plan_ok": true },
+  "events": [ { "signal_date": "2026-10-06", "entry_date": "2026-10-07", "entry_price": 4012.5,
+                 "result": "open", "periods": null, "mfe_pct": 0.049, "mae_pct": -0.011 } ],
+  "volume_confirm_mult": 1.5,
+  "layers": ["indicators"],
+  "indicators": {
+    "ursi": { "len": 14, "method": "sma", "ob": 70, "os": 30,
+               "points": [ { "date": "2026-10-12", "value": 71.2, "signal": 68.4 } ] },
+    "vwap": { "len": 20, "anchor": "rolling", "anchor_date": "2026-09-14",
+               "points": [ { "date": "2026-10-12", "vwap": 4090.2, "upper1": 4210.5, "lower1": 3969.9, "upper2": 4330.8, "lower2": 3849.6 } ] },
+    "poc": { "basis": "daily", "bars_used": 60, "bins": 24,
+              "poc": 4060.0, "value_area": { "low": 3960.0, "high": 4180.0 } } },
+  "smc": { "bos": [ { "date": "2026-09-30", "direction": "up", "level": 4320.0 } ],
+            "choch": [ { "date": "2026-08-21", "direction": "down", "level": 3980.0 } ],
+            "order_blocks": [ { "kind": "bullish", "from": "2026-09-12", "to": "2026-09-13", "low": 3995.0, "high": 4060.0, "mitigated": false } ],
+            "fvg": [ { "kind": "bullish", "date": "2026-09-25", "low": 4110.0, "high": 4155.0, "mitigated": true } ],
+            "equal_levels": [ { "kind": "high", "level": 4360.0, "count": 2 } ],
+            "range": { "low": 3910.0, "high": 4360.0, "premium_from": 4135.0, "discount_to": 4135.0 } },
+  "elliott": { "status": "candidate", "invalidated": false,
+                "zigzag": [ { "date": "2026-06-02", "price": 3800.0, "kind": "low" } ],
+                "waves": [ { "label": "1", "from": "2026-06-02", "to": "2026-07-14", "price_from": 3800.0, "price_to": 4300.0 } ],
+                "fib_zones": [ { "ratio": 0.618, "level": 3990.0 } ],
+                "note": "kandidat, bisa berubah saat bar baru masuk" },
+  "data_status": { "...": "lihat konvensi" } }
+```
+Aturan:
+- `candles` urut lama→baru, maks `bars`, dan **setiap** field memakai harga penyesuaian (ADR-040) — `open` sudah diskalakan ke kerangka `adj_close`.
+- `overlays.ma` berkunci **periode sebagai string** (`"20"`); nilai `null` dibuang (warmup), bukan dikirim 0.
+- `channels` **selalu** dikirim (data mentah untuk grafik), tetapi UI hanya menggambarnya saat `regime = range|tipis` (docs/03 §6.4.9) — jadi keputusan tampilan tetap di frontend, sedangkan angkanya di backend.
+- `levels` = plan pick terakhir untuk ticker itu; `null` bila belum ada pick (UI menyembunyikan garis level, bukan error).
+- `events` = baris `ta_breakout` (MA20, `trend_filter` sesuai config) untuk ticker itu, urut lama→baru; `mfe_pct`/`mae_pct` dari `docs/03` §10.9.
+- `active_tools` + `regime_reason` dipakai legenda grafik: **overlay yang tampil harus cocok dengan rezim** (skill `idx-ta-trading-plan`) — VWAP/POC, SMC, Elliott **tidak** dikirim di v1.
+- Ticker tanpa bar → `200` dengan `candles: []` (bukan 404); ticker tidak ada di `stock` → `404 not_found` (sama seperti `/stocks/{ticker}`).
+- **Lapisan `layers` (v2, docs/03 §11)**: `indicators` selalu boleh; `smc` dan `elliott` **hanya** dikirim bila diminta eksplisit (`layers=indicators,smc,elliott`) — default mati karena keduanya lapisan konteks, bukan aturan plan. `poc.basis` wajib ikut (`daily` → UI menulis "perkiraan") + `bars_used`. `elliott.status` ∈ `candidate|invalidated`; pola yang batal tetap dikirim dengan `invalidated=true` (UI menggambar garis putus), dan `elliott.note` wajib memuat "kandidat, bisa berubah". Lapisan **tidak** mengubah `levels`/`regime`/`plan` — ada test yang memaksanya (`docs/03` §11.6 no. 9).
+
 ---
 
 ## 3. Weekly picks & briefing
@@ -308,8 +397,28 @@ Query: `week_end` (default minggu final terakhir), `scope` (default `sector,stoc
                 "rank": 1, "score": 92.1, "streak_weeks": 3,
                 "entry_ref": 4250, "stop": 4132, "target": 4486, "atr14": 78.5, "lots_hint": 12,
                 "rule_hits": { "liquidity_ok": true, "price_ok": true, "trend_ok": true, "rs_ok": true, "momentum_ok": true, "rsi_ok": true, "no_suspension": true },
-                "rationale": "3 minggu berturut-turut masuk daftar; tren di atas SMA20/SMA50, RSI 62." } ] }
+                "rationale": "3 minggu berturut-turut masuk daftar; tren di atas SMA20/SMA50, RSI 62.",
+                "plan": {
+                  "regime": "tren_naik",
+                  "entry_tool": "pullback_ma20", "confirm_tool": "volume",
+                  "entry_mode": "pullback",
+                  "entry_zone": { "low": 4088.0, "high": 4135.0, "reason": "Zona di sekitar penyangga 20 hari (4.110); beli di penyangga membuat batas rugi lebih dekat." },
+                  "stop": { "level": 3991.0, "pct": -0.0285, "basis": "struktur_swing_low", "reason": "Batas rugi di bawah titik terendah 10 hari (3.980) ditambah penyangga 0,5× volatilitas — di situ skenario naik batal." },
+                  "tp1": { "level": 4360.0, "pct": 0.0625, "rr": 2.19, "basis": "resistance_20", "reason": "Puncak 20 hari terakhir adalah tempat penjual menumpuk — ambil sebagian di situ." },
+                  "tp2": { "level": 4580.0, "pct": 0.1161, "rr": 4.07, "basis": "donchian_40", "reason": "Target terukur dari puncak 40 hari; R:R setelah biaya 0,40% masih 4,07:1." },
+                  "hold": { "median_periods": 7, "n_events": 29, "win_rate": 0.34, "hit_tp1": 0.62, "hit_tp2": 0.34,
+                            "reason": "Dari 29 breakout terakhir: median 7 bar sampai +5%, +6,3% historis kena 62%." },
+                  "invalidation": "Batal bila tutup harian di bawah penyangga 20 hari (4.110) atau batas rugi 3.991; IHSG tutup di bawah 5.780 → tunda entry baru.",
+                  "plan_ok": true, "notes": [] } } ] }
 ```
+Aturan baru (`api_version` **1.2**, aditif — klien lama tetap jalan):
+- `plan` menggantikan peran `stop`/`target` sebagai **sumber kebenaran plan**; `stop`, `target`, `entry_ref`, `lots_hint` tetap dikirim untuk kompatibilitas (`target` = `plan.tp2.level`).
+- `plan.regime` ∈ `tren_naik|range|turun|tipis` dan `plan.entry_tool` ∈ `pullback_ma20|breakout_donchian|sr_channel|pivot_level|none` — **wajib** ikut supaya UI bisa menjelaskan *kenapa* plan-nya begitu (docs/03 §6.4.0). `confirm_tool` maksimum satu nilai (`volume|rsi_tepi_range|none`).
+- `rr` pada `tp1`/`tp2` sudah **bersih biaya** (`weekly.plan.fee_*`). Jangan menghitung ulang di frontend.
+- `hit_tp1`/`hit_tp2` = peluang historis dari MFE event TA (`docs/03` §10.9); `null` bila jumlah event < `weekly.plan.min_events_hold` (UI menampilkan "belum cukup riwayat").
+- `plan_ok=false` (mis. R:R < 3:1 atau stop > 8%) → pick **tetap dikirim** dengan `notes[]` berisi alasan; UI menandainya, bukan menyembunyikannya.
+- `entry_mode=no_trade` (rezim `turun`) → semua level `null`, `plan_ok=false`, `notes` menyebut alasannya.
+- Setiap `reason` ≤ 140 char, Bahasa Indonesia, tanpa istilah mentah (`RSI`, `SMA20`, `R:R`, `ATR` tidak boleh muncul di kalimat user).
 
 ### `GET /api/v1/briefing/morning` ← **endpoint untuk Hermes**
 Satu panggilan, semua yang dibutuhkan untuk report pagi. Query: `as_of` (opsional), `include_series=false` (default), `top_n=3`.

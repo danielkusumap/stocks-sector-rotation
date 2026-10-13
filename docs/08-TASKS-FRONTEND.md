@@ -205,6 +205,156 @@ Commit (satu task satu commit): `F17: panel analisa teknikal + kolom insight + t
 | F17 berkas utamanya `SectorDrawer.tsx` → jalankan **setelah** F14 | F14 vs F17 — dua-duanya `SectorDrawer.tsx` |
 | Semua task frontend ∥ task backend (folder berbeda) | F17 setelah F14 selesai (bukan cuma ditulis) |
 
+## F18 — Trading plan (TA) di halaman Weekly
+
+**Latar:** `GET /weekly/picks` kini mengirim objek `plan` (docs/05 §3, `api_version` **1.2**): rezim pasar, alat utama, konfirmasi, zona entry, batas rugi, TP1/TP2 dengan R:R **bersih biaya**, ekspektasi lama tahan, peluang historis per target, dan **alasan** tiap elemen. Halaman Weekly harus menampilkannya tanpa menghitung ulang apa pun. Spesifikasi tampilan: **`docs/06` §5.2**.
+
+**Deliverable:**
+1. `lib/api.ts`: `WeeklyStockPick.plan` bertipe `WeeklyPlan | null` (`regime`, `entry_tool`, `confirm_tool`, `entry_mode`, `entry_zone{low,high,reason}`, `stop{level,pct,basis,reason}`, `tp1{level,pct,rr,basis,reason}`, `tp2{…}`, `hold{median_periods,n_events,win_rate,hit_tp1,hit_tp2,reason}`, `invalidation`, `plan_ok`, `notes[]`).
+2. `lib/weeklyPicks.ts` (helper murni + unit test):
+   - `REGIME_LABEL` (`tren_naik` → "Tren naik", `range` → "Range", `turun` → "Turun", `tipis` → "Likuiditas tipis") + `regimeTone()` (token warna: netral/`--warn`/`--down`);
+   - `TOOL_LABEL` (`pullback_ma20` → "pantulan ke penyangga 20 hari", `breakout_donchian` → "tembus puncak 20 hari", `sr_channel` → "pantulan di kanal", `pivot_level` → "level pivot", `none` → "tidak ada");
+   - `CONFIRM_LABEL` (`volume` → "volume di atas rata-rata 20 hari", `rsi_tepi_range` → "momentum di tepi bawah rentang", `none` → "tanpa konfirmasi");
+   - `planRows(plan)` → daftar `{ key, label, value, reason }` siap render (urutan docs/06 §5.2) — **semua angka datang dari API**;
+   - `planSummary(plan)` → satu baris monospace untuk daftar (`zona … · SL … · TP1 … · TP2 … · R:R …`);
+   - `planStateLabel(plan)` → `"perlu ditinjau"` saat `plan_ok=false`, `"tidak ada rencana beli"` saat `entry_mode="no_trade"`.
+3. `components/domain/WeeklyPicksPanel.tsx`: badge rezim di baris pick; baris ringkas pakai `planSummary`; expander kedua "plan" (setelah expander `kenapa?`) berisi blok `planRows` + `invalidation` + `notes` (`--warn`); `plan === null` → catatan "plan belum tersedia untuk pekan ini" (bukan error, bukan blok kosong).
+4. Mock: handler `/weekly/picks` di `src/mocks/handlers.ts` **menurunkan** `plan` dari angka fixture yang sudah ada (jangan menulis angka baru yang tidak konsisten) + knob `?mock=notrade` (pick dengan `entry_mode=no_trade`) dan `?mock=planfail` (`plan_ok=false` + `notes`).
+
+**AC:**
+1. Baris pick menampilkan zona, SL (level + %), TP1, TP2, R:R, dan badge rezim; angkanya **identik** dengan respons `/weekly/picks` (uji silang lewat `page.evaluate(fetch)` — MSW tidak dilewati `page.request`).
+2. Blok plan memuat: nama alat Indonesia + alasan, konfirmasi + alasan, batas rugi (level/%/basis/alasan), TP1 & TP2 (level/%/R:R/alasan), ekspektasi lama tahan + peluang historis (`median 7 bar`, `TP1 kena 62%`), `invalidation`, `notes`.
+3. `plan.hold.hit_tp1 = null` → tampil "belum cukup riwayat", bukan `0%`.
+4. `?mock=notrade` → satu kalimat "tidak ada rencana beli (rezim turun)", tanpa angka level.
+5. `?mock=planfail` → badge "perlu ditinjau" + `notes` terlihat tanpa membuka expander.
+6. Tidak ada nama alat mentah (`breakout_donchian`) di DOM; tidak ada `NaN`/`undefined` saat `plan: null`.
+7. Regresi F9: expander `kenapa?` (rule_hits) tetap utuh; `data-testid` pick lama tidak berubah.
+
+**Bukti:** screenshot 4 keadaan (plan lengkap, hit null, notrade, planfail) + `npx tsc --noEmit`, `npx vitest run`, `npx playwright test e2e/weekly-plan.spec.ts`, `npm run build` (tempel angkanya) + hasil uji silang angka baris vs respons API.
+Ketergantungan: butuh `B18` untuk data nyata; boleh dibangun dengan MSW karena kontrak `docs/05` §3 sudah ditulis. **Jangan** menghitung R:R/% di frontend.
+Commit: `F18: trading plan TA di halaman Weekly (rezim, level, alasan)`.
+
+## F19 — Grafik candle + overlay TA di halaman detail saham
+
+**Latar:** user ingin melihat candlestick **beserta TA yang terlihat** di halaman detail saham — dan overlay yang tampil harus **sesuai rezim & aturan kita** (docs/03 §6.4.0/§6.4.9, skill `idx-ta-trading-plan`), bukan indikator yang bisa ditambah sendiri. Data: `GET /api/v1/series/stock/{ticker}` (docs/05 §2). Tampilan: **`docs/06` §6.5**.
+
+**Deliverable:**
+1. `lib/candleChart.ts` (helper murni + `candleChart.test.ts`): skala harga (pad simetris terhadap `min/max` termasuk semua overlay & level), layout candle (`bodyY`, `wickY`, `bodyHeight` minimal 1 px), skala volume, pemetaan indeks↔x, `overlayVisibility(regime)` → aturan "kanal S/R hanya di `range|tipis`" (satu tempat, diuji), `eventColor(result)`, `hoverSummary(candle, prev)` (teks O/H/L/C + % — angka dari API).
+2. `components/charts/CandleChart.tsx`: SVG sendiri (tanpa library), panel utama + sub-panel volume, overlay sesuai tabel `docs/06` §6.5, legenda rezim (`active_tools` + `regime_reason`), hover garis bidik + kotak angka (posisi tidak menutupi 20 bar terakhir — pakai pola §6.3), klik penanda event → baris hasil, `EmptyState` saat `candles: []`, tinggi dipatok (tanpa CLS), `prefers-reduced-motion`.
+3. `pages/StockPage.tsx`: panel baru "Grafik & analisa teknikal" (di atas `TaPanel`), memakai `useStockSeries(ticker, {window, bars})`; kontrol kecil `window` (3m/6m/1y) di header panel — nilai di URL seperti filter lain.
+4. `lib/api.ts`: tipe `StockSeriesResponse` + hook `useStockSeries` di `hooks/useApiQuery.ts`.
+5. Mock: handler `/series/stock/{ticker}` menurunkan candle + overlay dari fixture `price_daily`/plan yang sudah ada (deterministik, konsisten dengan `weekly/picks` mock) + knob `?mock=range` (regime `range` → kanal S/R tampil) dan `?mock=nocandle` (`candles: []`).
+
+**AC:**
+1. Candle tampil dengan warna `--up`/`--down` sesuai `open` vs `close`; jumlah candle = `min(bars, data)`; tidak ada candle "kembar" saat `body < 2 px` (border `--surface`).
+2. Overlay **mengikuti rezim**: `?mock=range` → kanal S/R tampil; rezim `tren_naik` → kanal tidak digambar walau `channels` ada di respons (uji DOM: 0 elemen `data-overlay="channel"`), dan legenda menyebut alasannya.
+3. Garis `SL`/`TP1`/`TP2` + zona entry tampil **hanya** bila `levels` tidak null; angkanya identik dengan respons (uji silang `page.evaluate(fetch)`).
+4. Penanda event: 1 segitiga per event, warnanya sesuai `result`; klik → baris teks hasil; `result=open` → "belum selesai".
+5. `candles: []` → `EmptyState`, bukan grafik kosong/`NaN`; `?mock=nocandle` membuktikan itu.
+6. Hover bar → kotak angka memuat O/H/L/C + volume + % perubahan; tidak menutupi 20 bar terakhir (uji rect, pola §6.3).
+7. Tinggi panel sama sebelum/sesudah data datang (CLS 0 pada panel ini — `boundingBox` identik); `prefers-reduced-motion` → tanpa animasi.
+8. Regresi: `TaPanel` (F17) & `Sparkline` tetap seperti semula; halaman tetap lolos axe.
+
+**Bukti:** screenshot 3 keadaan (candle + level plan, `?mock=range` dengan kanal, `?mock=nocandle`) + `npx tsc --noEmit`, `npx vitest run`, `npx playwright test e2e/candle-chart.spec.ts`, `npm run build` (tempel angkanya) + hasil uji silang angka level vs respons.
+Ketergantungan: butuh `B19` untuk data nyata; boleh dibangun dengan MSW (kontrak sudah ditulis). Frontend **tidak menghitung** MA/Donchian/kanal/RR — semuanya dari API.
+Commit: `F19: grafik candle + overlay TA di halaman detail saham`.
+
+## F20 — Halaman detail saham: semua yang sudah terbaca terlihat (untuk **semua** saham)
+
+**Latar:** user membuka saham mana pun dan ingin langsung melihat seluruh hasil analisa: rezim, ringkasan, plan (zona/batas rugi/target/R:R), **skenario historis**, alasan tiap pilihan, daftar level, dan catatan cakupan. Sumber tunggal: `GET /api/v1/plan/stock/{ticker}` (`docs/05` §2, rumus `docs/03` §6.5). Tata letak: **`docs/06` §5.3**. Komponen plan yang sudah ada dari F18 (`planRows`, `REGIME_LABEL`, `TOOL_LABEL`) **dipakai ulang** — jangan bikin versi kedua.
+
+**Deliverable:**
+1. `lib/api.ts`: tipe `StockPlanResponse` (`stock`, `price`, `regime{code,label,reason,active_tools}`, `summary_lines`, `plan`, `scenario`, `levels_table`, `coverage`, `data_status`) + `WeeklyPlan` dipakai ulang untuk `plan`.
+2. `hooks/useApiQuery.ts`: `useStockPlan(ticker, { as_of? })`.
+3. `lib/stockAnalysis.ts` (helper murni + `stockAnalysis.test.ts`):
+   - `regimeTone(code)` → token warna (netral/`--warn`/`--down`) + `REGIME_LABEL` termasuk `tidak_cukup_data` → "Data belum cukup";
+   - `summaryLines(lines)` → potong ke 3 baris, buang yang kosong;
+   - `scenarioRows(scenario, minEvents)` → baris tabel (`Target 1 kena dulu`, `Batas rugi kena dulu`, `Lewat horizon`, `Target 2 kena dulu`) dengan peluang **tanpa tanda** (`62%`), `null` → satu baris "belum cukup riwayat (butuh ≥ {minEvents} event)", selalu menyertakan `n_events` & `n_open_dikeluarkan` bila ada;
+   - `levelsRows(levelsTable)` → daftar level (label + angka monospace) urut tetap;
+   - `planStateLabel(plan)` → "perlu ditinjau" / "tidak ada rencana beli" / null.
+4. `components/domain/AnalysisPanel.tsx` (baru) sesuai `docs/06` §5.3: header rezim, ringkasan, tabel skenario, blok plan (pakai `planRows` dari F18), alat & alasan, `levels_table`, catatan `coverage`, `notes[]` (`--warn`), dan keadaan: memuat (skeleton setinggi akhir), gagal (`ErrorState` + Coba lagi), `tidak_cukup_data`, `plan_ok=false`, `scenario=null`.
+5. `pages/StockPage.tsx`: pasang `AnalysisPanel` sebagai panel pertama setelah header, lalu `CandleChart` (F19) dengan legend rezim dari respons **yang sama** (satu hook, satu sumber), lalu panel lama (metrik, Sparkline, RRG, `TaPanel`, snapshot pick).
+6. Mock: handler `/plan/stock/{ticker}` menurunkan angka dari fixture yang sudah ada (bukan angka baru yang tidak konsisten) + knob `?mock=planfail` (`plan_ok=false` + `notes`), `?mock=thin` (`regime=tipis`), `?mock=shortdata` (`tidak_cukup_data`).
+
+**AC:**
+1. Buka `/stocks/{ticker}` → terlihat: badge rezim, 1–3 baris ringkasan, tabel skenario (dengan `n_events`), zona/batas rugi/TP1/TP2 + R:R, alasan tiap elemen, daftar level, catatan cakupan.
+2. Angka di panel **identik** dengan respons `/plan/stock/{ticker}` (uji silang `page.evaluate(fetch)` untuk 3 ticker berbeda rezim) — tidak ada R:R/% yang dihitung ulang.
+3. `scenario = null` → baris "belum cukup riwayat" (bukan `0%`); `?mock=shortdata` → `regime` "Data belum cukup" + panel tetap tampil tanpa tabel kosong.
+4. `?mock=planfail` → badge "perlu ditinjau" + `notes` terlihat tanpa membuka apa pun.
+5. Peluang tanpa tanda (`62%`), bukan `+62%` (uji teks DOM).
+6. Satu permintaan per halaman untuk plan (`/plan/stock/{ticker}`) — `CandleChart` tidak memicu permintaan kedua untuk rezim/level (bukti Network).
+7. Tidak ada istilah mentah di DOM (`SMA20`, `ATR`, `R:R`, `breakout`, `pullback_ma20`).
+8. Regresi: `TaPanel` (F17) & panel lama tetap tampil; axe tetap bersih; CLS panel ini ≈ 0 (skeleton setinggi akhir).
+
+**Bukti:** screenshot 4 keadaan (lengkap, `scenario=null`, `planfail`, `shortdata`) + `npx tsc --noEmit`, `npx vitest run`, `npx playwright test e2e/stock-analysis.spec.ts`, `npm run build` (tempel angkanya) + hasil uji silang angka vs respons API.
+Ketergantungan: `B20` untuk data nyata (semua emiten); boleh dibangun dengan MSW karena kontrak sudah ditulis. Frontend **tidak menghitung** apa pun.
+Commit: `F20: panel analisa lengkap di halaman detail saham (semua emiten)`.
+
+## F21 — Toggle lapisan + panel Ultimate RSI, VWAP/σ, POC di grafik
+
+**Latar:** backend mengirim blok `indicators` di `series/stock` (docs/05 §2, rumus docs/03 §11.1–§11.3). User harus bisa menyalakan/mematikan lapisan dan **melihat indikatornya dengan benar** — termasuk label jujur POC ("perkiraan dari bar harian") dan aturan rezim (VWAP bukan alat utama saat tren). Tampilan: **`docs/06` §6.6**.
+
+**Deliverable:**
+1. `lib/api.ts`: `StockSeriesResponse.indicators` (`ursi`, `vwap`, `poc`) + `layers: Layer[]`.
+2. `lib/candleChart.ts` (tambahan, unit test): `ursiScale()` (selalu 0–100 dengan garis 50 + ambang `ob`/`os`), `pocLabel(basis, barsUsed)` → "perkiraan dari bar harian (60 bar)" / "dari bar 5 menit (N bar)", `vwapWarning(regime)` → teks peringatan saat VWAP aktif di `tren_naik`, `layerList(searchParams)` → baca/tulis `layers` di URL (default `indicators`).
+3. `components/charts/CandleChart.tsx`: sub-panel URSI 18% (garis + sinyal + area ekstrem), overlay VWAP + pita ±1σ/±2σ, garis POC + pita value area, legenda anchor (`VWAP 20 · anchor 14 Sep`) dan label POC.
+4. `pages/StockPage.tsx`: toggle `Indikator` (default aktif) di header panel grafik; nilainya di URL (`?layers=indicators`), diteruskan ke `useStockSeries`.
+5. Mock: handler `/series/stock/{ticker}` mengirim `indicators` yang **diturunkan** dari candle fixture (deterministik) + knob `?mock=range` (regime range → VWAP tanpa peringatan) dan `?mock=nolayer` (`layers=` kosong → blok tidak ada).
+
+**AC:**
+1. Panel URSI tampil dengan skala 0–100, garis 50 dan ambang `ob`/`os`; `points` kosong → panel disembunyikan (bukan garis di 0).
+2. VWAP + pita tampil saat `regime=range`; di `tren_naik` **hanya** muncul bila user menyalakannya, dengan label peringatan `--warn` "bukan alat utama saat tren".
+3. POC selalu disertai label basis + jumlah bar (uji teks DOM); `basis=intraday` → label berbeda.
+4. Toggle `Indikator` menulis `layers` ke URL dan mengubah permintaan (`layers=indicators` vs tanpa) — bukti Network; reload mempertahankan pilihan.
+5. Angka URSI/VWAP/POC identik dengan respons (uji silang `page.evaluate(fetch)`); **tidak ada** perhitungan di frontend.
+6. Semua overlay tetap `pointer-events: none`; hover bar & aturan §6.3 tidak terganggu.
+7. Regresi F19: candle, level plan, penanda event, volume tetap benar; axe bersih.
+
+**Bukti:** screenshot 3 keadaan (indikator aktif di range, aktif di tren dengan peringatan, tanpa lapisan) + 4 perintah gate + uji silang angka.
+Commit: `F21: toggle lapisan + Ultimate RSI/VWAP/POC di grafik`.
+
+## F22 — Lapisan SMC & Elliott (toggle, garis putus untuk yang batal)
+
+**Latar:** backend mengirim `smc`/`elliott` bila diminta (docs/03 §11.4–§11.5). Keduanya **lapisan konteks** — UI wajib menyatakannya dan tidak boleh menyajikannya sebagai sinyal beli/jual. Tampilan: **`docs/06` §6.7**.
+
+**Deliverable:**
+1. `lib/api.ts`: `smc` (`bos`, `choch`, `order_blocks`, `fvg`, `equal_levels`, `range`) + `elliott` (`zigzag`, `waves`, `fib_zones`, `status`, `invalidated`, `note`).
+2. `lib/candleChart.ts` (tambahan + test): `smcShapes(smc, scale)` → rect/garis siap render (opacity & gaya sesuai §6.7, `mitigated` → lebih redup + putus), `elliottShapes(elliott, scale)` → polyline ZigZag + label wave + zona Fib; `invalidated` → `strokeDasharray` + opacity 0,5; `layerNotice(layer)` → teks "lapisan konteks, bukan sinyal".
+3. `components/charts/CandleChart.tsx`: render lapisan sesuai toggle; legenda kecil memuat `layerNotice` + `elliott.note` apa adanya.
+4. Toggle `SMC` & `Elliott` (default **mati**) di header panel grafik → URL (`?layers=indicators,smc,elliott`).
+5. Mock: knob `?mock=smc` (respons berisi lapisan lengkap termasuk 1 pola Elliott `invalidated=true`).
+
+**AC:**
+1. Default mati: tanpa toggle, **0** elemen `data-layer="smc|elliott"` di DOM walau respons memuatnya (buktikan dengan `?mock=smc` dan toggle mati).
+2. Setelah menyalakan: BOS/CHoCH (label teks), order block & FVG (kotak), equal levels (label `2×`), premium/discount, ZigZag + label wave + zona Fib tampil.
+3. Pola `invalidated=true` digambar putus + opacity 0,5, dan `note` "kandidat, bisa berubah" terlihat (uji teks DOM).
+4. Legenda menyatakan "lapisan konteks, bukan sinyal"; tidak ada satu pun angka lapisan yang muncul di blok plan.
+5. Semua elemen lapisan `pointer-events: none` (hover bar tetap jalan — uji hover setelah lapisan menyala).
+6. Toggle bertahan setelah reload (URL) dan tidak menambah permintaan selain satu `/series/stock` (Network).
+
+**Bukti:** screenshot 3 keadaan (SMC saja, Elliott saja, keduanya + pola invalidated) + gate + bukti 0 elemen saat toggle mati.
+Commit: `F22: lapisan SMC & Elliott (toggle, konteks bukan sinyal)`.
+
+## F23 — Zoom & pan grafik candle
+
+**Latar:** user meminta zoom/pan supaya bisa membaca bar lebih rapat. Murni frontend (tidak ada endpoint baru) — tapi wajib menjaga aturan interaksi yang sudah ada. Spesifikasi: **`docs/06` §6.8**.
+
+**Deliverable:**
+1. `lib/candleChart.ts`: `visibleRange(state, total)` + `zoomAt(state, total, factor, anchorIndex)` + `panBy(state, total, deltaBars)` + `clampRange()` (min 20 bar, maks seluruh data) — semua fungsi murni + unit test (termasuk kasus tepi: total 25 bar, zoom sampai minimum, pan melewati tepi).
+2. `components/charts/CandleChart.tsx`: roda mouse (zoom di posisi kursor), drag horizontal untuk pan, `+`/`-` dan `0` (reset) di keyboard, tombol `Reset`, zoom vertikal aktif saat zoom > 1,5×; sumbu harga & label tanggal dihitung ulang dari rentang terlihat; garis level/VWAP/POC hanya digambar bila berada di dalam rentang.
+3. `aria-live` menyebut rentang terlihat saat zoom berubah (mis. "12 Agu – 9 Okt, 40 bar").
+
+**AC:**
+1. Roda mouse di tengah grafik → rentang menyempit di sekitar kursor (bukan selalu ke tengah); `-`/`+` keyboard sama hasilnya.
+2. Batas: tidak bisa < 20 bar dan tidak bisa melewati tepi data (uji: zoom ekstrem + pan jauh ke kanan/kiri → rentang tetap valid).
+3. Drag memindahkan rentang; klik ganda & tombol `Reset` kembali ke seluruh data.
+4. Setelah zoom 3 tingkat berbeda (semua data, 60 bar, 20 bar): kotak hover **tidak menutupi 20 bar terakhir** (ukur rect, pola §6.3) dan garis level plan tetap di posisi harga yang benar (uji silang dengan nilai dari respons).
+5. `aria-live` berubah saat zoom; tidak ada error konsol saat gesture beruntun.
+6. Regresi: F19/F21/F22 tetap lulus; `prefers-reduced-motion` tidak terpengaruh (zoom bukan animasi).
+
+**Bukti:** screenshot 3 tingkat zoom + hasil uji rect hover + 4 perintah gate.
+Commit: `F23: zoom & pan grafik candle`.
+
 ---
 
 ## Aturan tambahan untuk agen frontend

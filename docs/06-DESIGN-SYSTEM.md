@@ -161,6 +161,17 @@ Sumber: `GET /api/v1/ta/{scope}/{ref_id}` (`docs/05` §2). Aturan angka: **semua
 - Grafik harga + garis MA: **opsional v1** (boleh menyusul). Angka & daftar event dulu.
 - Kolom ringkas di `SectorTable`/`StockTable` (tanpa buka detail, `docs/08` F18): `+5% dulu` (`win_rate`), `median periode`, `terakhir breakout` (mis. `6 Okt · 5 periode`) — bisa disortir, sumber `GET /api/v1/ta/summary`. Semua angka dihitung backend; frontend tidak menghitung rumus apa pun.
 
+### 5.2 Trading plan di halaman Weekly (docs/03 §6.4, `api_version` 1.2)
+
+Tiap pick saham punya blok plan yang **bisa dibuka** (expander `plan`), dan barisnya tetap ringkas.
+
+- **Baris ringkas** (`PickSummary`) — tetap monospace: `zona 4.088–4.135 · SL 3.991 (−2,85%) · TP1 4.360 (+6,25%) · TP2 4.580 (+11,61%) · R:R 4,07 · skor 92,1`. `lots_hint` tetap tampil bila ada.
+- **Badge rezim** di baris: `Tren naik` / `Range` / `Turun` / `Tipis` (label Indonesia; token warna: netral untuk tren, `--warn` untuk range, `--down` untuk turun, `--warn` untuk tipis). Sumber `plan.regime`.
+- **Blok terbuka** berisi, berurutan: (1) nama alat dalam Bahasa Indonesia — `pullback_ma20` → "pantulan ke penyangga 20 hari", `breakout_donchian` → "tembus puncak 20 hari", `sr_channel` → "pantulan di kanal penyangga–penahan", `pivot_level` → "level pivot" — **plus** kalimat `reason`-nya; (2) baris konfirmasi (`volume` → "volume 1,8× rata-rata 20 hari"); (3) batas rugi (level + % + basis + alasan); (4) TP1 & TP2 (level + % + R:R bersih + alasan); (5) ekspektasi lama tahan + peluang historis (`median 7 bar`, `TP1 kena 62% · TP2 kena 34%`) atau "belum cukup riwayat"; (6) baris **invalidasi** apa adanya; (7) `notes[]` bila ada, gaya `--warn`.
+- **`plan_ok = false`** → badge "perlu ditinjau" + `notes` terlihat tanpa membuka; pick tidak disembunyikan. `entry_mode = no_trade` → baris plan diringkas jadi satu kalimat "tidak ada rencana beli (rezim turun)".
+- **Jangan menampilkan nama alat mentah** (`breakout_donchian`) dan jangan menghitung ulang R:R/% — semua dari API; persen pakai `formatPct`? **tidak**: `plan.stop.pct`/`tp*.pct` adalah level dari entry → pakai `formatPct` (bertanda) hanya untuk kolom perubahan; untuk label "SL −2,85%" pakai `formatPct` juga karena angkanya memang perubahan dari entry.
+- Aturan lama tetap: `rationale` di baris tetap ditampilkan (ringkasan 1 kalimat), `rule_hits` tetap di expander terpisah, dan setiap angka yang muncul di blok plan harus bisa dicocokkan dengan `/weekly/picks` di Network.
+
 ## 6. RRG chart — spesifikasi teknis
 
 - Ukuran responsif, rasio 1:0.78, padding 32px untuk label. Rentang sumbu **selalu mengandung 100** di kedua sumbu, simetris: `pad = max(0.6, 1.15 × max|nilai − 100|)`. Ticks di 100 dan ±pad×0.5.
@@ -239,6 +250,78 @@ Khusus drawer detail sektor (mini-RRG saham + tabel konstituen), ada satu baris 
 - Satu state menggerakkan **dua** hal: titik RRG yang tidak cocok dibuang sebelum digambar (batas 25 titik §6.1 berlaku setelah filter), dan tabel konstituen memakai `quadrant[]` di `GET /stocks` (bukan menyaring baris yang sudah diunduh).
 - **Bukan** filter halaman: nilai ini tidak masuk URL (`?quadrant=` sudah milik `FilterBar` untuk kuadran sektor) — state lokal drawer, sama seperti `sort`/`dir` di sana.
 - Kuadran terpilih tanpa isi → `EmptyState` + tombol "Tampilkan semua", bukan chart/tabel kosong tanpa penjelasan.
+
+### 5.3 Halaman detail saham — semua yang sudah terbaca terlihat (docs/03 §6.5)
+
+Urutan panel di `/stocks/{ticker}` (atas → bawah), supaya mata membaca dari ringkasan ke bukti:
+
+1. **Header**: `TICKER` + nama + sektor + harga terakhir (+Δ hari itu) + badge **rezim** (`Tren naik`/`Range`/`Turun`/`Likuiditas tipis`/`Data belum cukup`) + label "harga penyesuaian".
+2. **Panel "Analisa teknikal"** (`AnalysisPanel`, sumber `GET /plan/stock/{ticker}`):
+   - **Ringkasan** — `summary_lines` sebagai 1–3 baris teks (bukan bullet panjang), apa adanya dari API.
+   - **Skenario historis** — tabel kecil: `Target 1 kena dulu 62% · Batas rugi kena dulu 24% · Lewat horizon 14% · median 7 bar (dari 29 breakout, 1 belum selesai)`. Kolom `n_events` **wajib** tampil; `scenario = null` → satu baris "belum cukup riwayat (butuh ≥ 10 breakout)". Judulnya "Skenario historis" — **jangan** "prediksi" (angkanya frekuensi masa lalu pada level hari ini).
+   - **Plan** — blok sama seperti `docs/06` §5.2 (zona, batas rugi + basis, TP1/TP2 + R:R bersih, ekspektasi lama tahan) + `invalidation` + `notes[]` (`--warn`) + badge "perlu ditinjau" bila `plan_ok=false`; `entry_mode = no_trade` → satu kalimat "tidak ada rencana beli (rezim turun)".
+   - **Alat & alasan** — daftar `active_tools` dalam Bahasa Indonesia + `regime.reason`, ditambah alasan per elemen dari `plan.*.reason` (yang tidak terpakai di blok plan, mis. alasan basis stop).
+   - **Daftar level** — `levels_table` apa adanya (label Indonesia + angka monospace), termasuk penyangga 20/50 hari, puncak 20/40 hari, terendah 10 hari.
+   - **Catatan cakupan** — `coverage` (jumlah bar, rentang tanggal, jumlah event, `price_basis`) + pengingat "angka dihitung dari subset universe yang punya data".
+   - Keadaan `regime.code = tidak_cukup_data` → panel menampilkan ringkasan + catatan cakupan saja (tanpa tabel kosong, tanpa "0%").
+3. **Panel "Grafik & analisa teknikal"** — `CandleChart` (§6.5) dengan legend rezim yang **sama** (satu sumber: baris `stock_plan`).
+4. Panel lama tetap: metrik (`/stocks/{ticker}`), `Sparkline`, RRG vs sektor, `TaPanel` (statistik MA 10/20/50 & event), snapshot pick mingguan bila ada.
+
+Aturan: tidak ada angka yang dihitung frontend (R:R, %, peluang semua dari API); persentase peluang **tanpa tanda** (`62%`, pakai `formatNum(v×100,0)+"%"` — `formatPct` selalu bertanda dan salah untuk ini); warna status hanya token; setiap keadaan (memuat/kosong/gagal/perlu ditinjau) punya tampilan sendiri.
+
+### 6.5 Grafik candle + overlay TA di halaman detail saham (docs/05 `series/stock`, `docs/03` §6.4)
+
+Komponen `CandleChart` di panel "Grafik & analisa teknikal" (`/stocks/{ticker}`). Menggambar **SVG sendiri** (aturan §6: tanpa library chart), rasio 1:0,45 + sub-panel volume 18%, `padding` 32 px kiri untuk label harga.
+
+**Candle**: body `max(1px, |close−open| skala)`, wick 1 px; warna `--up`/`--down` (naik/turun dari `open`); border `--surface` 1 px saat body < 2 px. Sumber `candles` (harga penyesuaian) — label wajib "harga penyesuaian".
+
+**Overlay (semuanya dari API, tidak ada hitungan di frontend):**
+
+| Overlay | Gaya | Tampil kapan |
+|---|---|---|
+| MA20 | garis solid 1,5 px, token `--fg-muted` | selalu (filter tren) |
+| MA50 | garis putus-putus 1,5 px, `--fg-faint` | selalu |
+| Donchian 20 high/low | titik-titik 1 px, `--border-strong` | selalu (level breakout & resistance) |
+| Donchian 40 high/low | titik-titik 1 px, opacity 0,5 | selalu (target terukur) |
+| Kanal S/R (pivot) | pita `--border` opacity 0,10 + garis tengah, label `strength` | **hanya** `regime = range\|tipis` (di `tren_naik` disembunyikan; skill: bukan alat utama saat tren) |
+| Zona entry plan | pita `--accent-subtle` 0,25 | bila `levels` ada |
+| SL / TP1 / TP2 | garis putus 1 px + label kanan (`SL 3.991 (−2,85%)`) warna `--down` untuk SL, `--up` untuk TP | bila `levels` ada |
+| Penanda event breakout | segitiga 6 px di `signal_date` — `--up` hasil `win`, `--down` hasil `loss`, `--fg-faint` `expired`/`open` | selalu (maks `events`) |
+| Volume | bar 1 px + garis `volume_ma` + ambang `volume_confirm_mult ×` (garis putus, warna `--warn`) | selalu |
+
+**Legenda & rezim**: satu baris di atas grafik — badge rezim (`Tren naik` / `Range` / `Turun` / `Tipis`) + `active_tools` dalam Bahasa Indonesia + `regime_reason` apa adanya. Ini yang menjelaskan *kenapa* overlay-nya begini, dan menutup pertanyaan "kok kanal S/R-nya hilang?".
+
+**Interaksi**: hover bar → garis bidik + kotak angka (O/H/L/C, volume, % perubahan) yang diposisikan **tidak menutupi 20 bar terakhir** (aturan §6.3 berlaku); klik penanda event → baris teks hasil (`breakout 6 Okt · kena +5% dalam 7 bar` / `−5% dalam 4 bar` / `belum selesai`). Tanpa zoom/pan di v1.
+
+**A11y & stabilitas**: SVG `role="img"` + `aria-label` ringkas (tren, rezim, level plan); tabel angka di bawah grafik **tidak** diwajibkan (halaman sudah punya tabel metrik), tapi `aria-live` menyebut bar terakhir saat hover. Tinggi panel dipatok (tidak ada CLS); `prefers-reduced-motion` → tanpa animasi masuk. `candles: []` → `EmptyState` "belum ada bar harga untuk saham ini".
+
+**Dilarang di v1** (sengaja): VWAP/POC & volume profile (intraday, retensi 30 hari), kotak SMC, hitungan Elliott, panel Ultimate RSI terpisah, zoom/pan, indikator yang bisa ditambahkan user.
+
+### 6.6 Panel indikator tambahan (Ultimate RSI, VWAP, POC) — docs/03 §11.1–§11.3
+
+Toggle kecil di header grafik: `Indikator` (default **aktif**), `SMC`, `Elliott` (dua terakhir default **mati**). Pilihan toggle masuk **URL** (`?layers=indicators,smc`) dan diteruskan sebagai `layers` ke `series/stock` — bukan dihitung di frontend.
+
+| Elemen | Gaya | Catatan |
+|---|---|---|
+| **Ultimate RSI** | sub-panel 18% tinggi di bawah volume; garis `--fg` 1,5 px + garis sinyal `--fg-faint` putus; area 70–100 `--up` opacity 0,08 dan 0–30 `--down` 0,08; garis 50 `--border` | label panel: `Ultimate RSI (14, SMA)`. Di `regime = tren_naik` ini alat momentum **searah** tren; di `range` panel disembunyikan dan diganti catatan "di rentang, pakai RSI klasik (kontrarian)" |
+| **VWAP + pita σ** | VWAP `--accent` 1,5 px; pita ±1σ `--accent` opacity 0,10 (isi), ±2σ garis putus 1 px opacity 0,35 | header panel memuat anchor (`VWAP 20 · anchor 14 Sep`); **tampil hanya bila `regime = range`** (skill: di tren VWAP bukan alat) — kalau user memaksa lewat toggle di rezim tren, tampil dengan label peringatan `--warn` "bukan alat utama saat tren" |
+| **POC / value area** | garis `--warn` 1 px di `poc` + pita `value_area` opacity 0,06 | **wajib** menulis `basis`: `daily` → "perkiraan dari bar harian" · `intraday` → "dari bar 5 menit (N bar)". Tanpa label ini, angka POC menyesatkan |
+
+Aturan: tidak ada perhitungan di frontend (semua titik dari API); `points` kosong → panel/lapisan disembunyikan (bukan garis datar di 0); sumbu URSI selalu 0–100 dengan garis 50 dan ambang `ob`/`os`; `prefers-reduced-motion` → tanpa animasi.
+
+### 6.7 Lapisan konteks SMC & Elliott (toggle, bukan aturan) — docs/03 §11.4–§11.5
+
+- **Gaya SMC** (semua `pointer-events: none`, opacity rendah supaya candle tetap terbaca): BOS/CHoCH = garis putus 1 px + label kecil `BOS`/`CHoCH` di ujung; order block = kotak `--up`/`--down` opacity 0,08 (garis tepi 1 px), yang sudah termitigasi opacity 0,04 + garis putus; FVG = kotak `--border` opacity 0,08; equal high/low = garis titik 1 px + label `2×`; premium/discount = dua pita 0,04 dengan garis tengah 50%.
+- **Gaya Elliott**: ZigZag `--fg-faint` 1 px; label wave `1..5`/`A..C` 10 px di titik pivot; zona Fibonacci = garis putus + label rasio; pola yang `invalidated` digambar **putus-putus + opacity 0,5** dan **selalu** disertai catatan `elliott.note` ("kandidat, bisa berubah") di legenda panel.
+- **Aturan keras**: kedua lapisan tidak boleh muncul sebagai baris level di blok plan (`docs/06` §5.3) dan tidak boleh dijadikan alasan entry — kalau user menanyakannya, jawabannya ada di legenda: "lapisan konteks, bukan sinyal".
+- Default mati karena menambah ~20 garis; menyalakannya dihitung sebagai preferensi tampilan, bukan fitur analisa baru.
+
+### 6.8 Zoom & pan grafik (frontend saja)
+
+- Zoom: roda mouse / `+` `-` keyboard / pinch; **pan**: drag horizontal (dan vertikal bila zoom > 1,5×).
+- Batas: minimal **20 bar**, maksimal seluruh `candles` yang dikirim; tidak boleh melewati tepi data (clamp). Reset: klik ganda atau tombol `Reset`.
+- Setelah zoom/pan: (a) label harga di sumbu kanan tetap dihitung dari rentang yang terlihat, (b) garis level plan/VWAP/POC hanya digambar bila masih di dalam rentang, (c) kotak hover **tetap** mematuhi aturan §6.3 (tidak menutupi 20 bar terakhir) — diuji pada 3 tingkat zoom, (d) `aria-live` menyebut rentang yang terlihat saat zoom berubah.
+- Tanpa zoom/pan di v1 halaman lain (Overview/Weekly) — hanya `CandleChart`.
 
 ## 7. Daftar filter (jawaban pertanyaan "filternya apa saja")
 

@@ -138,6 +138,33 @@ weekly:
   # Risiko per posisi untuk saran jumlah lot (lot = 100 lembar).
   risk_per_trade_idr: 2000000
   require_sektor_kandidat: true     # saham hanya dipilih dari sektor kandidat
+  # Trading plan berbasis analisa teknikal (docs/03 §6.4). Semua level dihitung backend dari
+  # harga penyesuaian; alasan tiap elemen disusun rule-based dari angka ini.
+  plan:
+    pivot_bars: 5                     # pivot = high/low dengan N bar kiri & kanan lebih rendah/tinggi
+    channel_tol_pct: 0.01             # toleransi pengelompokan pivot jadi kanal S/R (±1%)
+    donchian_fast: 20                 # high/low N bar terakhir → level breakout & resistance terdekat
+    donchian_slow: 40                 # target terukur (measured move) jangka lebih panjang
+    swing_low_bars: 10                # low terendah N bar → dasar stop struktural
+    zone_atr: 0.3                     # lebar zona entry = ±0,3 × ATR14 di sekitar level
+    stop_buffer_atr: 0.5              # penyangga di bawah level struktur (biar tidak kena sentuhan)
+    min_stop_atr: 1.0                 # stop tidak boleh lebih ketat dari 1 × ATR14 (noise intraday)
+    max_stop_pct: 0.08                # stop lebih lebar dari 8% → plan ditandai tidak layak untuk swing
+    volume_mult: 1.5                  # konfirmasi volume untuk entry breakout (× rata-rata 20 bar)
+    chase_atr: 2.0                    # harga > 2 × ATR di atas SMA20 → jangan chase, tunggu pullback
+    rr_min_tp2: 3.0                   # TP2 wajib memberi reward:risk minimal 3:1
+    tp1_fallback_atr: 1.5             # TP1 kalau tidak ada resistance di atas entry
+    min_events_hold: 5                # minimal event TA sebelum median lama tahan ditampilkan
+    min_events_scenario: 10           # minimal event sebelum skenario peluang ditampilkan (di bawah ini → null)
+    # Biaya transaksi (basis poin). R:R dihitung SETELAH biaya; RR bruto membuat target dekat
+    # terlihat lebih baik daripada kenyataannya. 15 + 25 bps = 0,15% beli + 0,25% jual
+    # (komisi broker + levy + pajak jual). SESUAIKAN dengan brokermu.
+    fee_buy_bps: 15
+    fee_sell_bps: 25
+    # Gerbang rezim (docs/03 §6.4.0)
+    range_ma_gap: 0.02                # |SMA20−SMA50|/close ≤ ini → rezim `range`
+    thin_zero_volume: 0.2             # share bar volume-0 dalam 20 bar → rezim `tipis`
+    thin_stop_mult: 1.0               # buffer tambahan (× ATR) untuk stop di saham tipis
 
 briefing:
   # docs/05 §3: regime risk_off bila sectors_down ≥ ambang, risk_on bila sectors_up ≥ ambang.
@@ -147,6 +174,7 @@ briefing:
 retention:
   intraday_days: 30
   midday_rrg_days: 60
+  plan_days: 60                     # riwayat `stock_plan` yang disimpan (docs/03 §6.5)
   vacuum_min_file_mb: 200
 
 api:
@@ -168,6 +196,35 @@ market:
   poll_seconds: 60
   # Ambang "datar" untuk label arah intraday IHSG.
   move_flat_pct: 0.0005
+
+chart:
+  # Grafik candle di halaman detail saham (docs/06 §6.5). Overlay mengikuti rezim (docs/03 §6.4.0).
+  window_bars: 120                  # jumlah bar harian yang digambar
+  volume_ma: 20                     # rata-rata volume untuk garis & ambang konfirmasi
+  events: 20                        # maksimum penanda event breakout yang dikirim
+  channel_min_strength: 2           # kanal S/R hanya digambar bila punya ≥ N pivot
+  # Lapisan v2 (docs/03 §11) — semua dihitung backend, dipilih user lewat toggle di grafik.
+  ursi:
+    len: 14
+    method: "sma"                   # rma|ema|sma|tma — `rma` = RSI klasik; `sma`/`tma` lebih halus (penekanan tren)
+    signal_len: 7
+    ob: 70                          # ambang "tren kuat" (bukan sinyal jual)
+    os: 30
+  vwap:
+    len: 20                         # jendela VWAP harian
+    band: [1.0, 2.0]                # kelipatan σ untuk pita
+    anchor: "rolling"               # rolling | pivot_low | quarter
+  poc:
+    bins: 24                        # jumlah bucket harga
+    bars: 60                        # jendela profil
+    value_area: 0.7                 # porsi volume untuk value area
+    basis: "daily"                  # daily (dilabeli "perkiraan") | intraday (butuh bar 5m tersimpan)
+  smc:
+    enabled: false                  # default mati: lapisan konteks, bukan aturan plan (docs/03 §11.4)
+    eq_tol_pct: 0.01                # toleransi equal high/low
+  elliott:
+    enabled: false                  # default mati: kandidat, tidak reproducible (docs/03 §11.5)
+    min_move: 0.03                  # jarak minimum antar pivot ZigZag (3%)
 
 logging:
   level: "INFO"

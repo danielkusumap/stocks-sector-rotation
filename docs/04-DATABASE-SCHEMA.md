@@ -245,7 +245,84 @@ CREATE TABLE ta_breakout (
 CREATE INDEX idx_ta_breakout_ref ON ta_breakout(scope, ref_id, ma_period, trend_filter, signal_date DESC);
 ```
 
+**Migrasi 005** (analisa teknikal → trading plan, `docs/03` §10.9 & §6.4):
+
+```sql
+-- 1) MFE/MAE per event: dipakai untuk "peluang historis target ini kena" (docs/03 §10.9)
+ALTER TABLE ta_breakout ADD COLUMN mfe_pct REAL;
+ALTER TABLE ta_breakout ADD COLUMN mae_pct REAL;
+
+-- 2) Plan berbasis analisa teknikal per pick saham (docs/03 §6.4)
+ALTER TABLE signal_weekly ADD COLUMN regime          TEXT;     -- tren_naik | range | turun | tipis (docs/03 §6.4.0)
+ALTER TABLE signal_weekly ADD COLUMN entry_tool      TEXT;     -- pullback_ma20 | breakout_donchian | sr_channel | pivot_level | none
+ALTER TABLE signal_weekly ADD COLUMN confirm_tool    TEXT;     -- volume | rsi_tepi_range | none  (maks satu)
+ALTER TABLE signal_weekly ADD COLUMN entry_mode      TEXT;     -- pullback | breakout | wait_pullback | no_trade
+ALTER TABLE signal_weekly ADD COLUMN entry_zone_low  REAL;
+ALTER TABLE signal_weekly ADD COLUMN entry_zone_high REAL;
+ALTER TABLE signal_weekly ADD COLUMN stop_pct        REAL;     -- negatif, mis. -0.0612
+ALTER TABLE signal_weekly ADD COLUMN stop_basis      TEXT;     -- struktur_swing_low | volatilitas_atr | lantai_atr
+ALTER TABLE signal_weekly ADD COLUMN tp1             REAL;
+ALTER TABLE signal_weekly ADD COLUMN tp2             REAL;     -- sama dengan `target` (kompatibel)
+ALTER TABLE signal_weekly ADD COLUMN rr_tp1          REAL;     -- sudah bersih biaya
+ALTER TABLE signal_weekly ADD COLUMN rr_tp2          REAL;     -- sudah bersih biaya
+ALTER TABLE signal_weekly ADD COLUMN volume_ratio    REAL;
+ALTER TABLE signal_weekly ADD COLUMN hold_median_periods INTEGER;
+ALTER TABLE signal_weekly ADD COLUMN hit_tp1         REAL;     -- 0..1, dari mfe_pct; NULL kalau event < min_events_hold
+ALTER TABLE signal_weekly ADD COLUMN hit_tp2         REAL;
+ALTER TABLE signal_weekly ADD COLUMN invalidation    TEXT;
+ALTER TABLE signal_weekly ADD COLUMN plan_ok         INTEGER;  -- 0|1; 0 = tetap tampil + catatan alasannya
+ALTER TABLE signal_weekly ADD COLUMN plan_json       TEXT;     -- alasan per elemen + angka dasar + catatan
+```
+
+**Migrasi 006** membuat tabel `stock_plan` (di atas) — dipakai halaman detail saham untuk **semua emiten** (`docs/03` §6.5).
+
+`target` (kolom lama) tetap diisi = `tp2` supaya klien lama tidak pecah; `entry_ref` tetap = close Jumat (acuan),
+sedangkan `entry_zone_low/high` = zona entry aktual. Semua migrasi idempotent-safe (`ADD COLUMN` boleh gagal bila sudah ada →
+bungkus dengan pengecekan `PRAGMA table_info`).
+
 Catatan: statistik (win rate, median periode) **tidak** disimpan di tabel — diagregasi SQL saat endpoint dipanggil supaya tidak ada angka basi. `ingest_run.kind` bertambah satu nilai (`compute_ta`, `docs/05` §4.6).
+
+### `stock_plan` — analisa teknikal untuk **semua emiten** (docs/03 §6.5)
+
+```sql
+CREATE TABLE stock_plan (
+  as_of_date    TEXT NOT NULL,            -- bar harian terakhir yang dipakai
+  ticker        TEXT NOT NULL,
+  regime        TEXT NOT NULL,            -- tren_naik | range | turun | tipis | tidak_cukup_data
+  entry_tool    TEXT,                     -- pullback_ma20 | breakout_donchian | sr_channel | pivot_level | none
+  confirm_tool  TEXT,                     -- volume | rsi_tepi_range | none  (maks satu)
+  entry_mode    TEXT,                     -- pullback | breakout | wait_pullback | no_trade
+  entry_zone_low  REAL,
+  entry_zone_high REAL,
+  stop          REAL,
+  stop_pct      REAL,
+  stop_basis    TEXT,
+  tp1           REAL,
+  tp2           REAL,
+  rr_tp1        REAL,                     -- bersih biaya
+  rr_tp2        REAL,
+  volume_ratio  REAL,
+  hold_median_periods INTEGER,
+  hit_tp1       REAL,                     -- first touch vs −stop (docs/03 §6.4.5)
+  hit_tp2       REAL,
+  p_tp1_first   REAL,                     -- skenario (docs/03 §6.5.2)
+  p_sl_first    REAL,
+  p_timeout     REAL,
+  median_periods_tp1 INTEGER,
+  median_periods_sl  INTEGER,
+  n_events      INTEGER,
+  invalidation  TEXT,
+  summary_lines TEXT,                     -- JSON array 1–3 kalimat (Bahasa Indonesia)
+  plan_ok       INTEGER NOT NULL DEFAULT 0,
+  notes         TEXT,                     -- JSON array
+  plan_json     TEXT,                     -- alasan per elemen (sama seperti signal_weekly)
+  computed_at   TEXT NOT NULL,
+  PRIMARY KEY (as_of_date, ticker)
+);
+CREATE INDEX idx_stock_plan_ticker ON stock_plan(ticker, as_of_date DESC);
+```
+
+Retensi: `retention.plan_days` (default 60 hari) — housekeeping di job harian, sama pola dengan `midday_rrg_days`.
 
 ## 5. View untuk API
 

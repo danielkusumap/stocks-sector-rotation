@@ -190,6 +190,139 @@ Catatan: pilih tanggal uji dari `SELECT DISTINCT as_of_date FROM rrg_daily ORDER
 Catatan: blok `ta` baru ditambahkan ke `config/default.yaml` → salinan config uji lama harus digenerate ulang dari config asli, kalau tidak `Settings()` gagal "Field required".
 Commit (satu task satu commit): `B17: analisa teknikal & backtest MA (SMA, breakout, /ta/*, stage ta)`.
 
+## B18 — Trading plan berbasis analisa teknikal di `weekly/picks`
+
+**Kenapa ada:** user meminta trading plan mingguan disusun dari **analisa teknikal** (bukan hanya MA) **beserta alasannya**, dan tidak semua alat bisa dikombinasikan — pilihan alat harus **dinamis** mengikuti rezim pasar. Rumus lengkap: **`docs/03` §6.4** (termasuk §6.4.0 gerbang rezim) — jangan mengarang rumus di kode. DDL: `docs/04` §4 migrasi **005**. Kontrak: `docs/05` §3 (`api_version` **1.2**). Pemilihan alat & aturan konflik: skill `idx-ta-trading-plan`.
+
+**Deliverable:**
+1. `backend/app/compute/plan.py` (baru):
+   - `detect_regime(conn, ticker, week_end, cfg, metrics, sector_quadrant) -> str` — `tren_naik|range|turun|tipis` sesuai §6.4.0 (urutan cek: tipis > turun > range > tren_naik). Input dari `stock_metrics` d1 (sma20, sma50, rsi14, atr14, median_turnover_20d_idr) + `price_daily` (bar volume-0, close, high, low, adj_close) + `rrg_daily` w1_fri sektor saham itu.
+   - `plan_levels(bars: pd.DataFrame, metrics: dict, regime: str, ta_stats: dict, cfg) -> dict` — **fungsi murni tanpa DB** (mudah diuji): pivot S/R + kanal (`plan.pivot_bars`, `plan.channel_tol_pct`), Donchian 20/40, swing low 10, zona entry, stop (`struktur_swing_low|volatilitas_atr|lantai_atr`), TP1/TP2, `rr_tp1`/`rr_tp2` **bersih biaya**, `hit_tp1`/`hit_tp2` dari `ta_stats` (MFE), `invalidation`, `plan_ok`, `notes[]`, dan `reason` per elemen (≤ 140 char, Bahasa Indonesia, tanpa istilah mentah).
+   - `build_plans(conn, week_end, picks, cfg) -> dict[ticker, dict]` — orkestrasi + bila perlu fallback: kalau `atr14` null → seluruh plan `null` (jangan mengarang level).
+2. `compute/ta.py` diperluas: isi `mfe_pct`/`mae_pct` per event (docs/03 §10.9) supaya `hit_tp1`/`hit_tp2` bisa dihitung tanpa menghitung ulang semua event.
+3. Migrasi `backend/app/db/migrations/005_ta_plan.sql` (kolom di `docs/04` §4; `ADD COLUMN` dibungkus cek `PRAGMA table_info` supaya idempotent-safe) + `python -m backend.cli db-init`.
+4. `compute/signals.py`: panggil `build_plans` per pick saham; isi semua kolom baru; `target = tp2` (kompatibilitas); `entry_ref` tetap = close Jumat; assert **maksimum satu** `confirm_tool` (rancangan dengan dua konfirmasi ditolak).
+5. `app/api/` + `app/api/schemas.py`: `/weekly/picks` mengirim objek `plan` persis bentuk `docs/05` §3, `api_version` naik ke **1.2**; `PlanResponse` pydantic (bukan `-> dict`) supaya kunci terkunci.
+
+**AC:**
+1. Semua test `docs/03` §6.4.8 no. 1–9 **dan** §6.4.8 no. 10–14 (rezim: gate range menolak breakout; tipis menang & tanpa konfirmasi volume; turun → `no_trade`; konfirmasi maks satu; konflik seri → `no_trade`) + §10.9 `test_mfe_mae_dari_seri_naik_turun`.
+2. `atr14` null → plan `null` tanpa exception (`test_atr_null_plan_null`).
+3. Setiap `reason` ≤ 140 char dan tidak memuat istilah mentah (`SMA20`, `ATR`, `R:R`, `RSI`, `breakout`, `Donchian`) — assert lewat helper pemotong yang sudah ada.
+4. `rr_tp1`/`rr_tp2` **bersih biaya**: menaikkan `fee_buy_bps`/`fee_sell_bps` menurunkan `rr_*` (test), dan bisa membuat `plan_ok=false` dengan `notes` yang menyebut angkanya.
+5. `hit_tp1`/`hit_tp2` = `share(mfe_pct ≥ pct target)`; `n_events < plan.min_events_hold` → `null` (bukan 0).
+6. Recompute idempoten: `stage=signals` 2× → nilai kolom plan sama (kecuali `computed_at`).
+7. HTTP: `GET /api/v1/weekly/picks` → `api_version` `1.2`, tiap pick saham punya `plan` dengan kunci lengkap; pick lama (baris `signal_weekly` sebelum migrasi) → `plan: null` dan endpoint tetap 200.
+8. `week_end` minggu berjalan → `409 gate_weekly_not_final` tidak berubah.
+
+**Bukti:** `pytest -q backend` hijau + run nyata `stage=signals` dengan config salinan (`ROTATION_CONFIG` ke DB di luar repo, 10–20 emiten — **jangan** backfill penuh) + dump JSON satu pick per rezim (tren_naik & range minimal, kalau tidak ada → buat fixture sintetis dan sebut itu) ke `docs/evidence/b18/` + agregat SQL `hit_tp1`/`hit_tp2` nyata + potongan respons `weekly/picks`.
+Catatan: blok `weekly.plan` baru di config → salinan config uji lama harus digenerate ulang. Commit: `B18: trading plan TA (rezim dinamis, stop struktur, RR bersih biaya)`.
+
+## B19 — `GET /api/v1/series/stock/{ticker}`: bahan grafik candle + overlay TA
+
+**Kenapa ada:** user ingin melihat **candlestick beserta TA** di halaman detail saham, dengan overlay yang **sesuai aturan & rezim** kita (docs/03 §6.4.0, §6.4.9) — bukan indikator sembarangan. Data sudah ada (`price_daily` 2 tahun OHLC penyesuaian + `ta_breakout`), yang kurang hanya endpoint yang menyajikannya. Kontrak: `docs/05` §2. Tampilan: `docs/06` §6.5.
+
+**Deliverable:**
+1. `app/api/series.py` (atau modul yang sudah memuat `/series/sector`): tambah `GET /api/v1/series/stock/{ticker}` persis bentuk `docs/05` §2 — `candles`, `overlays.ma`/`donchian`/`channels`/`volume_ma`, `levels`, `events`, `regime`, `active_tools`, `regime_reason`, `volume_confirm_mult`, `data_status`; `response_model` pydantic di `schemas.py`.
+2. Pakai ulang mesin yang sudah ada, **jangan menyalin**: `compute/plan.py` untuk `detect_regime`, pivot/kanal (§6.4.9) dan level plan terakhir; `compute/ta.py` untuk statistik event; `repo/read.py` untuk `data_status`/window.
+3. `candles` memakai harga penyesuaian (ADR-040): `open/high/low` diskalakan `adj_close/close` per bar; `bars` maks 400 (400 → `422`).
+4. Ticker tidak ada di `stock` → `404 not_found`; ticker ada tapi belum punya bar → `200` dengan `candles: []`.
+5. Tidak menambah kolom/tabel baru (semua dihitung saat request) dan **tidak** mengirim VWAP/SMC/Elliott.
+
+**AC:**
+1. `GET /series/stock/BBRI` → `api_version` `1.0`, `price_basis: "adj_close"`, `candles` urut lama→baru dan jumlahnya = `min(bars, bar tersedia dalam window)`.
+2. `overlays.ma["20"]` tidak memuat `null` (warmup dibuang) dan nilainya sama dengan `stock_metrics.sma20` untuk tanggal yang sama (uji silang 3 tanggal, tempel angkanya).
+3. `overlays.donchian.fast.high` untuk bar terakhir = `max(high)` 20 bar terakhir — diverifikasi ulang dengan SQL manual (tempel query + hasilnya).
+4. `channels` hanya memuat kanal `strength ≥ chart.channel_min_strength`; `test_pivot_butuh_bar_kiri_kanan` & `test_kanal_kelompokkan_pivot_berdekatan` lulus.
+5. `levels` = plan pick terakhir ticker itu (`week_end`, zona, stop, tp1, tp2, `rr_tp2`, `plan_ok`); `null` bila belum ada pick — endpoint tetap 200.
+6. `events` = baris `ta_breakout` MA20 (trend_filter sesuai config) + `mfe_pct`/`mae_pct`; jumlah ≤ `events`.
+7. `regime`/`active_tools`/`regime_reason` konsisten dengan `plan` di `/weekly/picks` untuk ticker & pekan yang sama (uji silang, bukan dua mesin berbeda).
+8. `bars=500` → `422`; `BBRI` tanpa bar di DB uji → `200` + `candles: []`; ticker `ZZZZ` → `404`.
+9. `pytest -q backend` hijau + tidak ada regresi pada `/series/sector/{code}`.
+
+**Bukti:** dump JSON endpoint untuk 2 ticker (1 rezim `tren_naik`, 1 rezim `range` bila ada; kalau tidak ada, sebut dan tunjukkan `regime` yang benar-benar keluar) ke `docs/evidence/b19/` + uji silang MA20/Donchian vs SQL manual + respons `404` & `422` + `pytest -q`.
+Commit: `B19: endpoint series/stock (candle + overlay TA sesuai rezim)`.
+
+## B20 — Analisa teknikal untuk **semua emiten** (`stock_plan`) + `GET /plan/stock/{ticker}`
+
+**Kenapa ada:** user ingin membuka **detail saham apa pun** dan langsung melihat semua yang sudah terbaca: rezim, plan (zona/batas rugi/target/R:R), **skenario peluang historis**, ringkasan, dan alasan. `§6.4` (B18) hanya menghitung plan untuk pick mingguan; sekarang mesin yang sama dijalankan untuk **semua emiten aktif** dan disimpan di `stock_plan`. Rumus: `docs/03` **§6.5** (+§6.4, §10.9). DDL: `docs/04` §4 (migrasi **006**). Kontrak: `docs/05` §2 `/plan/stock/{ticker}`.
+
+**Deliverable:**
+1. `compute/plan.py` diperluas (jangan bikin modul kedua):
+   - `first_touch(bars, entry_date, up_pct, down_pct, horizon)` → `up|down|timeout|open` + jumlah bar (docs/03 §10.9);
+   - `scenario(events, bars, levels, cfg)` → `p_tp1_first`, `p_sl_first`, `p_timeout`, `p_tp2_first`, `median_periods_tp1`, `median_periods_sl`, `n_events`, `n_open_dikeluarkan` (docs/03 §6.5.2); `n_events < weekly.plan.min_events_scenario` → seluruhnya `None`;
+   - `summary_lines(...)` → 1–3 kalimat (docs/03 §6.5.1), tiap kalimat ≤ 140 char, tanpa istilah mentah;
+   - `plan_for_all(conn, cfg, report=None)` → loop **semua** `stock.is_active = 1`, pakai `detect_regime` + `plan_levels` yang sudah ada, `upsert` ke `stock_plan` per `as_of_date`, progres tiap 50 emiten (`report(rows=…, rows_total=jumlah_emiten, message="emiten 250/962")`).
+2. Migrasi `006_stock_plan.sql` (DDL `docs/04`) + retensi `retention.plan_days` di housekeeping (pola sama seperti `midday_rrg_days`).
+3. `jobs.py`: `stage=ta` menjalankan (a) statistik MA/breakout `ta_breakout`, lalu (b) `plan_for_all` — satu tombol, `kind` tetap `compute_ta`; `stage=all` ikut. `result_json` tambah `plan_rows`, `plan_refs`, `plan_skipped_short_history`, `scenario_null_refs`.
+4. `app/api/plan.py` + `schemas.py`: `GET /api/v1/plan/stock/{ticker}` persis `docs/05` §2 (`regime`, `summary_lines`, `plan`, `scenario`, `levels_table`, `coverage`, `data_status`), `response_model` pydantic. `/series/stock/{ticker}` (B19) **membaca baris `stock_plan` yang sama** — jangan menghitung ulang rezim/level di dua tempat.
+5. `compute/signals.py`: tetap memakai `plan.py` untuk pick mingguan; tambahkan assert bahwa untuk ticker+pekan yang sama, level & rezim `signal_weekly` = `stock_plan` pada `as_of_date` yang sama (test no. 6 di docs/03 §6.5.4).
+
+**AC:**
+1. Semua test `docs/03` §6.5.4 (6 test) + `test_first_touch_urutan` (§10.9) lulus.
+2. `stage=ta` pada fixture 5 emiten → 5 baris `stock_plan` untuk `as_of_date` terakhir; emiten riwayat pendek → `regime = tidak_cukup_data`, level `null`.
+3. Skenario memakai **first touch**, bukan MFE: seri yang menyentuh +TP1 di bar 3 lalu −stop di bar 5 → `p_tp1_first = 1.0` (test khusus, karena MFE akan menyesatkan).
+4. `n_events < min_events_scenario` → `scenario` `null` dan `summary_lines` memuat "belum cukup riwayat".
+5. Idempoten: `stage=ta` 2× → jumlah baris `stock_plan` untuk `as_of_date` sama (upsert).
+6. Konsistensi satu mesin: untuk 3 ticker yang juga pick mingguan, `stock_plan.stop/tp1/tp2/regime` = nilai di `signal_weekly` (uji silang, tempel angkanya).
+7. HTTP: `GET /plan/stock/BBRI` → kunci lengkap sesuai `docs/05` §2; `summary_lines` 1–3 kalimat; `levels_table` berurutan tetap.
+8. `GET /plan/stock/ZZZZ` → `404`; ticker dengan < `ta.min_history` bar → **200** + `regime.code = tidak_cukup_data` + `plan: null`.
+9. `GET /series/stock/BBRI` (B19) memuat `regime`/`levels` yang **identik** dengan `/plan/stock/BBRI` (satu sumber).
+10. Retensi: baris `stock_plan` lebih tua dari `retention.plan_days` terhapus saat housekeeping (uji dengan data sintetis).
+11. Perf dicatat apa adanya: durasi `plan_for_all` untuk jumlah emiten yang diuji, dan ekstrapolasi kasar untuk 962 (jangan diklaim, ukur lalu tulis).
+
+**Bukti:** `pytest -q backend` hijau + run `stage=ta` nyata dengan config salinan (10–20 emiten) + dump JSON `/plan/stock/{ticker}` untuk **3 rezim berbeda** (`tren_naik`, `range`, `tidak_cukup_data`) ke `docs/evidence/b20/` + uji silang `stock_plan` vs `signal_weekly` + angka `scenario` yang direplay manual (1 ticker: hitung first touch dengan SQL/Python dan tunjukkan hasilnya sama) + durasi run.
+Commit: `B20: stock_plan untuk semua emiten + endpoint plan/stock`.
+
+## B21 — Lapisan `indicators` di `series/stock`: Ultimate RSI + VWAP/σ + POC
+
+**Kenapa ada:** user meminta indikator tambahan yang sudah dipelajari (Ultimate RSI, VWAP deviation, volume profile/POC) tampil di grafik detail saham. Semuanya **bisa** dihitung dari data yang ada; batasnya jujur: POC dari bar harian hanya **perkiraan** (volume intra-bar tidak diketahui) dan presisi butuh bar 5m (retensi 30 hari; DB dev baru 2 hari). Rumus: **`docs/03` §11.1–§11.3 + §11.6**. Kontrak: `docs/05` §2 (`layers`, `indicators`). Tampilan: `docs/06` §6.6.
+
+**Deliverable:**
+1. `compute/indicators.py` (baru, **fungsi murni** + satu orkestrator):
+   - `ursi(bars, len, method, signal_len)` — rumus `docs/03` §11.1; `method ∈ rma|ema|sma|tma`; **wajib** komentar di kode: `method=rma` ≡ RSI klasik (Wilder) — "penekanan tren" berasal dari smoothing, bukan rumus berbeda.
+   - `vwap(bars, len, band, anchor)` — `rolling|pivot_low|quarter`; volume 0 dilewati dari penyebut; mengembalikan `points` + `anchor_date`.
+   - `volume_profile(bars, bins, bars_window, value_area, basis)` — POC + value area; `basis: "daily"` (default) atau `"intraday"` (baca `price_intraday` 5m; kalau bar intraday tidak ada → fallback `daily` **dan** laporkan `basis` yang benar-benar dipakai).
+2. `app/api/series.py`: `GET /series/stock/{ticker}` menerima `layers` (default `indicators`) dan mengirim blok `indicators` persis `docs/05` §2; tanpa `indicators` → kunci itu tidak dikirim (`None`, bukan objek kosong).
+3. Semua nilai dari harga penyesuaian; `points` kosong → array kosong (bukan `null` per titik).
+4. **Tidak** menyentuh `plan.py`/`stock_plan`: lapisan tidak boleh mengubah level/rezim (test no. 9 `docs/03` §11.6).
+
+**AC:**
+1. `test_ursi_rma_sama_dengan_rsi14`: `ursi(method="rma")` = `stock_metrics.rsi14` pada 3 tanggal (toleransi 1e-6) — membuktikan rumus benar, bukan tafsiran.
+2. `test_ursi_metode_sma_lebih_halus`: stdev selisih antar-bar `sma` < `rma`.
+3. `test_vwap_volume_nol_dilewati` + `test_vwap_anchor_pivot_low` (anchor = tanggal pivot low terakhir, `anchor_date` ikut).
+4. `test_poc_dari_bar_harian_dilabeli_perkiraan`: `basis="daily"`, `bars_used` = jumlah bar yang benar-benar dipakai, POC = bucket dengan Σvolume terbesar (diverifikasi manual dengan pandas, tempel angkanya).
+5. `layers` tidak dikenal → `400 invalid_layer`; `layers=` (kosong) → blok `indicators` tidak dikirim.
+6. `test_lapisan_tidak_mengubah_plan`: `stock_plan`/`signal_weekly` identik dengan/tanpa lapisan.
+7. Perf: satu ticker 400 bar → endpoint < 200 ms di mesin dev (ukur dan tempel angkanya).
+
+**Bukti:** dump JSON `series/stock/BBRI?layers=indicators` (dan satu ticker `range`) ke `docs/evidence/b21/` + perhitungan manual POC/VWAP (tempel) + `pytest -q backend` + angka durasi.
+Commit: `B21: lapisan indicators di series/stock (Ultimate RSI, VWAP, POC)`.
+
+## B22 — Lapisan konteks `smc` & `elliott` di `series/stock`
+
+**Kenapa ada:** user ingin melihat struktur SMC (BOS/CHoCH, order block, FVG, equal high/low, premium/discount) dan kandidat Elliott di grafik. Keduanya bisa dihitung dari OHLC + pivot — **tanpa data baru** — tapi keduanya **lapisan konteks**: tidak boleh dipakai entry/stop/target (`docs/03` §11.4–§11.5, skill `idx-ta-trading-plan`: maksimum satu alat utama + satu konfirmasi). Default **mati**; hanya dikirim bila diminta (`layers=…,smc,elliott`). Tampilan: `docs/06` §6.7.
+
+**Deliverable:**
+1. `compute/structure.py` (baru, fungsi murni):
+   - pivot swing (pakai `plan.pivot_bars`, level penyesuaian — **pakai ulang** helper pivot di `compute/plan.py`, jangan tulis kedua),
+   - `smc_layers(bars, cfg)` → `bos`, `choch`, `order_blocks`, `fvg`, `equal_levels`, `range` (premium/discount) sesuai definisi `docs/03` §11.4 — **BOS/CHoCH butuh `close` menembus level**, bukan hanya `high` (test khusus),
+   - `elliott_layers(bars, cfg)` → `zigzag`, `waves` (aturan: wave2 tidak melewati awal wave1, wave4 tidak tumpang tindih wave1, wave3 bukan terpendek), `fib_zones`, `status`, `invalidated`, `note` ("kandidat, bisa berubah").
+2. `app/api/series.py`: kirim `smc`/`elliott` hanya bila diminta; `elliott.status` ∈ `candidate|invalidated`; pola batal tetap dikirim dengan `invalidated=true`.
+3. Tidak menambah tabel/kolom; semua dihitung saat request (ticker tunggal, ≤ 400 bar).
+
+**AC:**
+1. `test_smc_fvg_bullish` & `test_smc_fvg_bearish`: fixture 3 bar → satu FVG dengan level = batas celah.
+2. `test_smc_bos_butuh_close`: `high` menembus swing high tetapi `close` tidak → **bukan** BOS.
+3. `test_smc_order_block_candle_terakhir_sebelum_impuls`: OB bullish = candle turun terakhir sebelum impuls yang memecah struktur; `mitigated` benar setelah harga kembali menyentuhnya.
+4. `test_smc_equal_levels_toleransi`: dua pivot dalam `chart.smc.eq_tol_pct` → satu baris `equal_levels` dengan `count: 2`.
+5. `test_elliott_invalidated_ditandai`: pola yang dilanggar bar baru → `invalidated=true` **tetap dikirim** + `note` memuat "kandidat".
+6. `test_elliott_min_move`: pivot dengan jarak < `chart.elliott.min_move` tidak membentuk ZigZag baru.
+7. `test_lapisan_tidak_mengubah_plan` (sama seperti B21 no. 6) + `layers` tanpa `smc`/`elliott` → kunci tidak dikirim.
+8. Perf: ticker 400 bar, semua lapisan aktif → endpoint < 300 ms (ukur, tempel).
+
+**Bukti:** dump JSON 2 ticker (1 `range`, 1 `tren_naik`) dengan semua lapisan ke `docs/evidence/b22/` + verifikasi manual satu FVG & satu BOS (tempel bar-nya) + `pytest -q backend`.
+Commit: `B22: lapisan konteks smc & elliott di series/stock`.
+
 ---
 
 ## Aturan tambahan untuk agen backend
