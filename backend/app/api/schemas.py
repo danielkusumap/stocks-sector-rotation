@@ -468,6 +468,17 @@ class WatchItem(BaseModel):
     message: str
 
 
+class WatchlistItem(BaseModel):
+    """Sektor/saham yang menarik dipantau (docs/05 §3), dihitung ulang tiap panggilan — bukan tabel DB."""
+
+    kind: str  # sector | stock
+    ref_id: str
+    name: str
+    quadrant: str | None
+    streak_weeks: int
+    reason: str
+
+
 class BriefingResponse(Envelope):
     generated_at: str
     data_status: DataStatus
@@ -479,6 +490,8 @@ class BriefingResponse(Envelope):
     midday: MiddayBlock
     watch: list[WatchItem]
     notes_for_report: str
+    summary_lines: list[str]
+    watchlist: list[WatchlistItem]
 
 
 # --- §3 weekly picks ------------------------------------------------------------

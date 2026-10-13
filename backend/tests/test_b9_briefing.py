@@ -40,7 +40,7 @@ def test_briefing_kontrak_dan_selalu_200(client):
 
     assert set(body) == {
         "api_version", "generated_at", "data_status", "market", "leaders", "laggards", "changes",
-        "weekly_focus", "midday", "watch", "notes_for_report",
+        "weekly_focus", "midday", "watch", "notes_for_report", "summary_lines", "watchlist",
     }
     market = body["market"]
     assert set(market) == {"ihsg_close", "ihsg_ret_1d", "ihsg_ret_1w", "sectors_up", "sectors_down", "breadth", "regime", "regime_note"}
