@@ -216,6 +216,30 @@ Format:
 - alternatif: membiarkan `ok` + `as_of: null` → ditolak: kontrak `docs/05` §3 memakai `status` untuk badge; "ok" tanpa data menyesatkan frontend dan user.
 - dampak: frontend boleh memakai `status` saja untuk badge. Endpoint dengan `data_status`: `/rrg`, `/sectors/summary`, `/sectors/{code}`, `/stocks`, `/briefing/morning` (sisanya tanpa `data_status` sesuai `docs/05`).
 
+## ADR-033 — Run `already_imported` dicatat `skipped`, bukan `failed`
+- tanggal: 2026-10-13
+- status: diterima
+- konteks: `POST /admin/import/excel` yang ditolak `409 already_imported` mencatat baris `ingest_run` sebagai `failed` karena pekerja job melempar `excel.AlreadyImported` ke penanganan error umum. Halaman Data memakai status run terakhir per `kind` untuk mengunci/membuka tombol pipeline, jadi mengimpor file yang sama membuat tombol 2 terkunci permanen padahal prasyaratnya justru sudah terpenuhi.
+- keputusan: `jobs._worker` menangkap `excel.AlreadyImported` **sebelum** penanganan error umum dan menutup run dengan status `skipped` + pesan `file sudah pernah diimport (import_id=N)`. HTTP tidak berubah: API tetap membalas `409` dengan `error.code=already_imported` dan `detail {import_id, sha256}`; CLI tetap menulis error ke stderr dengan exit 1. Kegagalan nyata (file rusak, sheet asing, 0 baris valid) tetap lewat jalur umum → `failed`.
+- alternatif: (a) menandai `ok` → ditolak: tidak ada satu baris pun yang diimpor, klaim "berhasil" menyesatkan; (b) menambah kolom/kind baru → ditolak: enam kind baku sudah dibekukan §4.6 dan `skipped` sudah ada di daftar status §4.3; (c) menandai di lapisan API saja → ditolak: jalur CLI mencatat run yang sama dan harus konsisten (`jobs.execute` = jalur tunggal).
+- dampak: tombol import tidak lagi terkunci setelah user memilih file yang sama; riwayat run di halaman Data membedakan "tidak perlu diulang" dari "gagal".
+
+## ADR-034 — `data_status.range_from/range_to/range_label` (rentang yang benar-benar dipakai)
+- tanggal: 2026-10-13
+- status: diterima
+- konteks: `docs/05` §0 menambah tiga field rentang supaya UI bisa menampilkan "diambil dari periode berapa sampai berapa" tanpa menebak; sebelumnya `data_status` hanya membawa `as_of`, sehingga halaman tidak punya cara membedakan satu hari (`d1`) dari minggu lengkap (`w1_fri`), dan label tanggal finansial akan disusun ulang di frontend (dilarang §5 butir 6).
+- keputusan: `read.data_range()` + `read.range_label()` (satu helper, Bahasa Indonesia `d Mmm yyyy`) mengisi ketiganya dari `read.data_status()`, jadi semua endpoint yang sudah memakai `data_status` otomatis ikut. Aturan: `w1_fri` = Senin..Jumat minggu `as_of`; `w1` = Senin..hari bursa terakhir; `midday` = hari ini..hari ini; `d1` = satu hari `as_of`, **kecuali** endpoint memakai `window` untuk kolom return/ekor → `range_from` = bar terjauh yang dipakai kolom itu (`window_start`). `/heatmap` memakai `window="3m"` tetap karena kolomnya `1d,1w,1m,3m`; `/rotation/matrix` memakai `window` miliknya; `/stocks` (tanpa `window` per §2) tetap satu hari. `range_label` = `5–9 Okt 2026` (bulan sama), `15 Jul – 12 Okt 2026` (bulan beda), `30 Des 2025 – 2 Jan 2026` (tahun beda), `12 Okt 2026` (satu hari). Belum ada hasil hitung → ketiganya `null`. `data_status` ditambahkan ke `/heatmap`, `/rotation/matrix`, `/stocks/{ticker}` (tadinya tidak punya) dan `/series/sector/{code}` mendapat `range_from/range_to/range_label` (punya rentang sendiri, labelnya konsisten).
+- alternatif: (a) menyusun label di frontend → ditolak: §5 butir 6 melarang frontend memformat ulang angka/tanggal finansial; (b) `w1`/`w1_fri` ikut `window` → ditolak: hasil mingguan hanya berlaku untuk minggunya, label 3 bulan akan menyesatkan (bukti gladi: `w1_fri&window=3m` harus tetap 5–9 Okt); (c) menambah endpoint rentang terpisah → ditolak: satu blok `data_status` sudah diambil semua halaman.
+- dampak: frontend bisa menampilkan satu label rentang dari `data_status` untuk semua tabel/diagram. `d1` + `window` kini berbeda dari tabel §0 baris pertama (yang menyebut satu hari) — diselaraskan lewat catatan §0 sendiri ("kalau `window` dipakai untuk kolom return/ekor"), dan diuji `test_range_d1_ikut_window_untuk_kolom_return`.
+
+## ADR-035 — `/weekly/picks` menambah `week_start` + `week_label` (api_version 1.1)
+- tanggal: 2026-10-13
+- status: diterima
+- konteks: board mingguan (F9) hanya menerima `week_end`, sehingga label "5–9 Okt 2026" harus disusun frontend — dilarang §5 butir 6, dan Senin minggu itu tidak pernah terlihat user.
+- keputusan: respons menambah `week_start` (Senin minggu `week_end`, `read.monday`) dan `week_label` (`read.range_label(week_start, week_end)`), `api_version` naik `1.0 → 1.1` (§6: penambahan field = minor). Kasus kosong (`week_end` null) mengirim ketiganya `null`.
+- alternatif: membiarkan frontend menghitung Senin → ditolak: alasan yang sama dengan ADR-034.
+- dampak: aditif, frontend lama tetap jalan. Dijaga `test_weekly_picks_week_start_dan_label` + `test_weekly_picks_kosong_tetap_punya_field_baru`.
+
 ## ADR-005 — Git: satu task = satu commit, repo lokal dulu
 - tanggal: 2026-10-12
 - status: diterima

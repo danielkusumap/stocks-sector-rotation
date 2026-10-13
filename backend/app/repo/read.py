@@ -37,8 +37,50 @@ def resolve_as_of(conn, timeframe: str, *, scope: str = "sector", weighting: str
     return row[0] if row else None
 
 
-def data_status(conn, *, as_of: str | None, timeframe: str, weighting: str) -> dict:
-    """Blok `data_status` konvensi `docs/05` (status: ok | stale | partial).
+MONTH_ID = ("Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des")
+
+
+def monday(iso_date: str) -> str:
+    """Senin minggu yang memuat `iso_date` (docs/05 §0: `w1`/`w1_fri` mulai Senin)."""
+    d = date.fromisoformat(iso_date)
+    return (d - timedelta(days=d.weekday())).isoformat()
+
+
+def range_label(start: str | None, end: str | None) -> str | None:
+    """Label rentang Bahasa Indonesia (docs/05 §0): `5–9 Okt 2026`, `15 Jul – 12 Okt 2026`."""
+    if not start or not end:
+        return None
+    a, b = date.fromisoformat(start), date.fromisoformat(end)
+    ma, mb = MONTH_ID[a.month - 1], MONTH_ID[b.month - 1]
+    if a == b:
+        return f"{a.day} {ma} {a.year}"
+    if (a.year, a.month) == (b.year, b.month):
+        return f"{a.day}–{b.day} {ma} {a.year}"
+    if a.year == b.year:
+        return f"{a.day} {ma} – {b.day} {mb} {a.year}"
+    return f"{a.day} {ma} {a.year} – {b.day} {mb} {b.year}"
+
+
+def data_range(as_of: str | None, timeframe: str, window: str | None = None) -> tuple[str | None, str | None]:
+    """`(range_from, range_to)` = rentang yang BENAR-BENAR dipakai hitungan ini (docs/05 §0).
+
+    `w1`/`w1_fri`/`midday` = rentang periode itu sendiri; `d1` = satu hari `as_of`, kecuali endpoint
+    memakai `window` untuk kolom return/ekor → awal rentang = bar terjauh yang dipakai kolom itu.
+    """
+    if not as_of:
+        return None, None
+    if timeframe == "w1_fri":
+        start = monday(as_of)
+        return start, (date.fromisoformat(start) + timedelta(days=4)).isoformat()
+    if timeframe == "w1":
+        return monday(as_of), as_of
+    if timeframe == "midday":
+        return as_of, as_of
+    return (window_start(as_of, window) or as_of), as_of
+
+
+def data_status(conn, *, as_of: str | None, timeframe: str, weighting: str, window: str | None = None) -> dict:
+    """Blok `data_status` konvensi `docs/05` (status: ok | stale | partial) + rentang yang dipakai.
 
     `stale` mengikuti blok `daily_ingest` dari `freshness.read` (dihitung dari `price_daily`), jadi
     tidak ada ambang tanggal yang dikarang di sini (ADR-023).
@@ -63,12 +105,16 @@ def data_status(conn, *, as_of: str | None, timeframe: str, weighting: str) -> d
         status = "stale"
     else:
         status = "ok"
+    range_from, range_to = data_range(as_of, timeframe, window)
     return {
         "as_of": as_of,
         "timeframe": timeframe,
         "status": status,
         "last_data_at": daily.get("last_data_at"),
         "computed_at": computed_at,
+        "range_from": range_from,
+        "range_to": range_to,
+        "range_label": range_label(range_from, range_to),
         "partial_sectors": partial_sectors,
     }
 

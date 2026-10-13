@@ -14,7 +14,7 @@ from typing import Callable
 
 from . import db
 from .compute import index, metrics, midday as midday_compute, rrg, signals
-from .ingest import freshness, prices
+from .ingest import excel, freshness, prices
 from .repo import run as runs
 
 # fn(params, report) -> dict hasil. `report(rows=…, rows_total=…, message=…, phase=…)` menulis progres.
@@ -170,6 +170,16 @@ def _worker(run_id: int, params: dict, fn: JobFn, raise_errors: bool) -> dict | 
             result=result,
         )
         return result
+    except excel.AlreadyImported as exc:
+        # "file sudah pernah diimport" = prasyarat terpenuhi, bukan kegagalan (docs/05 §4.3 `skipped`).
+        # HTTP tetap 409 lewat pemanggil (API), dan UI tidak boleh mengunci tombol import gara-gara ini.
+        try:
+            runs.finish(conn, run_id, "skipped", message=f"file sudah pernah diimport (import_id={exc.import_id})")
+        except sqlite3.Error:
+            pass
+        if raise_errors:
+            raise
+        return None
     except Exception as exc:
         try:
             runs.finish(conn, run_id, "failed", message=f"{type(exc).__name__}: {exc}"[:500])

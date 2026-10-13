@@ -247,7 +247,7 @@ def test_stocks_list(client):
 
 def test_stock_detail(client):
     body = client.get("/api/v1/stocks/AAAA?window=1m").json()
-    assert set(body) == {"api_version", "stock", "metrics", "series", "last_pick"}
+    assert set(body) == {"api_version", "stock", "metrics", "series", "last_pick", "data_status"}
     assert body["stock"]["yahoo_symbol"] == "AAAA.JK"
     assert set(body["metrics"]) == {
         "close", "sma20", "sma50", "rsi14", "atr14", "ret_1d", "ret_1w", "ret_1m", "median_turnover_20d_idr",
@@ -266,7 +266,7 @@ def test_stock_detail(client):
 
 def test_matrix_heatmap_series(client):
     matrix = client.get("/api/v1/rotation/matrix").json()
-    assert set(matrix) == {"api_version", "timeframe", "from", "to", "cells", "changes"}  # alias "from" benar
+    assert set(matrix) == {"api_version", "timeframe", "from", "to", "cells", "changes", "data_status"}  # alias "from" benar
     assert matrix["to"] == "2026-10-14" and matrix["from"] < matrix["to"]
     assert all(set(c) == {"from", "to", "count", "refs"} for c in matrix["cells"])
 

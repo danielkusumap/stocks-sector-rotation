@@ -168,7 +168,7 @@ def get_rrg(
             "weighting": weighting,
             "quadrants": {q: sum(1 for i in items if i["quadrant"] == q) for q in QUADRANT_LABEL},
             "items": items,
-            "data_status": read.data_status(conn, as_of=as_of, timeframe=timeframe, weighting=weighting),
+            "data_status": read.data_status(conn, as_of=as_of, timeframe=timeframe, weighting=weighting, window=window),
         }
     finally:
         conn.close()
@@ -197,11 +197,20 @@ def get_matrix(timeframe: str = "d1", window: str = "3m", scope: str = "sector",
         latest = read.resolve_as_of(conn, timeframe, scope=scope, weighting=weighting)
         start = read.window_start(latest, window)
         rows = [dict(r) for r in conn.execute(MATRIX_SQL, (timeframe, weighting, scope, latest, start or "0000-01-01"))]
+        status = read.data_status(conn, as_of=latest, timeframe=timeframe, weighting=weighting, window=window)
     finally:
         conn.close()
 
     if not rows:
-        return {"api_version": _API_VERSION, "timeframe": timeframe, "from": None, "to": None, "cells": [], "changes": []}
+        return {
+            "api_version": _API_VERSION,
+            "timeframe": timeframe,
+            "from": None,
+            "to": None,
+            "cells": [],
+            "changes": [],
+            "data_status": status,
+        }
 
     to_date = max(r["as_of_date"] for r in rows)
     previous = sorted({r["as_of_date"] for r in rows if r["as_of_date"] < to_date})
@@ -223,6 +232,7 @@ def get_matrix(timeframe: str = "d1", window: str = "3m", scope: str = "sector",
             [{"ref_id": r["ref_id"], "name": r["name"], "from": r["quadrant_prev"], "to": r["quadrant"], "as_of": r["as_of_date"]} for r in current],
             key=lambda c: c["ref_id"],
         ),
+        "data_status": status,
     }
 
 
@@ -237,6 +247,8 @@ def get_heatmap(timeframe: str = "d1", as_of: str | None = None, weighting: str 
     try:
         as_of = read.resolve_as_of(conn, timeframe, scope="sector", weighting=weighting, as_of=as_of)
         rows = [dict(r) for r in conn.execute(HEATMAP_SQL, (as_of, timeframe, weighting, weighting, weighting, as_of))]
+        # kolom heatmap paling jauh `3m` → awal rentang = 3 bulan ke belakang (docs/05 §0)
+        status = read.data_status(conn, as_of=as_of, timeframe=timeframe, weighting=weighting, window="3m")
     finally:
         conn.close()
     columns = ["1d", "1w", "1m", "3m"]
@@ -251,6 +263,7 @@ def get_heatmap(timeframe: str = "d1", as_of: str | None = None, weighting: str 
             }
             for r in rows
         ],
+        "data_status": status,
     }
 
 
@@ -282,4 +295,11 @@ def get_sector_series(
         ]
     finally:
         conn.close()
-    return {"api_version": _API_VERSION, "code": code.upper(), "points": points}
+    return {
+        "api_version": _API_VERSION,
+        "code": code.upper(),
+        "range_from": start,
+        "range_to": end,
+        "range_label": read.range_label(start, end),
+        "points": points,
+    }

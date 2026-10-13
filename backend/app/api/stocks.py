@@ -188,6 +188,13 @@ def stock_detail(
                 if pick
                 else None
             ),
+            "data_status": read.data_status(
+                conn,
+                as_of=as_of or read.resolve_as_of(conn, timeframe, scope="stock"),
+                timeframe=timeframe,
+                weighting=cfg.universe["weighting"],
+                window=window,
+            ),
         }
     finally:
         conn.close()

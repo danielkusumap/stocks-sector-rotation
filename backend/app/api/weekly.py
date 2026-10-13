@@ -7,10 +7,11 @@ from fastapi import APIRouter, Query
 from .. import db
 from ..compute import signals
 from ..config import get_settings
+from ..repo import read
 from .schemas import WeeklyPicksResponse
 
 router = APIRouter(prefix="/api/v1", tags=["weekly"])
-_API_VERSION = get_settings().app.api_version
+_API_VERSION = "1.1"  # docs/05 §3: `week_start` + `week_label` aditif (v1.0 → 1.1)
 
 WEEK_SQL = "SELECT MAX(week_end) FROM signal_weekly"
 SECTORS_SQL = """
@@ -44,7 +45,15 @@ def weekly_picks(
     try:
         week = week_end or conn.execute(WEEK_SQL).fetchone()[0]
         if week is None:
-            return {"api_version": _API_VERSION, "week_end": None, "is_final": False, "sectors": [], "stocks": []}
+            return {
+                "api_version": _API_VERSION,
+                "week_end": None,
+                "week_start": None,
+                "week_label": None,
+                "is_final": False,
+                "sectors": [],
+                "stocks": [],
+            }
         final_weeks = set(signals.weekly_calendar(conn, get_settings().ingest["benchmark_alias"]))
         wants = {s.strip() for s in scope.split(",") if s.strip()}
         sectors = [
@@ -58,9 +67,12 @@ def weekly_picks(
     finally:
         conn.close()
 
+    week_start = read.monday(week) if week else None
     return {
         "api_version": _API_VERSION,
         "week_end": week,
+        "week_start": week_start,
+        "week_label": read.range_label(week_start, week),
         "is_final": week in final_weeks,
         "sectors": sectors[:limit],
         "stocks": stocks[:limit],

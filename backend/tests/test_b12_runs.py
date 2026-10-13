@@ -228,7 +228,7 @@ def test_cli_import_records_run(tmp_config, tmp_path, capsys):
 
 
 def test_cli_import_failure_is_recorded(tmp_config, tmp_path, capsys):
-    """Import ulang file yang sama → run gagal tercatat, exit 1, bukan traceback."""
+    """Import ulang file yang sama → prasyarat terpenuhi: run `skipped`, exit 1, bukan traceback."""
     xlsx = tmp_path / "kecil.xlsx"
     write_xlsx(xlsx, FIXTURE_SHEETS)
 
@@ -242,5 +242,5 @@ def test_cli_import_failure_is_recorded(tmp_config, tmp_path, capsys):
         rows = conn.execute("SELECT status, message FROM ingest_run ORDER BY id").fetchall()
     finally:
         conn.close()
-    assert [r["status"] for r in rows] == ["ok", "failed"]
-    assert "AlreadyImported" in rows[1]["message"]
+    assert [r["status"] for r in rows] == ["ok", "skipped"]  # bukan `failed` (docs/05 §4.3)
+    assert rows[1]["message"] == "file sudah pernah diimport (import_id=1)"

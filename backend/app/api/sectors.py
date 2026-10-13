@@ -171,7 +171,7 @@ def sectors_summary(
             "limit": int(limit),
             "offset": int(offset),
             "items": page,
-            "data_status": read.data_status(conn, as_of=as_of, timeframe=timeframe, weighting=weighting),
+            "data_status": read.data_status(conn, as_of=as_of, timeframe=timeframe, weighting=weighting, window=window),
         }
     finally:
         conn.close()
@@ -262,7 +262,7 @@ def sector_detail(
                     for c in constituents[: int(constituents_limit)]
                 ],
             },
-            "data_status": read.data_status(conn, as_of=as_of, timeframe=timeframe, weighting=weighting),
+            "data_status": read.data_status(conn, as_of=as_of, timeframe=timeframe, weighting=weighting, window=window),
         }
     finally:
         conn.close()

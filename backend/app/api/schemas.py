@@ -13,6 +13,9 @@ class DataStatus(BaseModel):
     status: str
     last_data_at: str | None
     computed_at: str | None
+    range_from: str | None
+    range_to: str | None
+    range_label: str | None
     partial_sectors: list[str]
 
 
@@ -295,6 +298,7 @@ class StockDetailResponse(Envelope):
     metrics: StockDetailMetrics
     series: list[StockBar]
     last_pick: LastPick | None
+    data_status: DataStatus
 
 
 class SeriesSectorPoint(BaseModel):
@@ -307,6 +311,9 @@ class SeriesSectorPoint(BaseModel):
 
 class SeriesSectorResponse(Envelope):
     code: str
+    range_from: str | None
+    range_to: str | None
+    range_label: str | None
     points: list[SeriesSectorPoint]
 
 
@@ -337,6 +344,7 @@ class MatrixResponse(Envelope):
     to: str | None = None
     cells: list[MatrixCell]
     changes: list[MatrixChange]
+    data_status: DataStatus
 
 
 class HeatmapRow(BaseModel):
@@ -348,6 +356,7 @@ class HeatmapRow(BaseModel):
 class HeatmapResponse(Envelope):
     columns: list[str]
     rows: list[HeatmapRow]
+    data_status: DataStatus
 
 
 # --- §3 briefing pagi --------------------------------------------------------
@@ -484,6 +493,8 @@ class WeeklyStockPick(BaseModel):
 
 class WeeklyPicksResponse(Envelope):
     week_end: str | None
+    week_start: str | None
+    week_label: str | None
     is_final: bool
     sectors: list[WeeklySectorPick]
     stocks: list[WeeklyStockPick]
