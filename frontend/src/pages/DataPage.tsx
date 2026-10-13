@@ -1,16 +1,15 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Fragment, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import { RunHistory } from "../components/domain/RunHistory";
 import { Button } from "../components/ui/Button";
 import { ConfirmDialog } from "../components/ui/ConfirmDialog";
 import { Panel } from "../components/ui/Panel";
 import { ProgressBar } from "../components/ui/ProgressBar";
 import { Pill } from "../components/ui/Pill";
-import { Table, Td, Th } from "../components/ui/Table";
 import { ToastStack, useToasts } from "../components/ui/Toast";
 import { useMetaSectors, useRuns } from "../hooks/useApiQuery";
 import { useRunProgress, useStartStep } from "../hooks/usePipeline";
-import type { ImportResult, IngestRun } from "../lib/api";
-import { formatDateTime, formatDuration } from "../lib/format";
+import type { ImportResult } from "../lib/api";
 import {
   PIPELINE,
   RUN_KIND,
@@ -25,15 +24,6 @@ import {
   type PipelineStep,
 } from "../lib/pipeline";
 
-const RUN_LABEL: Record<string, string> = {
-  ok: "ok",
-  partial: "sebagian berhasil",
-  failed: "gagal",
-  skipped: "dilewati",
-  running: "jalan",
-  queued: "menunggu",
-};
-
 /** Halaman Data: satu-satunya pintu masuk pipeline (docs/08 F12). */
 export default function DataPage() {
   const queryClient = useQueryClient();
@@ -45,7 +35,6 @@ export default function DataPage() {
 
   const [activeRunId, setActiveRunId] = useState<number | null>(null);
   const [confirmStep, setConfirmStep] = useState<PipelineStep | null>(null);
-  const [openRun, setOpenRun] = useState<number | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const runQuery = useRunProgress(activeRunId, (run) => {
@@ -173,94 +162,7 @@ export default function DataPage() {
         </ol>
       </Panel>
 
-      <Panel
-        title="Riwayat run"
-        actions={<span className="text-sm text-fg-muted">20 terakhir</span>}
-      >
-        {runsQuery.isError ? (
-          <p className="p-3 text-sm text-warn">
-            Riwayat run tidak bisa dibaca: {errorMessage(runsQuery.error)}
-          </p>
-        ) : runs.length === 0 ? (
-          <p className="p-3 text-sm text-fg-muted">
-            Belum ada run. Jalankan langkah 1 untuk mulai.
-          </p>
-        ) : (
-          <Table caption="Riwayat 20 run terakhir beserta status dan hasilnya">
-            <thead>
-              <tr>
-                <Th>Langkah</Th>
-                <Th>Status</Th>
-                <Th>Mulai</Th>
-                <Th>Durasi</Th>
-                <Th>Baris</Th>
-                <Th>Pesan</Th>
-                <Th className="text-right">Detail</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {runs.map((run) => (
-                <Fragment key={run.run_id}>
-                  <tr className={run.status === "failed" ? "font-semibold" : undefined}>
-                    <Td>
-                      <span
-                        className={
-                          run.status === "failed" || run.status === "partial"
-                            ? "border-l-2 border-warn pl-1.5"
-                            : "pl-1.5"
-                        }
-                      >
-                        {stepTitle(run.kind)}
-                      </span>
-                    </Td>
-                    <Td>
-                      <Pill
-                        tone={run.status}
-                        label={RUN_LABEL[run.status] ?? run.status}
-                        bold={run.status === "failed"}
-                      />
-                    </Td>
-                    <Td className="font-mono text-sm">{formatDateTime(run.started_at)}</Td>
-                    <Td className="font-mono text-sm">{duration(run)}</Td>
-                    <Td className="font-mono text-sm text-right">{run.rows ?? "—"}</Td>
-                    <Td className="text-sm text-fg-muted">{run.message ?? "—"}</Td>
-                    <Td className="text-right">
-                      <Button
-                        variant="ghost"
-                        onClick={() => setOpenRun(openRun === run.run_id ? null : run.run_id)}
-                        aria-expanded={openRun === run.run_id}
-                      >
-                        {openRun === run.run_id ? "Tutup" : "Detail"}
-                      </Button>
-                    </Td>
-                  </tr>
-                  {openRun === run.run_id && (
-                    <tr>
-                      <Td colSpan={7} className="h-auto bg-bg-subtle py-2">
-                        <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm text-fg-muted">
-                          <span>run #{run.run_id}</span>
-                          <span>kind: {run.kind}</span>
-                          <span>phase: {run.phase ?? "—"}</span>
-                          <span>rows_total: {run.rows_total ?? "—"}</span>
-                          {run.params_json != null && <span>params: {JSON.stringify(run.params_json)}</span>}
-                          {run.failed_tickers.length > 0 && (
-                            <span>ticker gagal: {run.failed_tickers.join(", ")}</span>
-                          )}
-                        </div>
-                        {run.result_json != null && (
-                          <pre className="mt-1 overflow-x-auto font-mono text-sm text-fg">
-                            {JSON.stringify(run.result_json, null, 1)}
-                          </pre>
-                        )}
-                      </Td>
-                    </tr>
-                  )}
-                </Fragment>
-              ))}
-            </tbody>
-          </Table>
-        )}
-      </Panel>
+      <RunHistory runs={runs} error={runsQuery.isError ? runsQuery.error : null} />
 
       <ConfirmDialog
         open={confirmStep !== null}
@@ -281,12 +183,6 @@ export default function DataPage() {
       <ToastStack items={toasts} onDismiss={dismiss} />
     </>
   );
-}
-
-function duration(run: IngestRun): string {
-  if (!run.started_at || !run.finished_at) return "—";
-  const seconds = (new Date(run.finished_at).getTime() - new Date(run.started_at).getTime()) / 1000;
-  return formatDuration(seconds);
 }
 
 function ImportSummary({ result }: { result: ImportResult }) {
