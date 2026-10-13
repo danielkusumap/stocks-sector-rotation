@@ -63,8 +63,9 @@ for (const theme of ["dark", "light"] as const) {
     expect(first.outlineStyle).toBe("solid");
     expect(first.outlineColor).toBe(await focusToken(page));
 
-    // dan berlaku juga untuk kontrol di tabel (bukan hanya tautan awal)
-    const header = await tabTo(page, (info) => info.name === "RS-Ratio", 30);
+    // dan berlaku juga untuk kontrol di tabel (bukan hanya tautan awal) — anggaran Tab
+    // dinaikkan karena topbar kini memuat Timeframe + Jendela (docs/08 F13 B)
+    const header = await tabTo(page, (info) => info.name === "RS-Ratio", 40);
     expect(header.label).toBe(""); // hanya teks
     expect(header.outlineWidth).toBe("2px");
     expect(header.outlineColor).toBe(await focusToken(page));
@@ -78,7 +79,7 @@ test("tabel: Enter di header mengurutkan dan menulis URL (juga saat ditekan cepa
   await ready(page);
   await expect(page.locator("[data-testid^=sector-row-]")).toHaveCount(11);
 
-  await tabTo(page, (info) => info.name === "RS-Ratio", 30);
+  await tabTo(page, (info) => info.name === "RS-Ratio", 40);
   await page.keyboard.press("Enter");
   await expect.poll(() => new URL(page.url()).searchParams.get("sort")).toBe("rs_ratio");
 
@@ -94,13 +95,15 @@ test("popover Filter: Enter membuka, Esc menutup dan fokus kembali ke tombolnya"
   await page.goto("/");
   await ready(page);
 
-  const trigger = await tabTo(page, (info) => info.name.startsWith("Filter"));
+  // legenda RRG menambah 11 tombol sebelum tabel → anggaran Tab dinaikkan
+  const trigger = await tabTo(page, (info) => info.name.startsWith("Filter"), 60);
   expect(trigger.tag).toBe("BUTTON");
   await page.keyboard.press("Enter");
-  await expect(page.getByRole("button", { name: "Membaik" })).toBeVisible();
+  // chip kuadran dicari di dalam popover: legenda RRG juga memuat label kuadran
+  await expect(page.getByRole("dialog").getByRole("button", { name: "Membaik" })).toBeVisible();
 
   await page.keyboard.press("Escape");
-  await expect(page.getByRole("button", { name: "Membaik" })).toHaveCount(0);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByRole("button", { name: /^Filter/ })).toBeFocused();
 });
 

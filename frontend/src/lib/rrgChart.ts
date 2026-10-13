@@ -121,3 +121,23 @@ export function describePoint(item: RrgItem): string {
 export function hasTail(item: RrgItem): boolean {
   return item.tail.length >= 2;
 }
+
+/** Pencarian legenda baru perlu muncul kalau entri banyak (docs/06 §6.2: lebih dari 12). */
+export const LEGEND_SEARCH_MIN = 12;
+
+export function legendNeedsSearch(count: number): boolean {
+  return count > LEGEND_SEARCH_MIN;
+}
+
+/**
+ * Entri legenda (docs/06 §6.2). Urutannya **sama dengan urutan chart & Tab** (pemanggil
+ * sudah mengurutkan lewat `orderedItems`); pencarian hanya menyaring legenda, tidak
+ * mengubah data chart.
+ */
+export function legendEntries(items: RrgItem[], query = ""): RrgItem[] {
+  const needle = query.trim().toLocaleLowerCase("id-ID");
+  if (!needle) return items;
+  return items.filter((item) =>
+    `${item.name} ${item.ref_id}`.toLocaleLowerCase("id-ID").includes(needle),
+  );
+}

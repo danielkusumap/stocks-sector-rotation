@@ -1,4 +1,5 @@
 import { useSearchParams } from "react-router";
+import { useSetPeriodLabel } from "../components/layout/ScopeControls";
 import { WeeklyPicksPanel } from "../components/domain/WeeklyPicksPanel";
 import { ErrorState } from "../components/ui/ErrorState";
 import { Panel } from "../components/ui/Panel";
@@ -6,6 +7,8 @@ import { Segmented } from "../components/ui/Segmented";
 import { Select } from "../components/ui/Select";
 import { TableSkeleton } from "../components/ui/Skeleton";
 import { useMetaDates, useWeeklyPicks } from "../hooks/useApiQuery";
+import { useFilterState } from "../hooks/useFilterState";
+import { weeklyPeriodLabel } from "../lib/period";
 import {
   WEEKLY_SCOPE_LABEL,
   WEEKLY_SCOPES,
@@ -51,13 +54,16 @@ export default function WeeklyPage() {
   // tanpa `week_end` di URL: backend memilih minggu final terakhir (docs/05 §3)
   const selectedWeek = params.week_end ?? picks.data?.week_end ?? "";
 
+  const { filters } = useFilterState();
+  useSetPeriodLabel(weeklyPeriodLabel(picks.data, filters.window));
+
   return (
     <Panel
       title="Fokus Mingguan"
       actions={
         picks.data ? (
           <span data-testid="weekly-week" className="text-sm text-fg-muted">
-            pekan {weekRangeLabel(picks.data.week_end)} ·{" "}
+            pekan {picks.data.week_label ?? weekRangeLabel(picks.data.week_end)} ·{" "}
             {picks.data.is_final ? "final" : "belum final"}
           </span>
         ) : null

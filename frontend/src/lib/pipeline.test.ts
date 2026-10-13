@@ -5,12 +5,15 @@ import {
   PIPELINE,
   RUN_KIND,
   errorMessage,
+  hasSucceeded,
   importReasonLabel,
   isFinal,
   lastRun,
   lockReason,
+  prereqState,
   skippedMessage,
   statusChip,
+  type PrereqState,
 } from "./pipeline";
 
 const run = (run_id: number, kind: string, status: RunStatus, extra: Partial<IngestRun> = {}): IngestRun => ({
@@ -30,28 +33,64 @@ const run = (run_id: number, kind: string, status: RunStatus, extra: Partial<Ing
 
 const step = (n: number) => PIPELINE.find((s) => s.n === n)!;
 
-describe("prasyarat tombol pipeline (docs/05 §4.1)", () => {
+/** Data kosong (belum pernah ingest). */
+const EMPTY: PrereqState = { sectorsActive: null, pricesDailyAt: null };
+/** Data ada: 962 emiten + harga harian sudah masuk. */
+const FILLED: PrereqState = { sectorsActive: 962, pricesDailyAt: "2026-10-12T16:31:02+07:00" };
+
+describe("prasyarat tombol pipeline dari DATA (docs/08 F13 A)", () => {
   it("DB kosong → hanya tombol 1 yang boleh jalan", () => {
-    expect(lockReason(step(1), [])).toBeNull();
-    expect(lockReason(step(2), [])).toBe('Jalankan "Import sektor (Excel)" dulu.');
-    expect(lockReason(step(3), [])).toBe('Jalankan "Import sektor (Excel)" dulu.');
-    expect(lockReason(step(4), [])).toBe('Jalankan "Ambil harga harian" dulu.');
-    expect(lockReason(step(5), [])).toBe('Jalankan "Ambil harga harian" dulu.');
-    expect(lockReason(step(6), [])).toBe('Jalankan "Ambil harga harian" dulu.');
+    expect(lockReason(step(1), EMPTY)).toBeNull();
+    expect(lockReason(step(2), EMPTY)).toBe('Jalankan "Import sektor (Excel)" dulu.');
+    expect(lockReason(step(3), EMPTY)).toBe('Jalankan "Import sektor (Excel)" dulu.');
+    expect(lockReason(step(4), EMPTY)).toBe('Jalankan "Ambil harga harian" dulu.');
+    expect(lockReason(step(5), EMPTY)).toBe('Jalankan "Ambil harga harian" dulu.');
+    expect(lockReason(step(6), EMPTY)).toBe('Jalankan "Ambil harga harian" dulu.');
   });
 
-  it("import sukses membuka tombol 2 & 3, harga harian membuka 4–6", () => {
-    const afterImport = [run(1, RUN_KIND.importExcel, "ok")];
-    expect(lockReason(step(2), afterImport)).toBeNull();
-    expect(lockReason(step(4), afterImport)).toBe('Jalankan "Ambil harga harian" dulu.');
-
-    const afterPrices = [...afterImport, run(2, RUN_KIND.pricesDaily, "partial")];
-    expect(lockReason(step(4), afterPrices)).toBeNull();
-    expect(lockReason(step(6), afterPrices)).toBeNull();
+  it("emiten ada (riwayat run kosong) → tombol 2 & 3 aktif", () => {
+    const data = { sectorsActive: 962, pricesDailyAt: null };
+    expect(lockReason(step(2), data)).toBeNull();
+    expect(lockReason(step(3), data)).toBeNull();
+    expect(lockReason(step(4), data)).toBe('Jalankan "Ambil harga harian" dulu.');
   });
 
-  it("run yang gagal tidak membuka prasyarat", () => {
-    expect(lockReason(step(2), [run(1, RUN_KIND.importExcel, "failed")])).not.toBeNull();
+  it("harga harian ada → tombol 4, 5, 6 aktif", () => {
+    for (const n of [4, 5, 6]) expect(lockReason(step(n), FILLED)).toBeNull();
+  });
+
+  it("riwayat run tidak lagi mengunci: run gagal/dilewati tetap membuka tombol", () => {
+    const failedRuns = [
+      run(1, RUN_KIND.importExcel, "failed"),
+      run(2, RUN_KIND.pricesDaily, "skipped"),
+    ];
+    // data yang menentukan, bukan status run
+    expect(lockReason(step(2), FILLED)).toBeNull();
+    expect(lockReason(step(4), FILLED)).toBeNull();
+    // dan sebaliknya: run sukses tanpa data tetap terkunci
+    expect(lockReason(step(4), { sectorsActive: 962, pricesDailyAt: null })).not.toBeNull();
+    // riwayat run tetap berguna untuk chip status
+    expect(statusChip(step(2), failedRuns)).toContain("dilewati");
+  });
+
+  it("prereqState membaca meta/sectors + meta/config (null = belum terbaca)", () => {
+    const sectors = { items: [{ constituents_active: 47 }, { constituents_active: 32 }] };
+    expect(prereqState(sectors, { last_ingest: { prices_daily: "2026-10-12T16:31:02+07:00" } })).toEqual({
+      sectorsActive: 79,
+      pricesDailyAt: "2026-10-12T16:31:02+07:00",
+    });
+    expect(prereqState(undefined, undefined)).toEqual(EMPTY);
+    // `items: []` = emiten memang kosong (bukan "belum terbaca")
+    expect(prereqState({ items: [] }, { last_ingest: { prices_daily: null } })).toEqual({
+      sectorsActive: 0,
+      pricesDailyAt: null,
+    });
+  });
+
+  it("hasSucceeded: ok/partial/skipped dianggap data masuk, failed tidak", () => {
+    expect(hasSucceeded([run(1, RUN_KIND.importExcel, "failed")], RUN_KIND.importExcel)).toBe(false);
+    expect(hasSucceeded([run(1, RUN_KIND.importExcel, "skipped")], RUN_KIND.importExcel)).toBe(true);
+    expect(hasSucceeded([run(1, RUN_KIND.importExcel, "partial")], RUN_KIND.importExcel)).toBe(true);
   });
 });
 

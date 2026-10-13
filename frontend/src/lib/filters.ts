@@ -1,3 +1,4 @@
+import { TIMEFRAMES, WEIGHTINGS, WINDOWS } from "./api";
 import type { Quadrant, Timeframe, Weighting, Window } from "./api";
 import { formatNum, formatRpCompact } from "./format";
 import { QUADRANT_LABEL } from "./quadrant";
@@ -25,6 +26,11 @@ export const WEIGHTING_LABEL: Record<Weighting, string> = {
   turnover: "Turnover",
   captier: "Cap-tier",
 };
+
+/** Opsi kontrol (dipakai topbar di `AppShell` & `FilterBar`) — satu sumber, tanpa duplikat. */
+export const TIMEFRAME_OPTIONS = TIMEFRAMES.map((value) => ({ value, label: TIMEFRAME_LABEL[value] }));
+export const WINDOW_OPTIONS = WINDOWS.map((value) => ({ value, label: WINDOW_LABEL[value] }));
+export const WEIGHTING_OPTIONS = WEIGHTINGS.map((value) => ({ value, label: WEIGHTING_LABEL[value] }));
 
 /** Urutan chip kuadran: yang paling sering dicari lebih dulu (docs/06 §7). */
 export const QUADRANT_OPTIONS: readonly Quadrant[] = ["leading", "improving", "weakening", "lagging"];

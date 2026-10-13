@@ -10,6 +10,8 @@ import {
   describePoint,
   hasTail,
   labelledRefIds,
+  legendEntries,
+  legendNeedsSearch,
   orderedItems,
   tailSegmentOpacity,
   tickLabel,
@@ -179,5 +181,30 @@ describe("baris aria-live", () => {
     expect(
       describePoint(item("IDXFINANCE", { name: "Keuangan", rs_ratio: 102.31, rs_momentum: 100.84 })),
     ).toBe("Keuangan — Memimpin, RS-Ratio 102,31, RS-Momentum 100,84");
+  });
+});
+
+describe("entri legenda (docs/06 §6.2)", () => {
+  const items = [
+    item("IDXFINANCE", { name: "Keuangan" }),
+    item("IDXENERGY", { name: "Energi" }),
+    item("BBCA", { name: "Bank Central Asia" }),
+  ];
+
+  it("tanpa pencarian: urutan dipertahankan seperti chart", () => {
+    expect(legendEntries(items).map((i) => i.ref_id)).toEqual(["IDXFINANCE", "IDXENERGY", "BBCA"]);
+  });
+
+  it("pencarian cocok pada nama dan ticker, tidak mengubah urutan", () => {
+    expect(legendEntries(items, "energi").map((i) => i.ref_id)).toEqual(["IDXENERGY"]);
+    expect(legendEntries(items, "bbca").map((i) => i.ref_id)).toEqual(["BBCA"]);
+    expect(legendEntries(items, "  bank  ").map((i) => i.ref_id)).toEqual(["BBCA"]);
+    expect(legendEntries(items, "tidak ada")).toEqual([]);
+  });
+
+  it("kotak pencarian hanya muncul kalau entri > 12", () => {
+    expect(legendNeedsSearch(12)).toBe(false);
+    expect(legendNeedsSearch(13)).toBe(true);
+    expect(legendNeedsSearch(25)).toBe(true);
   });
 });

@@ -38,12 +38,14 @@ test.describe("SectorTable & FilterBar", () => {
     await expect(rows(page)).toHaveCount(11);
     await expect(rows(page).first()).toHaveAttribute("data-testid", "sector-row-IDXFINANCE"); // score desc
 
-    await page.getByRole("button", { name: "RS-Ratio" }).click();
+    // tombol header tabel (bukan entri legenda RRG yang teksnya juga memuat "RS-Ratio")
+    const headerSort = page.getByRole("columnheader", { name: "RS-Ratio" }).getByRole("button");
+    await headerSort.click();
     await expect.poll(() => params(page).get("sort")).toBe("rs_ratio");
     expect(params(page).get("dir")).toBeNull(); // desc = default, tidak ditulis
     await expect(rows(page).first()).toHaveAttribute("data-testid", "sector-row-IDXFINANCE");
 
-    await page.getByRole("button", { name: "RS-Ratio" }).click();
+    await headerSort.click();
     await expect.poll(() => params(page).get("dir")).toBe("asc");
     await expect(rows(page).first()).toHaveAttribute("data-testid", "sector-row-IDXENERGY");
     await expect(page.getByRole("columnheader", { name: "RS-Ratio" })).toHaveAttribute(
@@ -141,7 +143,7 @@ test.describe("SectorTable & FilterBar", () => {
     await page.goto("/");
     await page.getByRole("button", { name: /^Filter/ }).click();
 
-    await page.getByRole("button", { name: "Membaik" }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "Membaik" }).click();
     await expect.poll(() => params(page).get("quadrant")).toBe("improving");
 
     await page.getByLabel("Streak minimal").fill("3");

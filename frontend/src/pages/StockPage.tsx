@@ -9,10 +9,12 @@ import { FreshnessPill } from "../components/ui/FreshnessPill";
 import { Panel } from "../components/ui/Panel";
 import { QuadrantBadge } from "../components/ui/QuadrantBadge";
 import { StreakBadge } from "../components/ui/StreakBadge";
-import { TableSkeleton } from "../components/ui/Skeleton";
+import { Skeleton, TableSkeleton } from "../components/ui/Skeleton";
 import { useMetaSectors, useRrg, useStock, useStocks } from "../hooks/useApiQuery";
 import { useFilterState } from "../hooks/useFilterState";
+import { useSetPeriodLabel } from "../components/layout/ScopeControls";
 import { formatNum, formatRp, formatRpCompact, formatDate } from "../lib/format";
+import { periodFromStatus } from "../lib/period";
 import { polyline } from "../lib/seriesChart";
 import { nextSort, stockSortOf } from "../lib/stockTable";
 
@@ -58,6 +60,12 @@ function StockList() {
     const timer = setTimeout(() => setFilters({ q: search }), SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(timer);
   }, [search, filters.q, setFilters]);
+
+  const period = periodFromStatus(stocks.data?.data_status, {
+    timeframe: filters.timeframe,
+    window: filters.window,
+  });
+  useSetPeriodLabel(period);
 
   return (
     <Panel
@@ -134,6 +142,12 @@ function StockDetail({ ticker }: { ticker: string }) {
     weighting: filters.weighting,
   });
   const [picked, setPicked] = useState<string | null>(ticker);
+
+  const period = periodFromStatus(rrg.data?.data_status, {
+    timeframe: filters.timeframe,
+    window: filters.window,
+  });
+  useSetPeriodLabel(period);
 
   const metrics = stock.data?.metrics;
   const pick = stock.data?.last_pick;
@@ -225,8 +239,10 @@ function StockDetail({ ticker }: { ticker: string }) {
 
       <Panel title="RRG saham vs sektor">
         {rrg.isPending ? (
-          <div className="p-3">
-            <TableSkeleton rows={6} cols={4} />
+          <div className="flex flex-col gap-2 p-3">
+            {/* bentuk akhir: rasio chart 780×608 + tinggi kotak legenda */}
+            <Skeleton className="aspect-[780/608] w-full" />
+            <Skeleton className="h-24 w-64" />
           </div>
         ) : rrg.isError ? (
           <ErrorState error={rrg.error} onRetry={() => void rrg.refetch()} />

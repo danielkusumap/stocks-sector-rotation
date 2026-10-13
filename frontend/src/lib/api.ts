@@ -49,6 +49,13 @@ export interface DataStatus {
   status: DataStatusKind;
   last_data_at: string | null;
   computed_at: string;
+  /** Rentang yang BENAR-BENAR dipakai hitungan (`docs/05` §1). Backend belum mengirim → opsional. */
+  range_from?: string | null;
+  range_to?: string | null;
+  /** Label rentang Bahasa Indonesia, **disusun backend** — frontend tidak menyusun sendiri. */
+  range_label?: string | null;
+  /** Rentang jendela return/ekor; `null`/tidak ada → kurungnya tidak ditampilkan (lihat ADR F13). */
+  window_range_label?: string | null;
   partial_sectors: string[];
 }
 
@@ -118,6 +125,8 @@ export interface MetaConfigResponse {
   timeframes: Timeframe[];
   windows: Window[];
   midday_gate_min_bar_time: string;
+  /** Kutipan IHSG (docs/05 §1 `meta/market`): UI membaca `poll_seconds` untuk interval poll. */
+  market?: { live_enabled?: boolean; live_ttl_seconds?: number; poll_seconds?: number } | null;
   last_ingest: {
     prices_daily: string | null;
     intraday: string | null;
@@ -460,6 +469,9 @@ export interface WeeklyPicksParams {
 export interface WeeklyPicksResponse {
   api_version: string;
   week_end: string;
+  /** API 1.1 (`docs/05` §3): Senin pekan itu + label Bahasa Indonesia dari backend. */
+  week_start?: string | null;
+  week_label?: string | null;
   is_final: boolean;
   sectors: WeeklySectorPick[];
   stocks: WeeklyStockPick[];

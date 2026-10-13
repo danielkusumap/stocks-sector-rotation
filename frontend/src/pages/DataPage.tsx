@@ -7,7 +7,7 @@ import { Panel } from "../components/ui/Panel";
 import { ProgressBar } from "../components/ui/ProgressBar";
 import { Pill } from "../components/ui/Pill";
 import { ToastStack, useToasts } from "../components/ui/Toast";
-import { useMetaSectors, useRuns } from "../hooks/useApiQuery";
+import { useMetaConfig, useMetaSectors, useRuns } from "../hooks/useApiQuery";
 import { useRunProgress, useStartStep } from "../hooks/usePipeline";
 import type { ImportResult } from "../lib/api";
 import {
@@ -18,6 +18,7 @@ import {
   isFinal,
   lastRun,
   lockReason,
+  prereqState,
   skippedMessage,
   statusChip,
   stepTitle,
@@ -31,7 +32,10 @@ export default function DataPage() {
   const runsQuery = useRuns(20);
   const runs = runsQuery.data?.runs ?? [];
   const meta = useMetaSectors();
+  const config = useMetaConfig();
   const activeEmiten = (meta.data?.items ?? []).reduce((total, s) => total + s.constituents_active, 0);
+  // prasyarat tombol dari DATA, bukan riwayat run (docs/08 F13 A)
+  const prereq = prereqState(meta.data, config.data);
 
   const [activeRunId, setActiveRunId] = useState<number | null>(null);
   const [confirmStep, setConfirmStep] = useState<PipelineStep | null>(null);
@@ -90,7 +94,7 @@ export default function DataPage() {
       <Panel title="Langkah pipeline" className="mb-4">
         <ol className="list-none">
           {PIPELINE.map((step) => {
-            const lock = lockReason(step, runs);
+            const lock = lockReason(step, prereq);
             const last = lastRun(runs, step.kind);
             const workingHere = activeRunId !== null && activeRun?.kind === step.kind;
             return (

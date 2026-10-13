@@ -24,21 +24,30 @@ test.describe("smoke UI (dev server + MSW)", () => {
     await expect(table.locator("tbody tr")).toHaveCount(11);
   });
 
-  test("/data: 6 baris stepper, tombol ke-2 terkunci saat prasyarat belum ada", async ({ page }) => {
+  test("/data: 6 baris stepper; prasyarat tombol dari data (universe & last_ingest)", async ({ page }) => {
     await page.goto("/data");
     const steps = page.locator("ol > li");
 
     await expect(steps).toHaveCount(6);
-    // MSW menjawab: riwayat run kosong (kalau worker mati, halaman menampilkan galat)
+    // MSW menjawab: riwayat run kosong, tapi universe + harga harian ADA → tombol aktif
+    // (docs/08 F13 A: prasyarat dari data, bukan dari riwayat run)
     await expect(page.getByText("Belum ada run.")).toBeVisible();
+    await expect(steps.nth(3)).toContainText("belum pernah");
 
     // `input[type=file]` juga ber-role `button`, jadi tombol langkah 1 dicari lewat namanya
     await expect(steps.nth(0).getByRole("button", { name: "Pilih file & import" })).toBeEnabled();
-    await expect(steps.nth(1).getByRole("button", { name: "Jalankan" })).toBeDisabled();
-    await expect(steps.nth(1)).toContainText('Jalankan "Import sektor (Excel)" dulu.');
+    for (const index of [1, 2, 3, 4, 5]) {
+      await expect(steps.nth(index).getByRole("button", { name: "Jalankan" })).toBeEnabled();
+    }
+
+    // data kosong → semua tombol (kecuali 1) terkunci dengan alasan yang bisa dibaca
+    await page.goto("/data?mock=empty");
+    const locked = page.locator("ol > li");
+    await expect(locked.nth(1).getByRole("button", { name: "Jalankan" })).toBeDisabled();
+    await expect(locked.nth(1)).toContainText('Jalankan "Import sektor (Excel)" dulu.');
     for (const index of [3, 4, 5]) {
-      await expect(steps.nth(index).getByRole("button", { name: "Jalankan" })).toBeDisabled();
-      await expect(steps.nth(index)).toContainText('Jalankan "Ambil harga harian" dulu.');
+      await expect(locked.nth(index).getByRole("button", { name: "Jalankan" })).toBeDisabled();
+      await expect(locked.nth(index)).toContainText('Jalankan "Ambil harga harian" dulu.');
     }
   });
 

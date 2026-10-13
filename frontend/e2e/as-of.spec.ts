@@ -14,7 +14,8 @@ test.describe("AsOfPicker", () => {
     });
 
     await page.goto("/");
-    await expect(page.getByTestId("sector-row-IDXFINANCE")).toBeVisible();
+    // dev server bisa masih dingin (kompilasi modul pertama) setelah topbar dapat kontrol baru
+    await expect(page.getByTestId("sector-row-IDXFINANCE")).toBeVisible({ timeout: 20_000 });
     const before = calls.length;
 
     await page.getByTestId("asof-trigger").click();
@@ -43,7 +44,8 @@ test.describe("AsOfPicker", () => {
     });
 
     await page.goto("/");
-    await expect(page.getByTestId("sector-row-IDXFINANCE")).toBeVisible();
+    // dev server bisa masih dingin (kompilasi modul pertama) setelah topbar dapat kontrol baru
+    await expect(page.getByTestId("sector-row-IDXFINANCE")).toBeVisible({ timeout: 20_000 });
     const before = calls.length;
 
     await page.getByTestId("asof-trigger").click();

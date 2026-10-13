@@ -4,10 +4,8 @@ import { cn } from "../../lib/cn";
 import {
   FILTER_PRESETS,
   QUADRANT_OPTIONS,
-  TIMEFRAME_LABEL,
   TURNOVER_PRESETS,
-  WINDOW_LABEL,
-  WEIGHTING_LABEL,
+  WEIGHTING_OPTIONS,
   activeChips,
   toggleQuadrant,
   toggleSector,
@@ -17,33 +15,18 @@ import type { FilterState } from "../../lib/urlFilters";
 import type { FilterPatch } from "../../hooks/useFilterState";
 import { Button } from "../ui/Button";
 import { Popover } from "../ui/Popover";
-import { Segmented } from "../ui/Segmented";
 import { Select } from "../ui/Select";
-
-const TIMEFRAMES = (["d1", "w1", "w1_fri", "midday"] as const).map((value) => ({
-  value,
-  label: TIMEFRAME_LABEL[value],
-}));
-
-const WINDOWS = (["1w", "1m", "3m", "6m", "1y", "ytd"] as const).map((value) => ({
-  value,
-  label: WINDOW_LABEL[value],
-}));
-
-const WEIGHTINGS = (["equal", "turnover", "captier"] as const).map((value) => ({
-  value,
-  label: WEIGHTING_LABEL[value],
-}));
 
 const labelClass = "text-xs font-medium tracking-[0.04em] text-fg-muted uppercase";
 
 /**
  * `FilterBar` (docs/06 §5 + §7): chip filter aktif yang bisa dihapus satu-satu, tombol
- * "Filter" (popover berisi semua kontrol), preset cepat, dan "Reset". Semua nilai ditulis
+ * "Filter" (popover berisi penyaring), preset cepat, dan "Reset". Semua nilai ditulis
  * ke URL oleh pemanggil — komponen ini tidak menyimpan state sendiri.
  *
- * Filter khusus saham (`min_price_idr`, `q`) belum dirender di sini: `/sectors/summary`
- * tidak menerimanya (docs/05 §2) — menyusul di F8.
+ * Kontrol **lingkup** (Timeframe + Jendela) pindah ke topbar `AppShell`
+ * (docs/08 F13 B) supaya tidak ada dua tempat untuk nilai yang sama; chip-nya tetap
+ * muncul di sini dan tetap bisa dihapus.
  */
 export function FilterBar({
   filters,
@@ -79,29 +62,18 @@ export function FilterBar({
       >
         <div className="flex flex-col gap-3">
           <fieldset className="flex flex-col gap-2">
-            <legend className={labelClass}>Lingkup</legend>
+            <legend className={labelClass}>Pembobotan</legend>
             <div className="flex flex-wrap items-center gap-2">
-              <Segmented
-                label="Timeframe"
-                options={TIMEFRAMES}
-                value={filters.timeframe}
-                onChange={(value) => setFilters({ timeframe: value })}
-              />
-              <Select
-                label="Jendela"
-                value={filters.window}
-                onChange={(value) => setFilters({ window: value })}
-                options={WINDOWS}
-              />
               <Select
                 label="Pembobotan"
                 value={filters.weighting}
                 onChange={(value) => setFilters({ weighting: value })}
-                options={WEIGHTINGS}
+                options={WEIGHTING_OPTIONS}
               />
             </div>
             <p className="text-sm text-fg-faint">
-              Jendela hanya mengubah panjang ekor &amp; kolom return, tidak mengubah kuadran.
+              Timeframe &amp; jendela ada di topbar. Jendela hanya mengubah panjang ekor &amp; kolom
+              return, tidak mengubah kuadran.
             </p>
           </fieldset>
 

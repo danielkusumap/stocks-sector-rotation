@@ -8,6 +8,8 @@ import { Panel } from "../components/ui/Panel";
 import { TableSkeleton } from "../components/ui/Skeleton";
 import { useMetaSectors, useSectorSummary } from "../hooks/useApiQuery";
 import { useFilterState } from "../hooks/useFilterState";
+import { useSetPeriodLabel } from "../components/layout/ScopeControls";
+import { periodFromStatus } from "../lib/period";
 import { nextSort, sectorSortOf } from "../lib/sectorTable";
 
 /**
@@ -40,6 +42,12 @@ export default function SectorPage() {
     setSelectedRefId(code);
     setFilters({ sector: [code] });
   };
+
+  const period = periodFromStatus(summary.data?.data_status, {
+    timeframe: filters.timeframe,
+    window: filters.window,
+  });
+  useSetPeriodLabel(period);
 
   return (
     <>

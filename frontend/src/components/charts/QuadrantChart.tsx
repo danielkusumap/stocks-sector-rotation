@@ -18,12 +18,18 @@ import {
   describePoint,
   hasTail,
   labelledRefIds,
+  legendEntries,
+  legendNeedsSearch,
   orderedItems,
   tailSegmentOpacity,
   tickLabel,
   viewBoxDistanceForScreenPx,
 } from "../../lib/rrgChart";
+import { formatNum } from "../../lib/format";
+import { QUADRANT_LABEL } from "../../lib/quadrant";
 import { PointCard } from "../domain/PointCard";
+import { QuadrantBadge } from "../ui/QuadrantBadge";
+import { StreakBadge } from "../ui/StreakBadge";
 
 const VIEW_W = 780;
 const VIEW_H = 608; // rasio 1 : 0.78 (docs/06 §6)
@@ -89,6 +95,7 @@ export function QuadrantChart({
   const [chartFocused, setChartFocused] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [labelDistance, setLabelDistance] = useState(MIN_LABEL_DISTANCE_PX);
+  const [legendQuery, setLegendQuery] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
   const lastExternal = useRef<HTMLElement | null>(null);
 
@@ -214,6 +221,9 @@ export function QuadrantChart({
       onMouseLeave={() => setHovered(null)}
       data-testid="rrg-chart-root"
     >
+      {/* kartu hover diposisikan relatif ke SVG saja (legenda & catatan di bawahnya
+          membuat tinggi wadah ≠ tinggi gambar) */}
+      <div className="relative">
       <svg
         viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
         role="application"
@@ -411,15 +421,6 @@ export function QuadrantChart({
 
       </svg>
 
-      {hiddenCount > 0 && (
-        <p className="mt-1 text-sm text-fg-muted" data-testid="rrg-cap-note">
-          Menampilkan {shown.length} dari {shown.length + hiddenCount} titik (skor tertinggi).{" "}
-          <Link to={showAllHref} className="text-accent underline underline-offset-2">
-            Lihat semua di tabel
-          </Link>
-        </p>
-      )}
-
       {activeItem && (
         <div
           data-testid="point-card"
@@ -440,6 +441,85 @@ export function QuadrantChart({
           </div>
         </div>
       )}
+      </div>
+
+      {hiddenCount > 0 && (
+        <p className="mt-1 text-sm text-fg-muted" data-testid="rrg-cap-note">
+          Menampilkan {shown.length} dari {shown.length + hiddenCount} titik (skor tertinggi).{" "}
+          <Link to={showAllHref} className="text-accent underline underline-offset-2">
+            Lihat semua di tabel
+          </Link>
+        </p>
+      )}
+
+      {/* Legenda interaktif (docs/06 §6.2): jalur kedua ke titik yang sama + jalur keyboard
+          utama. Satu state dengan chart (`hovered`/`selectedRefId`), dan tidak ikut meredup.
+          Tinggi kotak legenda DIPATOK (docs/06 §6.2: `max-height` 96px + scroll) supaya
+          kedatangan data tidak menggeser tata letak (CLS, docs/08 F11). */}
+      <div
+        data-testid="rrg-legend"
+        className="mt-2 flex flex-col gap-2"
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            onSelect(null);
+            setHovered(null);
+          }
+        }}
+      >
+        {legendNeedsSearch(shown.length) && (
+          <input
+            type="search"
+            aria-label="Cari entri legenda"
+            placeholder="cari nama/ticker"
+            value={legendQuery}
+            onChange={(event) => setLegendQuery(event.target.value)}
+            className="h-8 w-40 rounded-sm border border-border-strong bg-surface px-2 text-base text-fg"
+          />
+        )}
+        <div className="flex h-24 flex-wrap content-start gap-2 overflow-y-auto">
+          {legendEntries(shown, legendQuery).map((item) => {
+            const isHovered = item.ref_id === hovered;
+            const isPinned = item.ref_id === selectedRefId;
+            return (
+              <button
+                key={item.ref_id}
+                type="button"
+                data-testid={`legend-${item.ref_id}`}
+                aria-pressed={isPinned}
+                onMouseEnter={() => setHovered(item.ref_id)}
+                onMouseLeave={() => setHovered(null)}
+                onFocus={() => setHovered(item.ref_id)}
+                onBlur={() => setHovered(null)}
+                onClick={() => {
+                  onSelect(isPinned ? null : item.ref_id);
+                  setKeyboardIndex(shown.indexOf(item));
+                }}
+                className={cn(
+                  "inline-flex h-6 items-center gap-1.5 rounded-sm border px-2 text-sm motion-reduce:transition-none",
+                  isHovered
+                    ? "border-border-strong bg-surface-hover ring-1 ring-[var(--focus)]"
+                    : isPinned
+                      ? "border-border-strong bg-accent-subtle font-medium text-fg"
+                      : "border-border text-fg-muted hover:text-fg",
+                )}
+              >
+                <span
+                  aria-hidden="true"
+                  className="h-2 w-2 shrink-0 rounded-full"
+                  style={{ backgroundColor: item.color_hex }}
+                />
+                {item.name}
+                <QuadrantBadge quadrant={item.quadrant} />
+                <StreakBadge weeks={item.streak_weeks} />
+                {/* pembaca layar dapat angkanya (docs/06 §6.2) */}
+                <span className="sr-only">
+                  {`${QUADRANT_LABEL[item.quadrant]}, RS-Ratio ${formatNum(item.rs_ratio, 2)}, RS-Momentum ${formatNum(item.rs_momentum, 2)}`}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       <p aria-live="polite" data-testid="rrg-live" className="sr-only">
         {activeItem ? describePoint(activeItem) : ""}

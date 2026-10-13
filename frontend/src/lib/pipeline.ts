@@ -82,15 +82,51 @@ export function lastRun(runs: IngestRun[], kind: string): IngestRun | null {
   return [...runs].sort((a, b) => b.run_id - a.run_id).find((r) => r.kind === kind) ?? null;
 }
 
-function hasSucceeded(runs: IngestRun[], kind: string): boolean {
-  return runs.some((r) => r.kind === kind && (r.status === "ok" || r.status === "partial"));
+/**
+ * Run dianggap "data sudah masuk" kalau statusnya `ok|partial|skipped` (bukan `failed`).
+ * Dipakai untuk pertanyaan "langkah ini pernah berhasil?" — prasyarat tombol sendiri
+ * sekarang dibaca dari data (`prereqState`), riwayat run hanya untuk chip status.
+ */
+export function hasSucceeded(runs: IngestRun[], kind: string): boolean {
+  return runs.some(
+    (r) => r.kind === kind && (r.status === "ok" || r.status === "partial" || r.status === "skipped"),
+  );
+}
+
+/**
+ * Prasyarat tombol dibaca dari **data yang ada** (`docs/08` F13 bagian A), bukan dari
+ * riwayat run: run `failed`/`skipped` dulu mengunci tombol padahal datanya sudah masuk.
+ * Riwayat run tetap dipakai untuk chip status (`statusChip`).
+ */
+export interface PrereqState {
+  /** Σ `constituents_active` dari `GET /meta/sectors`; `null` = belum terbaca. */
+  sectorsActive: number | null;
+  /** `last_ingest.prices_daily` dari `GET /meta/config`; `null` = harga harian belum pernah masuk. */
+  pricesDailyAt: string | null;
+}
+
+export function prereqState(
+  sectors: { items: { constituents_active: number }[] } | null | undefined,
+  config: { last_ingest: { prices_daily: string | null } } | null | undefined,
+): PrereqState {
+  return {
+    sectorsActive: sectors?.items
+      ? sectors.items.reduce((total, item) => total + (item.constituents_active ?? 0), 0)
+      : null,
+    pricesDailyAt: config?.last_ingest?.prices_daily ?? null,
+  };
 }
 
 /** Alasan tombol terkunci, atau null kalau boleh dijalankan. Backend tetap penjaga terakhir (409). */
-export function lockReason(step: PipelineStep, runs: IngestRun[]): string | null {
-  if (step.needs && !hasSucceeded(runs, step.needs)) {
-    const need = PIPELINE.find((s) => s.kind === step.needs);
-    return `Jalankan "${need?.title ?? step.needs}" dulu.`;
+export function lockReason(step: PipelineStep, data: PrereqState): string | null {
+  if (!step.needs) return null;
+  const need = PIPELINE.find((s) => s.kind === step.needs);
+  const reason = `Jalankan "${need?.title ?? step.needs}" dulu.`;
+  if (step.needs === RUN_KIND.importExcel) {
+    return (data.sectorsActive ?? 0) > 0 ? null : reason;
+  }
+  if (step.needs === RUN_KIND.pricesDaily) {
+    return data.pricesDailyAt ? null : reason;
   }
   return null;
 }
@@ -135,6 +171,9 @@ export const ERROR_LABEL: Record<string, string> = {
     "Minggu berjalan belum final — sinyal mingguan tersedia setelah penutupan Jumat.",
   gate_midday_stale:
     "Data Yahoo belum sampai sesi 1 (bar terakhir sebelum 11:30 WIB). Coba lagi nanti.",
+  // docs/07 §6 no.6: impor ulang file yang sama ditolak backend
+  already_imported:
+    "File ini sudah pernah diimpor. Kalau memang ingin memperbarui, jalankan impor dengan ?force=true.",
 };
 
 export function errorMessage(error: unknown): string {

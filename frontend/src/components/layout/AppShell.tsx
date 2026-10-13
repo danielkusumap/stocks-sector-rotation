@@ -14,6 +14,7 @@ import {
 import { useTheme } from "../../hooks/useTheme";
 import { useFilterState } from "../../hooks/useFilterState";
 import { AsOfPicker } from "../domain/AsOfPicker";
+import { ScopeControls } from "./ScopeControls";
 
 const NAV = [
   { to: "/", label: "Overview", icon: LayoutGrid, end: true },
@@ -87,6 +88,8 @@ export default function AppShell() {
           <h1 className="text-base font-semibold">{title}</h1>
           <span className="text-sm text-fg-faint">Sector Rotation IDX</span>
           <div className="ml-auto flex items-center gap-1.5">
+            {/* Timeframe + Jendela + label periode di topbar (docs/06 §8, docs/08 F13 B/C) */}
+            <ScopeControls filters={filters} setFilters={setFilters} />
             {/* AsOfPicker di topbar (docs/06 §5): satu tempat untuk semua halaman */}
             <AsOfPicker
               value={filters.as_of}

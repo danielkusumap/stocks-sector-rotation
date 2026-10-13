@@ -25,6 +25,7 @@ import type {
 import sectorsJson from "./fixtures/sectors.json";
 import stocksJson from "./fixtures/stocks.json";
 import weeklyJson from "./fixtures/weekly.json";
+import { weekRangeLabel, weekStart } from "../lib/weeklyPicks";
 import { adminHandlers } from "./admin";
 
 /**
@@ -34,10 +35,30 @@ import { adminHandlers } from "./admin";
  * RS, skor, streak semuanya sudah ada di fixture.
  *
  * Knob dev: `?mock=ok` memaksa data_status `ok`; `?mock=stale` memaksa gate midday
- * `stale` (dipakai halaman Status untuk melihat dua skenario).
+ * `stale` (dipakai halaman Status untuk melihat dua skenario); `?mock=empty` = belum ada
+ * data sama sekali (universe kosong, `last_ingest` null, `range_label` null).
  *
  * Backend nyata: jalankan dev tanpa mock dengan `VITE_MOCKS=off npm run dev`.
  */
+
+/** Rentang yang dipakai hitungan (docs/05 §1). Mock berperan sebagai backend:
+ *  label Bahasa Indonesia disusun di sini, frontend hanya menampilkannya apa adanya. */
+const RANGE: Record<Timeframe, { from: string; to: string; label: string }> = {
+  d1: { from: "2026-10-12", to: "2026-10-12", label: "12 Okt 2026" },
+  w1: { from: "2026-10-12", to: "2026-10-13", label: "12–13 Okt 2026" },
+  w1_fri: { from: "2026-10-05", to: "2026-10-09", label: "5–9 Okt 2026" },
+  midday: { from: "2026-10-13", to: "2026-10-13", label: "13 Okt 2026" },
+};
+
+/** Rentang jendela (kolom return/ekor) per `window`. */
+const WINDOW_RANGE: Record<string, string> = {
+  "1w": "6–12 Okt 2026",
+  "1m": "14 Sep – 12 Okt 2026",
+  "3m": "15 Jul – 12 Okt 2026",
+  "6m": "13 Apr – 12 Okt 2026",
+  "1y": "13 Okt 2025 – 12 Okt 2026",
+  ytd: "2 Jan – 12 Okt 2026",
+};
 
 type SectorRow = SectorSummaryItem & {
   name_en: string;
@@ -73,12 +94,20 @@ const num = (sp: URLSearchParams, key: string, fallback = 0) => {
 
 function dataStatus(sp: URLSearchParams, kind: "sector" | "stock" = "sector"): DataStatus {
   const forceOk = sp.get("mock") === "ok";
+  const empty = sp.get("mock") === "empty";
+  const timeframe = (sp.get("timeframe") ?? "d1") as Timeframe;
+  const range = RANGE[timeframe] ?? RANGE.d1;
   return {
     as_of: sp.get("as_of") ?? (kind === "sector" ? AS_OF : AS_OF),
-    timeframe: (sp.get("timeframe") ?? "d1") as Timeframe,
+    timeframe,
     status: forceOk ? "ok" : "partial",
     last_data_at: LAST_DATA,
     computed_at: COMPUTED,
+    // `?mock=empty` = belum ada hasil hitung → rentangnya null (UI menampilkan "belum ada data")
+    range_from: empty ? null : range.from,
+    range_to: empty ? null : range.to,
+    range_label: empty ? null : range.label,
+    window_range_label: empty ? null : (WINDOW_RANGE[sp.get("window") ?? "3m"] ?? WINDOW_RANGE["3m"]),
     partial_sectors: forceOk ? [] : sectors.filter((s) => s.partial).map((s) => s.code),
   };
 }
@@ -252,23 +281,29 @@ export const handlers = [
     return HttpResponse.json(body);
   }),
 
-  http.get(`${API}/meta/sectors`, () => {
+  http.get(`${API}/meta/sectors`, ({ request }) => {
+    // `?mock=empty` = universe kosong (dipakai menguji prasyarat tombol pipeline, docs/08 F13 A)
+    const empty = new URL(request.url).searchParams.get("mock") === "empty";
     const body: MetaSectorsResponse = {
       api_version: "1.0",
-      items: sectors.map((s) => ({
-        code: s.code,
-        name_id: s.name_id,
-        name_en: s.name_en,
-        color_token: s.color_token,
-        color_hex: s.color_hex,
-        sort_order: s.sort_order,
-        constituents_active: s.constituents_active,
-      })),
+      items: empty
+        ? []
+        : sectors.map((s) => ({
+            code: s.code,
+            name_id: s.name_id,
+            name_en: s.name_en,
+            color_token: s.color_token,
+            color_hex: s.color_hex,
+            sort_order: s.sort_order,
+            constituents_active: s.constituents_active,
+          })),
     };
     return HttpResponse.json(body);
   }),
 
-  http.get(`${API}/meta/config`, () => {
+  http.get(`${API}/meta/config`, ({ request }) => {
+    // `?mock=empty` = belum pernah ingest apa pun → `last_ingest` null (docs/08 F13 A)
+    const empty = new URL(request.url).searchParams.get("mock") === "empty";
     // Salinan nilai aktif dari config/default.yaml (mock; sumber asli tetap backend).
     const body: MetaConfigResponse = {
       api_version: "1.0",
@@ -282,11 +317,14 @@ export const handlers = [
       timeframes: ["d1", "w1", "w1_fri", "midday"],
       windows: ["1w", "1m", "3m", "6m", "1y", "ytd"],
       midday_gate_min_bar_time: "11:30",
-      last_ingest: {
-        prices_daily: LAST_DATA,
-        intraday: "2026-10-12T16:31:40+07:00",
-        signals_weekly: "2026-10-09T17:02:11+07:00",
-      },
+      last_ingest: empty
+        ? { prices_daily: null, intraday: null, signals_weekly: null }
+        : {
+            prices_daily: LAST_DATA,
+            intraday: "2026-10-12T16:31:40+07:00",
+            signals_weekly: "2026-10-09T17:02:11+07:00",
+          },
+      market: empty ? { poll_seconds: 60, live_enabled: false } : { poll_seconds: 60, live_enabled: true },
     };
     return HttpResponse.json(body);
   }),
@@ -620,13 +658,17 @@ export const handlers = [
     const sp = new URL(request.url).searchParams;
     const minStreak = num(sp, "min_streak", 1);
     const wantedSectors = list(sp, "sector");
+    const weekEnd = sp.get("week_end") ?? weekly.week_end;
     const sectorCodes = weekly.sectors
       .filter((s) => s.streak_weeks >= minStreak && (wantedSectors.length === 0 || wantedSectors.includes(s.ref_id)))
       .map((s) => s.ref_id);
 
     const body: WeeklyPicksResponse = {
-      api_version: "1.0",
-      week_end: sp.get("week_end") ?? weekly.week_end,
+      api_version: "1.1",
+      week_end: weekEnd,
+      // label Bahasa Indonesia datang dari backend (docs/05 §3); mock menyusunnya sendiri
+      week_start: weekStart(weekEnd),
+      week_label: weekRangeLabel(weekEnd),
       is_final: sp.get("week_end") !== null ? sp.get("week_end") === weekly.week_end : weekly.is_final,
       sectors: weekly.sectors.filter((s) => sectorCodes.includes(s.ref_id)),
       stocks: weekly.stocks.filter((s) => sectorCodes.includes(s.sector_code)),

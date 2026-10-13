@@ -28,6 +28,8 @@ export const mockCalls: string[] = [];
 (globalThis as { __mockCalls?: string[] }).__mockCalls = mockCalls;
 
 let nextRunId = 1;
+/** Sudah pernah impor di sesi ini → impor berikutnya `409 already_imported` (docs/07 §6 no.6). */
+let imported = false;
 
 function nowWib(): string {
   return new Date(Date.now() + 7 * 3_600_000).toISOString().replace("Z", "+07:00");
@@ -154,8 +156,15 @@ function record(path: string) {
 }
 
 export const adminHandlers = [
-  http.post(`${API}/admin/import/excel`, () => {
+  http.post(`${API}/admin/import/excel`, ({ request }) => {
     record("POST /admin/import/excel");
+    // Impor ulang file yang sama ditolak backend (docs/07 §6 no.6) → `409 already_imported`.
+    // `?force=true` = memperbarui, tidak menambah baris baru.
+    const force = new URL(request.url).searchParams.get("force") === "true";
+    if (imported && !force) {
+      return conflict("already_imported", "File ini sudah pernah diimpor. Pakai ?force=true untuk memperbarui.");
+    }
+    imported = true;
     return HttpResponse.json(simulate(RUN_KIND.importExcel, null, false), { status: 202 });
   }),
 

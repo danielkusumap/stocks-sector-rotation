@@ -10,7 +10,7 @@ import { SectorTable } from "../components/domain/SectorTable";
 import { ErrorState } from "../components/ui/ErrorState";
 import { FreshnessPill } from "../components/ui/FreshnessPill";
 import { Panel } from "../components/ui/Panel";
-import { TableSkeleton } from "../components/ui/Skeleton";
+import { Skeleton, TableSkeleton } from "../components/ui/Skeleton";
 import {
   useBriefing,
   useHeatmap,
@@ -21,6 +21,8 @@ import {
   useSectorSummary,
 } from "../hooks/useApiQuery";
 import { useFilterState } from "../hooks/useFilterState";
+import { useSetPeriodLabel } from "../components/layout/ScopeControls";
+import { periodFromStatus } from "../lib/period";
 import { nextSort, sectorSortOf } from "../lib/sectorTable";
 
 /**
@@ -73,6 +75,14 @@ export default function OverviewPage() {
     setFilters({ sector: [code] });
   };
 
+  // label periode di topbar + subjudul panel (docs/08 F13 C): rentangnya dari `data_status`,
+  // bukan dihitung di sini
+  const period = periodFromStatus(rrg.data?.data_status, {
+    timeframe: filters.timeframe,
+    window: filters.window,
+  });
+  useSetPeriodLabel(period);
+
   return (
     <div className="flex flex-col gap-3">
       <div className="grid gap-3 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
@@ -81,8 +91,11 @@ export default function OverviewPage() {
       actions={rrg.data ? <FreshnessPill status={rrg.data.data_status} /> : null}
     >
       {rrg.isPending ? (
-        <div className="p-3">
-          <TableSkeleton rows={8} cols={5} />
+        <div className="flex flex-col gap-2 p-3">
+          {/* skeleton meniru bentuk akhir (rasio chart 780×608 + tinggi kotak legenda) supaya
+              tidak ada pergeseran tata letak saat data datang (docs/08 F11 CLS) */}
+          <Skeleton className="aspect-[780/608] w-full" />
+          <Skeleton className="h-24 w-64" />
         </div>
       ) : rrg.isError ? (
         <ErrorState error={rrg.error} onRetry={() => void rrg.refetch()} />
