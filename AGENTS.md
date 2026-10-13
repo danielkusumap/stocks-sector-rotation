@@ -35,6 +35,13 @@ Ada **dua agen yang bekerja terpisah**: satu di `backend/`, satu di `frontend/`.
     Format pesan: `<TASK-ID>: <ringkasan imperatif, huruf kecil, tanpa titik di akhir>`. Contoh lain: `B4: indeks sektor equal/turnover/captier`, `F4: QuadrantChart RRG + ekor`, `docs: koreksi rumus RS-Momentum`. Untuk perubahan non-task: awali `docs:`, `fix:`, `chore:`, `refactor:`.
     Larangan: jangan mencampur dua task dalam satu commit; jangan commit saat test merah; jangan commit `data/rotation.db` atau file `.xlsx` lain (hanya `saham_sektoral.xlsx` yang ikut).
 14. Jangan `git push` ke remote apa pun kecuali user secara eksplisit meminta. Repo ini lokal dulu.
+15. **Verifikasi berjenjang — cek termurah dulu, jangan tes berat berulang.** Urutannya: `tsc --noEmit`/`compileall`
+    → **satu** berkas uji (`pytest backend/tests/<file> -q`, `vitest run src/lib/x.test.ts`) → satu spec e2e
+    (`playwright test e2e/x.spec.ts`) → **gerbang penuh sekali per task di akhir** (`pytest -q backend`,
+    `vitest run` + `playwright test` + `npm run build`). Jangan menjalankan suite penuh setelah tiap mikro-edit,
+    jangan mengulang cek yang sudah hijau, dan jangan menyalakan server untuk hal yang sudah ditutup test.
+    Cek > 60 s butuh alasan eksplisit; sebut di laporan cek yang sengaja dilewati. Detail + daftar kesalahan
+    yang pernah memakan waktu: skill `verify-cheapest-first` (`~/.config/opencode/skills/`).
 
 ## Kondisi awal repo (sudah diverifikasi user)
 
