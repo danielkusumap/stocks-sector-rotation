@@ -232,6 +232,44 @@ Detail saham: metrik + seri harga + RRG vs sektornya + snapshot pick terakhir.
   "last_pick": { "week_end": "2026-10-09", "rank": 1, "streak_weeks": 3, "entry_ref": 4250, "stop": 4132, "target": 4486, "rationale": "..." } }
 ```
 
+### `GET /api/v1/ta/summary`
+Ringkasan backtest MA **tanpa buka detail** (dipakai kolom tabel & badge). Satu baris per entitas.
+Query: `scope` = `sector|stock` (default `sector`), `timeframe` (default `d1`), `weighting`, `ma_period` (default `config.ta.ma_default`; nilai sah = `config.ta.ma_periods`), `trend_filter` (bool, default `config.ta.trend_filter`), `sector` (multi, untuk `scope=stock`), `q`, `min_events` (int, default 0 — baris dengan event lebih sedikit tetap tampil tapi angkanya `null`), `sort` = `win_rate|median_periods|events|last_breakout|gain_since_breakout|ref_id` (default `win_rate`), `dir`, `limit` (default 50, maks 500), `offset`.
+```json
+{ "api_version": "1.0", "scope": "stock", "timeframe": "d1", "ma_period": 20, "trend_filter": true,
+  "total": 612, "limit": 50, "offset": 0,
+  "items": [
+    { "ref_id": "BBRI", "name": "Bank Rakyat Indonesia", "sector_code": "IDXFINANCE",
+      "close": 4250, "ma": 4110, "above_ma": true,
+      "n_events": 9, "win": 5, "loss": 3, "expired": 1, "open": 0,
+      "win_rate": 0.625, "median_periods_win": 9, "median_periods_loss": 6,
+      "last_breakout": { "signal_date": "2026-10-06", "entry_date": "2026-10-07", "entry_price": 4012.5,
+                         "entry_basis": "open", "periods_since": 5, "gain_since": 0.0592,
+                         "result": "open", "exit_date": null, "exit_price": null, "periods": null } } ],
+  "coverage": { "refs_tested": 916, "refs_skipped_short_history": 6,
+                "bars_from": "2024-10-14", "bars_to": "2026-10-13", "price_basis": "adj_close" },
+  "data_status": { "...": "lihat konvensi" } }
+```
+Aturan: `win_rate = win / (win + loss)` — `expired` & `open` **bukan** kekalahan dan dilaporkan sendiri; `median_periods_*` = median, bukan rata-rata; `coverage` **wajib** ada (UI menulis jumlah emiten dilewati karena riwayat kurang + `price_basis`); baris tanpa event → `win_rate`/`median_periods_*` = `null` (UI menampilkan `—`, jangan 0%).
+
+### `GET /api/v1/ta/{scope}/{ref_id}`
+Detail satu entitas (`scope` = `sector|stock`; `ref_id` = kode sektor atau ticker). Query: `timeframe`, `ma_period` (default config), `trend_filter` (bool, default config), `window` (panjang deret MA, default `3m`), `as_of`, `events` (jumlah event terakhir, default 20, maks 200).
+```json
+{ "api_version": "1.0", "scope": "stock", "ref_id": "BBRI", "name": "Bank Rakyat Indonesia",
+  "ma_period": 20, "trend_filter": true, "price_basis": "adj_close",
+  "ma_series": [ { "date": "2026-10-12", "close": 4210.0, "ma": 4088.4 } ],
+  "stats": {
+    "filter_on":  { "n_events": 9, "win": 5, "loss": 3, "expired": 1, "open": 0, "win_rate": 0.625, "median_periods_win": 9, "median_periods_loss": 6 },
+    "filter_off": { "n_events": 14, "win": 6, "loss": 7, "expired": 1, "open": 0, "win_rate": 0.462, "median_periods_win": 11, "median_periods_loss": 5 } },
+  "latest": { "signal_date": "2026-10-06", "entry_date": "2026-10-07", "entry_price": 4012.5, "entry_basis": "open",
+              "periods_since": 5, "gain_since": 0.0592, "result": "open", "exit_date": null, "exit_price": null, "periods": null },
+  "events": [ { "signal_date": "2026-08-11", "entry_date": "2026-08-12", "entry_price": 3890.0, "result": "win",
+                "periods": 7, "exit_date": "2026-08-21", "exit_price": 4095.5 } ],
+  "coverage": { "refs_tested": 916, "refs_skipped_short_history": 6, "bars_from": "2024-10-14", "bars_to": "2026-10-13", "price_basis": "adj_close" },
+  "data_status": { "...": "lihat konvensi" } }
+```
+Aturan: `stats` **selalu** memuat kedua varian (`filter_on` & `filter_off`) supaya perbandingan "dengan/tanpa filter" tidak butuh dua permintaan; `latest` = event terbaru pada `trend_filter` yang dipilih; `ma_series` hanya memuat bar yang punya MA (warmup dibuang) dan urut lama→baru; entitas tanpa event → `latest: null`, `events: []` (HTTP 200, bukan error).
+
 ### `GET /api/v1/rotation/matrix`
 Matriks transisi kuadran (untuk panel "apa yang berubah").
 Query: `timeframe, window`, `scope` (default `sector`).
@@ -353,11 +391,13 @@ Progres dibaca dari `GET /api/v1/admin/runs/{run_id}` (§4.3) — dipoll UI tiap
 | **4. Hitung semua** | `POST /api/v1/admin/compute?async=true` `{"stage":"all","timeframe":"d1"}` | indeks → RRG → metrik → sinyal | ~30–60 s |
 | **5. Hitung mingguan** | `POST /api/v1/admin/compute?async=true` `{"stage":"signals","timeframe":"w1_fri"}` | sinyal + streak | ~10 s |
 | **6. Tengah hari** | `POST /api/v1/admin/midday?async=true` | gate kesegaran + hitung ulang intraday | ~40 s |
-| **7. Refresh data tampilan** | (tidak ada endpoint baru) | frontend invalidate cache TanStack Query | — |
+| **7. Hitung analisa teknikal (MA & backtest)** | `POST /api/v1/admin/compute?async=true` `{"stage":"ta"}` | SMA 10/20/50 + deteksi breakout + hasil ±5% (2 varian filter) | ~60–120 s (922 emiten × 3 MA × 2 varian) |
+| **8. Refresh data tampilan** | (tidak ada endpoint baru) | frontend invalidate cache TanStack Query | — |
 
 Aturan: tombol 2–6 **terkunci (disabled) sampai prasyaratnya terpenuhi**, dan backend **juga** menolak dengan `409` kalau dipaksa (jangan cuma mengandalkan UI):
 - tombol 2 butuh tabel `stock` terisi (`SELECT COUNT(*) FROM stock WHERE is_active=1 > 0`);
-- tombol 4/5 butuh `price_daily` terisi untuk sebagian besar emiten aktif;
+- tombol 4/5 butuh `price_daily` terisi untuk sebagian besar emiten aktif (tombol 7 memakai prasyarat yang sama: `prereq_no_prices`);
+- `stage=all` (tombol 4) **ikut** menghitung analisa teknikal — user tidak boleh harus ingat klik tombol 7 setelah ambil harga baru;
 - tombol 5 (`w1_fri`) hanya jalan setelah penutupan Jumat (kalau dipaksa di hari lain → `409 gate_weekly_not_final`);
 - tombol 6 mengikuti gate kesegaran `docs/02 §5` (kalau gagal → `200` dengan `{"gate":"stale", "computed":false}`, bukan error).
 Respons `409` memuat `error.code` yang spesifik: `prereq_no_universe`, `prereq_no_prices`, `gate_weekly_not_final`, `gate_midday_stale`.
@@ -399,7 +439,7 @@ Opsional (kalau `config.api.api_key` diisi): header `X-API-Key` wajib untuk semu
 **Nama `run.kind`** — hanya enam nilai ini, persis (dipakai UI untuk chip status & prasyarat tombol; beda satu huruf = tombol selalu "belum pernah"):
 
 ```
-import_excel | prices_daily | prices_intraday | compute_all | compute_signals | midday
+import_excel | prices_daily | prices_intraday | compute_all | compute_signals | compute_ta | midday
 ```
 `compute_index` dan `compute_rrg` **bukan** kind yang berdiri sendiri: keduanya bagian dari `compute_all` (stage `index|rrg|all` tetap diterima sebagai parameter, tapi `kind` yang tersimpan = `compute_all`). Kolom `kind` di `ingest_run` (`docs/04` §4) memakai daftar yang sama.
 
@@ -415,6 +455,7 @@ Kuncinya **`runs`**, bukan `items`. `GET /admin/runs/{run_id}` tetap memakai `{ 
 |---|---|
 | `import_excel` | `{ "import_id": 3, "inserted": 962, "updated": 0, "deactivated": 0, "errors": [ {"sheet":"IDXFINANCE","row_no":18,"raw_value":"BCA","reason":"invalid_ticker"} ] }` |
 | `prices_daily` / `prices_intraday` | `{ "rows": 148210, "batches": 20, "failed_tickers": ["MAP"] }` |
+| `compute_ta` | `{ "events": 8421, "refs": 916, "ma_periods": [10, 20, 50], "variants": ["filter_off", "filter_on"], "win_rate": 0.58, "duration_s": 84.2 }` |
 | `compute_all` | `{ "timeframe": "d1", "sectors": 11, "tickers": 962, "duration_s": 42.1 }` |
 | `compute_signals` | `{ "week_end": "2026-10-09", "sectors": 3, "stocks": 7 }` |
 | `midday` | `{ "gate": "ok", "last_bar_at": "2026-10-13T11:35:00+07:00", "computed": true }` |

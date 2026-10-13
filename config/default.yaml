@@ -113,6 +113,19 @@ scoring:
   turnover_short_days: 20
   turnover_long_days: 60
 
+# Analisa teknikal & backtest moving average (docs/03 §10). Semua harga = adj_close
+# (bukan `close` mentah: aksi korporasi membuat lompatan palsu — 801 bar >30% pada 293 emiten di DB dev).
+ta:
+  ma_periods: [10, 20, 50]          # SMA yang dihitung & dilaporkan; MA50 dipakai juga sebagai filter tren
+  ma_default: 20                    # periode yang tampil pertama di UI (bukan klaim "terbaik" — itu urusan data)
+  trend_filter: true                # true = event hanya dihitung bila harga juga di atas MA periode tren
+  trend_filter_period: 50
+  target_pct: 0.05                  # ambang ±5% (docs/03 §10.3)
+  timeout_periods: 60               # periode bursa maksimum setelah entry; lewat ini → status `expired`
+  min_history: 60                   # minimum bar sebelum emiten/sektor ikut diuji (MA + horizon)
+  entry_basis: "next_open"          # next_open (saham) | next_index_close (sektor/indeks tidak punya open)
+  report_filter_variants: true      # laporkan hasil dengan & tanpa filter tren supaya bisa dibandingkan
+
 weekly:
   max_sectors: 3
   max_stocks_per_sector: 3

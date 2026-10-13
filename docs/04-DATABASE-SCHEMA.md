@@ -219,6 +219,34 @@ CREATE TABLE ingest_run (
 CREATE INDEX idx_ingest_run_started ON ingest_run(started_at DESC);
 ```
 
+### Analisa teknikal & backtest MA (docs/03 §10)
+
+Satu tabel saja. Deret MA **tidak** disimpan: MA dihitung ulang saat endpoint dipanggil (murah, ~500 bar per entitas) — yang mahal adalah penelusuran maju per event, dan itulah yang disimpan.
+
+```sql
+CREATE TABLE ta_breakout (
+  id           INTEGER PRIMARY KEY,
+  scope        TEXT NOT NULL,             -- stock | sector
+  ref_id       TEXT NOT NULL,             -- ticker | kode sektor
+  weighting    TEXT,                      -- untuk scope=sector (equal|turnover|captier); NULL untuk saham
+  ma_period    INTEGER NOT NULL,          -- 10 | 20 | 50 (config ta.ma_periods)
+  trend_filter INTEGER NOT NULL,          -- 0 | 1 — varian yang dihitung (config ta.trend_filter)
+  signal_date  TEXT NOT NULL,             -- D: adj_close(D) > MA(D) DAN adj_close(D−1) <= MA(D−1)
+  entry_date   TEXT NOT NULL,             -- D+1 (hari bursa, bukan hari kalender)
+  entry_price  REAL NOT NULL,             -- adj_close/open D+1 (lihat entry_basis)
+  entry_basis  TEXT NOT NULL,             -- open | adj_close | index
+  result       TEXT,                      -- win | loss | expired | open (open = horizon belum selesai)
+  exit_date    TEXT,
+  exit_price   REAL,
+  periods      INTEGER,                   -- periode bursa dari entry_date (0 = bar entry); NULL saat open
+  computed_at  TEXT NOT NULL,
+  UNIQUE (scope, ref_id, ma_period, trend_filter, signal_date)
+);
+CREATE INDEX idx_ta_breakout_ref ON ta_breakout(scope, ref_id, ma_period, trend_filter, signal_date DESC);
+```
+
+Catatan: statistik (win rate, median periode) **tidak** disimpan di tabel — diagregasi SQL saat endpoint dipanggil supaya tidak ada angka basi. `ingest_run.kind` bertambah satu nilai (`compute_ta`, `docs/05` §4.6).
+
 ## 5. View untuk API
 
 ```sql

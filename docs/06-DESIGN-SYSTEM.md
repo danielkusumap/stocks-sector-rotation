@@ -128,13 +128,13 @@ Hue berbeda, lightness seragam per tema supaya tidak ada sektor yang "terlihat l
 | `AsOfPicker` | Tanggal acuan; hari tanpa data ditandai & tidak bisa dipilih. |
 | `FreshnessPill` | `ok` (dot hijau + "data 12 Okt 16:10") / `stale` (dot amber + "delay") / `partial` (dot merah + "n sektor tipis"). Klik → popover detail `data_status`. |
 | `QuadrantChart` (RRG) | SVG buatan sendiri (lihat §6 & §6.1). Ekor, crosshair di 100/100, zona kuadran berwarna 4%, hover menampilkan `PointCard`, klik = pin sektor (sinkron dua arah dengan tabel). **Mode fokus:** titik terfokus terang, sisanya meredup 0,22. Keyboard penuh. |
-| `PointCard` | Popover: nama, kuadran + umur, RS-Ratio/RS-Momentum + perubahan, return, turnover, streak, tombol "Lihat saham sektor ini". |
+| `PointCard` | Popover: judul `TICKER · Nama` untuk `scope=saham` (kode saham dulu — itu yang dicari user), kuadran + umur, RS-Ratio/RS-Momentum + perubahan, return, turnover, streak, tombol "Lihat saham sektor ini". |
 | `SectorTable` | Kolom: Sektor, Kuadran, Umur, RS-Ratio, RS-Mom, Δ1p, **1 hr**, **1 mgg**, **1 bln**, **3 bln**, **Turnover hr ini**, Streak, Skor. Sortable semua kolom angka; baris klik → `SectorDrawer`. |
 | `FilterBar` | Chip filter aktif (bisa dihapus satu-satu), tombol "Filter" (popover), "Reset". Semua nilai tercermin di URL. |
 | `Sparkline` | 80×24 SVG dari seri 30 bar terakhir, tanpa axis, warna `--up/--down` sesuai perubahan total. |
 | `QuadrantBadge` | Badge kecil 20px: dot warna kuadran + label Indonesia. |
 | `StreakBadge` | `2w` / `3w` — hanya muncul bila `streak_weeks ≥ 2`, dengan tooltip "muncul n minggu berturut-turut". |
-| `SectorDrawer` | Panel dari kanan (lebar 720px) saat sektor diklik: metrik, chart `SectorSeries` (garis indeks + IHSG), tabel konstituen (filter & sort), mini-RRG saham. |
+| `SectorDrawer` | Panel dari kanan (lebar 720px) saat sektor diklik: metrik, chart `SectorSeries` (garis indeks + IHSG), tabel konstituen (sort; filter kuadran §6.4 ikut menyaring tabel **dan** mini-RRG), mini-RRG saham (label ticker §6). |
 | `StockTable` | Kolom seperti `SectorTable` + Ticker, Nama, Harga, RSI, ATR, Skor. Baris klik → halaman `/stocks/{ticker}`. |
 | `WeeklyPicksPanel` | Dua blok (Sektor / Saham), tiap baris: rank, nama, streak badge, `entry_ref/stop/target` (monospace), `rationale`, expander "kenapa?" → `rule_hits` sebagai daftar centang. |
 | `RotationMatrix` | Matriks 4×4 count transisi + daftar perubahan. |
@@ -148,14 +148,27 @@ Hue berbeda, lightness seragam per tema supaya tidak ada sektor yang "terlihat l
 - Kartu hover (`PointCard`) memakai angka & format yang **sama persis** dengan baris tabel untuk `ref_id` sama.
 - `AsOfPicker` memakai `GET /api/v1/meta/dates` (`docs/05` §1) untuk menonaktifkan hari tanpa data; kalau daftar kosong → jatuh ke `<input type="date">` biasa, jangan memblokir user.
 
+### 5.1 Panel Analisa Teknikal (halaman Saham & drawer Sektor)
+
+Sumber: `GET /api/v1/ta/{scope}/{ref_id}` (`docs/05` §2). Aturan angka: **semua harga penyesuaian (`adj_close`)** — label wajib **"harga penyesuaian"** di dekat angka harga, karena levelnya bisa berbeda dari layar sekuritas (dividen/aksi korporasi). Untuk saham, harga bar terakhir = harga layar; yang berbeda hanya harga historis.
+
+- Kontrol: segmented MA (`10`/`20`/`50`) + toggle "filter tren MA50" (default dari `/meta/config` → `ta.trend_filter`). Tidak ada kontrol lain.
+- Empat angka besar (`StatCard`): **+5% dulu** (`win_rate`), **median periode ke +5%**, **median periode ke −5%**, **jumlah event**. Persentase format Indonesia 1 desimal; `—` kalau tidak ada event.
+- Baris **terakhir breakout**: tanggal sinyal → tanggal entry (`entry_price`, "harga penyesuaian"), umur (`periods_since` periode), perubahan harga sekarang vs harga entry (`gain_since`, pakai `Delta`), status (`Badge`: `+5% dulu` / `−5% dulu` / `belum selesai` / `lewat batas`).
+- Perbandingan filter: satu baris kecil **"dengan filter tren: 62,5% (9 event) · tanpa filter: 46,2% (14 event)"** dari `stats.filter_on`/`filter_off` (satu permintaan, bukan dua).
+- Tabel event terakhir (maks 20): tanggal sinyal, tanggal entry, harga entry, hasil, periode, harga keluar (`—` saat belum selesai).
+- Satu baris catatan cakupan: "angka dari 916 emiten; 6 emiten dilewati karena riwayat < 60 bar" + rentang tanggal data. Ini wajib — DB dev masih universe parsial.
+- Grafik harga + garis MA: **opsional v1** (boleh menyusul). Angka & daftar event dulu.
+- Kolom ringkas di `SectorTable`/`StockTable` (tanpa buka detail, `docs/08` F18): `+5% dulu` (`win_rate`), `median periode`, `terakhir breakout` (mis. `6 Okt · 5 periode`) — bisa disortir, sumber `GET /api/v1/ta/summary`. Semua angka dihitung backend; frontend tidak menghitung rumus apa pun.
+
 ## 6. RRG chart — spesifikasi teknis
 
 - Ukuran responsif, rasio 1:0.78, padding 32px untuk label. Rentang sumbu **selalu mengandung 100** di kedua sumbu, simetris: `pad = max(0.6, 1.15 × max|nilai − 100|)`. Ticks di 100 dan ±pad×0.5.
 - Zona kuadran: `Leading` kanan-atas, `Weakening` kanan-bawah, `Lagging` kiri-bawah, `Improving` kiri-atas. Label zona 10px uppercase di tepi (opacity .55), **bukan** di tengah (jangan menutupi titik).
 - Grid: 1px `--border`, garis 100/100 `--border-strong` lebih tebal.
 - Ekor: polyline 1.5px dengan opasitas bertingkat 0.25 → 1.0 ke arah titik terakhir; titik akhir r=7 dengan ring `--surface` 2px; titik `leading` diberi dot kecil di ujung ekor sebagai penanda arah. Tanpa gradien. Animasi masuk: titik bergerak dari posisi sebelumnya 180ms.
-- Label: tampilkan nama sektor di sebelah titik; bila titik berdekatan, hanya yang terpilih/hover yang berlabel — hindari label bertumpuk (penyakit utama UI RRG buatan AI). **Ambang kedekatan diukur dalam pixel di layar, bukan satuan viewBox:** `threshold_viewBox = 24 / (renderedWidth_px / viewBoxWidth)`. Chart ini responsif, jadi ambang dalam satuan viewBox akan salah di layar kecil (label tetap bertumpuk) dan terlalu agresif di layar besar.
-- Interaksi dasar: hover → `PointCard`; klik → **pin** pilihan (tabel ikut terfilter). Tombol "Semua"/"Hanya kuadran" **bukan** bagian chart — pindah ke `FilterBar` (F5, docs/06 §7), karena itu kontrol filter dan tidak boleh punya dua tempat.
+- Label: tampilkan nama sektor di sebelah titik; bila titik berdekatan, hanya yang terpilih/hover yang berlabel — hindari label bertumpuk (penyakit utama UI RRG buatan AI). **Ambang kedekatan diukur dalam pixel di layar, bukan satuan viewBox:** `threshold_viewBox = 24 / (renderedWidth_px / viewBoxWidth)`. Chart ini responsif, jadi ambang dalam satuan viewBox akan salah di layar kecil (label tetap bertumpuk) dan terlalu agresif di layar besar. **Untuk `scope=saham` label titik = ticker** (`ref_id`, monospace), bukan nama perusahaan: itu yang dicari user di sekuritas dan labelnya lebih pendek sehingga lebih sedikit bertumpuk. Nama perusahaan tetap tampil di legenda (§6.2) dan `PointCard`.
+- Interaksi dasar: hover → `PointCard`; klik → **pin** pilihan (tabel ikut terfilter). Tombol "Semua"/"Hanya kuadran" **bukan** bagian chart — pindah ke `FilterBar` (F5, docs/06 §7), karena itu kontrol filter dan tidak boleh punya dua tempat. **Pengecualian:** di dalam `SectorDrawer` (mini-RRG saham) ada baris chip kuadran **lokal** untuk saham sektor itu (§6.4) — `FilterBar` halaman tetap satu-satunya tempat filter kuadran **sektor**.
 - Plot pakai `d3-scale` + `d3-shape` saja. **Tidak ada** chart library (Recharts/Chart.js/nivo) — hindari bloat & gaya default yang sulit dikalahkan.
 
 ### 6.1 Mode fokus — hover/klik satu titik, sisanya meredup (WAJIB)
@@ -191,7 +204,7 @@ Aturan teknis:
 
 Legenda **bukan hiasan** — dia jalur interaksi kedua ke titik yang sama, dan jalur keyboard utama.
 
-- **Isi tiap entri**: dot warna (token sektor / kuadran untuk saham) + nama (sektor: `name_id`; saham: ticker) + `QuadrantBadge`. Untuk `scope=sector` juga tampil `streak_weeks` bila ≥ 2 (pakai `StreakBadge`).
+- **Isi tiap entri**: dot warna (token sektor / kuadran untuk saham) + nama (sektor: `name_id`; saham: **`TICKER · Nama`** — nama panjang dipotong `truncate` dengan `title` = nama penuh) + `QuadrantBadge`. Untuk `scope=sector` juga tampil `streak_weeks` bila ≥ 2 (pakai `StreakBadge`).
 - **Perilaku sama dengan titik di chart, satu state** (`selectedRefId` + `hoveredRefId` di-share dua arah):
   - `hover` entri → sama seperti hover titik: titik itu opacity 1 + r membesar + dirender paling atas, semua titik lain **0,22**, ekor lain **0,18**, label lain hilang, dan `PointCard` untuk titik itu **tampil** di posisi titiknya (bukan menempel kursor legenda).
   - `click` entri → **pin** (identik dengan klik titik). Klik lagi / `Esc` / klik area kosong → lepas.
@@ -203,6 +216,26 @@ Legenda **bukan hiasan** — dia jalur interaksi kedua ke titik yang sama, dan j
 - **Pencarian (opsional, hanya kalau entri > 12)**: satu `<input>` kecil "cari nama/ticker" yang memfilter entri legenda — tanpa mengubah data chart.
 - Zona kuadran sudah punya label di tepi chart (§6); legenda **tidak** mengulang legenda kuadran — cukup badge di tiap entri.
 
+
+### 6.3 Posisi kartu hover — kartu tidak boleh menutupi ekor & pergerakan (WAJIB)
+
+Kartu `PointCard` saat hover **tidak boleh** menutupi ekor titik yang sedang dibaca, titik tetangga, atau arah pergerakannya. Offset tetap `+12px` / `-50%` (seperti sebelumnya) selalu melakukan itu di salah satu sisi chart — jadi posisinya dihitung:
+
+- Arah gerak titik = vektor `tail[-2] → tail[-1]` (periode terakhir vs sebelumnya). Kartu diletakkan di sisi **berlawanan ekor** — yaitu searah gerak, ruang yang baru ditinggalkan titik — sehingga ekor tetap terlihat utuh.
+- Titik tanpa ekor (`tail < 2`, warmup) → fallback: sisi menjauhi pusat chart (titik di kanan-atas → kartu ke kanan-atas), bukan menimpa kuadran tempat titik itu ada.
+- Kartu tidak boleh keluar kotak chart: jarak tepi minimal 8px; kalau sisi pilihan tidak cukup ruang, `flip` ke sisi seberang pada sumbu itu. Ukuran kartu tetap `w-60`; tinggi tidak perlu diukur kalau penempatan memakai anchor tepi (`translateY(-100%)` saat di atas titik).
+- Kartu tetap `pointer-events: none` (titik di baliknya tetap bisa di-hover/klik) dan tetap muncul saat hover entri legenda (§6.2).
+- Rumusnya **fungsi murni** (`lib/rrgChart.ts`: `cardPlacement()`) yang diuji unit tanpa DOM; komponen hanya memakainya. Ini yang membuat "tidak menutupi" bisa dibuktikan angka (irisan kotak kartu dengan segmen ekor = 0), bukan penilaian mata.
+
+### 6.4 Chip filter kuadran saham di `SectorDrawer`
+
+Khusus drawer detail sektor (mini-RRG saham + tabel konstituen), ada satu baris chip **lokal**:
+
+- Isi: `Semua` + 4 label kuadran dari `lib/quadrant.ts` (`Memimpin`, `Membaik`, `Melemah`, `Tertinggal`) + jumlah dari `rrg.data.quadrants` — mis. `Tertinggal (53)`. Tidak ada request tambahan untuk angkanya.
+- Single-select (`aria-pressed`), bisa dioperasikan keyboard (`Tab` + `Enter`/`Space`); pakai `Segmented`/chip yang sudah ada, bukan kontrol baru.
+- Satu state menggerakkan **dua** hal: titik RRG yang tidak cocok dibuang sebelum digambar (batas 25 titik §6.1 berlaku setelah filter), dan tabel konstituen memakai `quadrant[]` di `GET /stocks` (bukan menyaring baris yang sudah diunduh).
+- **Bukan** filter halaman: nilai ini tidak masuk URL (`?quadrant=` sudah milik `FilterBar` untuk kuadran sektor) — state lokal drawer, sama seperti `sort`/`dir` di sana.
+- Kuadran terpilih tanpa isi → `EmptyState` + tombol "Tampilkan semua", bukan chart/tabel kosong tanpa penjelasan.
 
 ## 7. Daftar filter (jawaban pertanyaan "filternya apa saja")
 
@@ -224,6 +257,8 @@ Filter di URL, berlaku untuk tabel & (kalau relevan) chart:
 | `q` | search | ticker/nama | kosong |
 
 Preset cepat (tombol, hanya mengubah URL): **"Rotasi aktif"** (quadrant=improving, dir=rs_momentum), **"Pemimpin"** (quadrant=leading, min_streak=2), **"Semua lingkup"** (reset).
+
+Pengecualian: filter kuadran **saham** di dalam `SectorDrawer` (§6.4) hidup sebagai state lokal drawer, bukan di URL — `quadrant` di URL sudah berarti kuadran **sektor** di tabel/chart halaman.
 
 ## 8. Mock UI (wireframe + data contoh)
 

@@ -28,6 +28,7 @@ Konsekuensi desain: agregasi berat **dihitung sekali** saat ingest/compute dan d
 11. **Endpoint briefing** untuk Hermes.
 12. **Halaman Data (pipeline dari UI)** — user menjalankan seluruh alur (import Excel → ambil harga → hitung → tengah hari) lewat tombol di web, **bukan** lewat terminal. Tiap langkah punya tombol, progresnya, prasyaratnya, dan riwayat run-nya. Ini pintu masuk utama, bukan pelengkap (`docs/08` F12, `docs/05` §4).
 13. **Dark + light mode**, responsif, aksesibel.
+14. **Analisa teknikal & backtest MA** per sektor **dan** per saham: SMA 10/20/50 dari `adj_close`, deteksi breakout (harga menembus MA → entry hari bursa berikutnya), lalu ukur berapa periode sampai **+5%** atau **−5%** (timeout 60 periode). Ringkasannya terlihat **tanpa buka detail** (peluang +5% dulu, median periode, kapan terakhir breakout, posisi harga sekarang dibanding harga breakout), detailnya per emiten/sektor. Dipicu dari halaman Data (tombol 7) dan ikut `Hitung semua`. Rumus: `docs/03` §10.
 
 ## 4. Bukan ruang lingkup v1 (jangan dibangun)
 

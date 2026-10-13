@@ -163,3 +163,53 @@ Bahasa UI: **Indonesia**, angka format Indonesia (`,` = desimal, `.` = ribuan). 
 4. `test_resample_wfri`: data harian Sen–Jum → tepat 1 bar minggu dengan label Jumat; minggu berjalan dikecualikan pada `w1_fri`.
 5. `test_weekly_rules`: fixture 6 saham (1 likuid+tren naik, 1 likuid+tren turun, 1 tipis, 1 harga Rp 50, 1 RSI 80, 1 suspend) → hanya saham pertama lolos; `rule_hits` berisi alasan yang benar.
 6. `test_streak`: 3 minggu berturut-turut fixture sama → `streak_weeks = 3`; ada jeda 1 minggu → reset ke 1.
+
+## 10. Analisa teknikal & backtest MA (`adj_close`)
+
+Semua harga di bagian ini **`adj_close`** (sama seperti §1). `close` mentah tidak dipakai: aksi korporasi menciptakan lompatan palsu dan itu terlihat di data nyata (DB dev: **801 bar >30%** pada 293 emiten — FORU −93,6%, PACK −91,7%, FISH −90,0%, TFCO +55,8%). Bandingkan: cek "harga di atas MA20" berbeda antara `close` dan `adj_close` di **3.131 baris / 353 emiten** — bukan kasus teoretis.
+
+### 10.1 SMA
+`ma_p(t) = rata-rata adj_close(t−p+1 … t)`, untuk `p ∈ config ta.ma_periods` (default `[10, 20, 50]`).
+MA = `NULL` sebelum `p` bar pertama (jangan 0, jangan jendela parsial). **SMA**, bukan EMA/WMA: versi sederhana yang paling andal & paling mudah diaudit.
+
+### 10.2 Breakout (transisi, bukan kondisi)
+`breakout_p(t) = adj_close(t) > ma_p(t)` **DAN** `adj_close(t−1) <= ma_p(t−1)`.
+Selama harga masih di atas MA **tidak ada event baru** — satu event per breakout. `ma_p(t)` atau `ma_p(t−1)` NULL → tidak ada event (warmup).
+
+### 10.3 Entry & hasil
+- **Entry**: harga `open` hari bursa berikutnya (D+1); kalau `open` NULL → `adj_close` D+1 (`entry_basis` = `open` / `adj_close`). Sinyal dari close D, eksekusi D+1 → tidak ada look-ahead (lihat skill backtest: *point-in-time data*).
+- `return(t) = adj_close(t) / entry_price − 1`.
+- Hasil: `return ≥ +target_pct` → **`win`**; `return ≤ −target_pct` → **`loss`**; `target_pct` = `config ta.target_pct` (0,05).
+- **Dasar hitung = `close`/`adj_close` harian**, bukan high/low intraday. Sengaja konservatif dan bisa direplay ulang oleh siapa pun; versi "touch" (high/low) bukan v1.
+- Horizon: maks `config ta.timeout_periods` (default 60) periode bursa sejak `entry_date`. Lewat itu → **`expired`**, tetap dicatat (kalau dibuang, win rate jadi bohong). Belum melewati horizon dan belum kena target → **`open`**.
+- Kasus tepi: satu bar menyentuh `+target` **dan** `−target` (gap) → dihitung **`loss`** (pesimis).
+- `periods` = jumlah periode bursa dari `entry_date` ke bar hasil (bar entry = `0`).
+
+### 10.4 Statistik (diagregasi saat endpoint dipanggil, tidak disimpan)
+- `win_rate = win / (win + loss)` — `expired` dan `open` **tidak** dihitung sebagai kekalahan; keduanya dilaporkan sendiri (`expired`, `open`).
+- `median_periods_win`, `median_periods_loss` — **median**, bukan rata-rata (distribusi ekor panjang: satu trade 60 periode merusak mean).
+- `min_history` (`config ta.min_history`, default 60 bar) — di bawah itu entitas **tidak** diuji dan jumlahnya dilaporkan di `coverage`.
+- Cakupan wajib disebut di UI: emiten diuji vs dilewati, rentang tanggal, dan bahwa semua harga penyesuaian (`adj_close`).
+
+### 10.5 Varian filter tren
+`config ta.trend_filter: true` → event hanya dihitung bila `adj_close(t) > ma_(trend_filter_period)(t)` (default MA50).
+Alasan: mode gagal MA adalah pasar sideways (signal palsu, terutama MA pendek) — mitigasi standarnya filter tren dulu. Dua varian disimpan sebagai baris terpisah (`trend_filter` 0/1) dan **selalu dilaporkan berdampingan** supaya pemilihan periode/filter dijawab data, bukan opini.
+
+### 10.6 Konteks "sekarang" (dipakai UI tanpa buka detail)
+- `last_breakout` = event terbaru untuk (entitas × `ma_period` × `trend_filter`).
+- `periods_since` = periode bursa dari `entry_date` sampai `as_of`; `gain_since = adj_close(as_of)/entry_price − 1`; `above_ma = adj_close(as_of) > ma_p(as_of)`.
+- Label harga di UI **wajib** menyebut **"harga penyesuaian"** — level historis `adj_close` bisa berbeda dari layar sekuritas; harga bar terakhir selalu sama dengan harga layar.
+
+### 10.7 Sektor
+Rumusnya sama, `ref_id` = kode sektor dan harga = **indeks sektor** (`weighting` dari config, default `equal`), bukan harga saham. Pengecualian: indeks sektor tidak punya `open`, jadi entry sektor memakai **nilai indeks D+1** (`entry_basis` = `index`) — jangan mengarang nilai `open`.
+
+### 10.8 Test yang wajib ada (tambahan §9)
+1. `test_ma_warmup`: 25 bar, `p=20` → MA NULL untuk 19 bar pertama, terisi mulai bar ke-20.
+2. `test_breakout_sekali_per_transisi`: seri yang naik terus di atas MA → **1** event, bukan satu per bar.
+3. `test_entry_pakai_bar_d_plus_1`: ubah harga D+1 → `entry_price` ikut berubah (bukti tidak memakai harga sinyal).
+4. `test_win_loss_same_bar`: bar menyentuh +5% dan −5% → `loss`.
+5. `test_expired_timeout`: tidak kena target sampai 60 periode → `expired`, `periods` = 60.
+6. `test_open_horizon_belum_selesai`: event terbaru yang belum lewat horizon → `open`, `periods` NULL.
+7. `test_median_bukan_mean`: fixture dengan satu trade 60 periode → median tetap kecil.
+8. `test_trend_filter_mengurangi_event`: varian `on` menghasilkan `n_events ≤ off` dan win rate berbeda.
+9. `test_ta_recompute_idempoten`: jalankan 2× → jumlah baris `ta_breakout` sama.

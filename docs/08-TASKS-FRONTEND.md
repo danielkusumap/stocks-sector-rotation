@@ -110,6 +110,101 @@ startRun(kind, body) → POST ...?async=true → { run_id }
 
 **Bukti:** screenshot tiap state + daftar request yang dikirim (tab Network) + hasil akhir `GET /admin/runs`.
 
+## F14 — Filter rotasi (kuadran) saham di detail sektor
+
+**Latar:** di `SectorDrawer` ada bagian "RRG saham sektor ini", tapi user tidak bisa menyaringnya — untuk "siapa yang tertinggal di sektor ini" dia harus pindah ke halaman Saham dan menyetel filter di sana.
+
+**Deliverable:** satu baris chip di dalam section `RRG saham sektor ini`: `Semua` + `Memimpin` + `Membaik` + `Melemah` + `Tertinggal` (label dari `lib/quadrant.ts`, jangan tulis ulang). Single-select, chip aktif `aria-pressed=true`. Pakai komponen rumah (`Segmented` — sudah dipakai pemilih `weighting`), jangan bikin kontrol baru.
+- Jumlah per kuadran dibaca dari `rrg.data.quadrants` (sudah ada di respons `/rrg` yang memang dipanggil drawer). **Tidak boleh** memanggil endpoint tambahan per chip: tampilkan `Tertinggal (53)` dan `Semua (99)` dari satu respons itu.
+- Efeknya dua tempat, satu state: (a) titik RRG yang kuadrannya tidak cocok dibuang **sebelum** chart (batas 25 titik + catatan "lihat semua di tabel" berlaku setelah filter), (b) tabel konstituen mengirim `quadrant[]` ke `GET /stocks` supaya `total` & paginasi benar — bukan menyaring 20 baris yang sudah diunduh.
+- State lokal drawer (sama seperti `sort`/`dir` yang sudah lokal di sana), **bukan** URL: `?quadrant=` di URL sudah milik `FilterBar` halaman untuk kuadran **sektor**; satu param dua arti = menyesatkan. Alasan ini wajib masuk `DECISIONS.md`.
+- Kirim `as_of` dari `AsOfPicker` ke **kedua** query (chart & tabel). Hari ini chart tidak menerimanya, jadi saat user memilih tanggal lama angka chart & tabel bisa beda tanggal (lihat backend B16).
+- Kuadran terpilih berisi 0 saham → `EmptyState` + tombol "Tampilkan semua", bukan chart kosong tanpa penjelasan.
+
+**AC:**
+1. `Semua` = perilaku sekarang (regresi: 99 saham IDXFINANCE → 25 titik + catatan cap tetap muncul).
+2. Pilih `Tertinggal`: chart hanya memuat titik kuadran itu, dan `total` tabel **sama dengan angka chip** (silang: `GET /stocks?timeframe=d1&sector=IDXFINANCE&quadrant=lagging` → `total`; angka ini memang beda per timeframe, jadi bandingkan pada timeframe yang sama).
+3. Filter bertahan saat `timeframe`/`window`/`weighting`/`as_of` diganti dari topbar; hasil 0 → EmptyState di atas.
+4. Tanpa request tambahan untuk hitungan chip (bukti tab Network: per klik hanya `/stocks` dengan `quadrant[]`, bukan 5× `/stocks`).
+5. Keyboard & a11y: chip di-Tab, `Enter`/`Space` memilih, `aria-pressed` benar, `PointCard` tetap memuat angka yang sama dengan baris tabel.
+6. Penyaring jadi fungsi murni **di `lib/quadrant.ts`** (`filterByQuadrant(items, quadrant)` — sengaja bukan di `lib/rrgChart.ts`, supaya F14 tidak bentrok file dengan F15/F16 yang berjalan paralel) dengan unit test ≥ 4 kasus (`Semua`, satu kuadran, kuadran kosong, item tanpa kuadran).
+
+**Bukti:** screenshot 3 state + output vitest + potongan tab Network.
+Referensi: `docs/06` §5 (`SectorDrawer`), §6.4 (aturan chip), `docs/05` §2 (`/stocks` sudah punya `quadrant[]`, `/rrg` sudah punya `quadrants`).
+
+## F15 — Kartu hover RRG tidak menutupi ekor & pergerakan
+
+**Latar:** saat hover satu titik, `PointCard` muncul di samping titik dengan offset tetap dan menutupi ekornya sendiri plus titik/ekor tetangga — user kehilangan justru informasi yang sedang dibaca (arah & panjang ekor).
+
+**Deliverable:** posisi kartu dihitung, bukan tetap:
+- Arah gerak titik = vektor `tail[-2] → tail[-1]`; kartu diletakkan di sisi **berlawanan ekor** (ruang yang baru ditinggalkan titik), bukan menimpa ekornya.
+- `tail < 2` (warmup) → fallback: sisi menjauhi pusat chart.
+- Kartu tidak boleh keluar kotak chart: clamp 8px; kalau sisi pilihan kurang ruang → `flip` ke sisi seberang.
+- Kartu tetap `pointer-events: none`, tetap muncul saat hover entri legenda (`docs/06` §6.2 tidak berubah).
+- Hitungannya jadi fungsi murni `cardPlacement()` di `lib/rrgChart.ts` (input: titik, titik ekor sebelumnya, kotak chart, ukuran kartu) supaya bisa diuji tanpa DOM; `QuadrantChart` hanya memakainya.
+
+**AC:**
+1. Unit test 8 arah gerak + kasus tanpa ekor → anchor yang diharapkan, dan tidak ada kasus yang menaruh kartu searah ekor.
+2. Titik di 4 sudut chart → kartu tetap di dalam kotak (uji DOM: `getBoundingClientRect(kartu)` ⊆ kotak chart, toleransi 1px).
+3. Anti-tumpang diukur, bukan dilihat: irisan kotak kartu dengan segmen ekor titik itu = 0 (angka dilaporkan di PROGRESS).
+4. Hover lewat legenda → kartu tetap di posisi titiknya (regresi §6.2).
+5. `prefers-reduced-motion` tetap 0 ms; titik di balik kartu tetap bisa di-hover/klik.
+
+**Bukti:** screenshot before/after untuk 4 kuadran + angka irisan (0) + output vitest.
+Referensi: `docs/06` §6.3 (aturan baru), §6.1 & §6.2.
+
+## F16 — Kode saham (ticker) di label, legenda, dan kartu RRG saham
+
+**Latar:** `docs/06` §6.2 sudah menulis entri legenda scope saham = **ticker**, tapi kode menampilkan `item.name` (nama perusahaan) di label titik, legenda, dan `PointCard`. Untuk saham, ticker yang dicari user di sekuritas — nama panjang justru menambah label bertumpuk.
+
+**Deliverable:** untuk `scope=stock` (mini-RRG drawer & RRG halaman saham):
+- label titik chart = ticker (`ref_id`), mono;
+- entri legenda = `TICKER · Nama` (dot warna + `QuadrantBadge` + `StreakBadge` tidak berubah), nama panjang dipotong `truncate` + `title` = nama penuh;
+- judul `PointCard` = `TICKER · Nama`;
+- teks aria (`describePoint`) & `aria-live` memuat ticker;
+- pencarian legenda cocok pada ticker **dan** nama (sudah begitu — jangan diregresikan).
+`scope=sector` tidak berubah (nama sektor, tanpa kode).
+
+**AC:**
+1. Drawer sektor: label titik terbaca `POLA`, legenda `POLA · Pool Advista Finance`, kartu memuat keduanya.
+2. Fixture 25 saham: tidak ada label bertumpuk baru (ambang pixel `docs/06` §6 tidak diubah) — ticker memperpendek label, bukan memperpanjang.
+3. Regresi scope sektor: label tetap `Keuangan` dsb, tidak ada ticker di legenda sektor.
+4. `describePoint` & `aria-live` memuat ticker (uji teks DOM); helper label (`stockLabel()` di `lib/rrgChart.ts`) punya unit test.
+5. Tidak ada perubahan API/field (ticker = `ref_id` yang sudah ada) → `api_version` tetap.
+
+**Bukti:** screenshot chart + legenda scope saham, output vitest, potongan teks `aria-live`.
+Referensi: `docs/06` §6 (label) & §6.2 (entri legenda).
+
+## F17 — Analisa teknikal di UI (satu task: panel detail + kolom insight + tombol 7)
+
+**Latar:** fitur baru `docs/01` §3 butir 14. Rumus `docs/03` §10, kontrak `docs/05` §2 (`/ta/summary`, `/ta/{scope}/{ref_id}`) + §4.1 (tombol 7), tampilan `docs/06` §5.1. Frontend **tidak menghitung** apa pun.
+
+**Deliverable (satu task):**
+1. Komponen `TaPanel` sesuai `docs/06` §5.1, sumber `GET /api/v1/ta/{scope}/{ref_id}`: segmented MA (`10`/`20`/`50`) + toggle "filter tren MA50" (default dari `/meta/config.ta`); 4 angka besar (`+5% dulu`, median periode ke +5%, median periode ke −5%, jumlah event); baris "terakhir breakout" (tanggal sinyal → entry, `entry_price` berlabel **harga penyesuaian**, umur `periods_since`, `gain_since` via `Delta`, status `Badge`: `+5% dulu` / `−5% dulu` / `belum selesai` / `lewat batas`); baris perbandingan "dengan filter tren … · tanpa filter …" dari `stats.filter_on`/`filter_off` (**satu** permintaan); tabel maks 20 event terakhir; baris catatan `coverage` (emiten diuji/dilewati, rentang tanggal, `price_basis`). Dipasang di `SectorDrawer` (section baru setelah konstituen) **dan** `StockPage` — satu komponen, bukan dua implementasi.
+2. Kolom insight di `SectorTable` + `StockTable`: `+5% dulu`, `median periode`, `terakhir breakout` (mis. `6 Okt · 5 periode` + badge hasil), sumber **satu** permintaan per halaman `GET /api/v1/ta/summary` untuk semua `ref_id` yang tampil; `sort` = `win_rate|median_periods|last_breakout|…` diteruskan ke API.
+3. Halaman Data mengikuti `docs/05` §4.1 versi baru: stepper **8 langkah** — tombol **7 "Hitung analisa teknikal (MA & backtest)"** (`POST /admin/compute?async=true {"stage":"ta"}`) dengan chip status, prasyarat, progres, dan `result_json` (jumlah event, win rate) di panel riwayat; tombol **8 "Refresh data tampilan"** (dulu 7); chip/riwayat mengenali `kind=compute_ta`; teks tombol 4 menyebut `Hitung semua` sudah termasuk analisa teknikal; setelah run `ok` → invalidate query `/ta/*` supaya tabel & panel segar.
+
+**AC:**
+1. Ganti `ma_period`/toggle filter → panel & kolom berubah **tanpa reload**; state bertahan selama drawer terbuka.
+2. `win_rate` `null` → `—` (bukan `0%`); `expired`/`open` tidak dihitung sebagai kalah dan jumlahnya terlihat.
+3. Uji silang: 3 ticker → angka panel = angka `/ta/summary` untuk `ref_id`, `ma_period`, `trend_filter` yang sama; angka kolom = angka panel.
+4. Tidak ada permintaan `/ta/*` per baris tabel (bukti Network: 1 permintaan per halaman; chip/tombol lain sesuai).
+5. Entitas tanpa event → EmptyState singkat ("belum ada breakout pada periode MA ini"); halaman saham tanpa metrik tetap `—`.
+6. DB/`price_daily` kosong → tombol 7 `disabled` + alasan tertulis; `409 prereq_no_prices` dari backend ditampilkan sebagai pesan Indonesia, bukan stack trace.
+7. Semua string UI Bahasa Indonesia (tidak ada `win_rate`/`leading` mentah di teks), angka format Indonesia, harga TA berlabel "harga penyesuaian".
+
+**Bukti:** screenshot (panel di drawer + halaman saham × 2 state filter, kolom tabel, 3 state tombol 7: disabled / jalan / selesai) + potongan tab Network + hasil uji silang 3 ticker + 4 perintah hijau (`npx tsc --noEmit`, `npx vitest run`, `npx playwright test`, `npm run build`).
+Ketergantungan: butuh backend `B17` untuk data nyata — boleh dibangun dengan MSW memakai contoh `docs/05` §2 (kontrak beku). Kalau field kurang → tulis `docs/DECISIONS.md`, jangan menghitung sendiri.
+Commit (satu task satu commit): `F17: panel analisa teknikal + kolom insight + tombol hitung TA`.
+
+### Urutan & paralel (F14–F17)
+
+| Bisa paralel | Tidak boleh paralel |
+|---|---|
+| F14 ∥ F15 — F14 wajib menaruh helper di `lib/quadrant.ts` (bukan `lib/rrgChart.ts`) | F15 vs F16 — dua-duanya `QuadrantChart.tsx` + `lib/rrgChart.ts` |
+| F17 berkas utamanya `SectorDrawer.tsx` → jalankan **setelah** F14 | F14 vs F17 — dua-duanya `SectorDrawer.tsx` |
+| Semua task frontend ∥ task backend (folder berbeda) | F17 setelah F14 selesai (bukan cuma ditulis) |
+
 ---
 
 ## Aturan tambahan untuk agen frontend

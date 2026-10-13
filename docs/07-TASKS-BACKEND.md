@@ -126,6 +126,70 @@ python -m backend.cli serve                  # uvicorn app.main:app --port 8000
 
 **Bukti:** tempel 3 respons poling + 2 respons `409` di `PROGRESS.md`.
 
+## B16 — `as_of` benar-benar dipakai: `/stocks` + cache `/rrg` & `/sectors/summary`
+
+**Kenapa ada:** chip filter kuadran di drawer sektor (`docs/08` F14) mengirim `quadrant[]` ke `/stocks` **dan** membaca `quadrants` dari `/rrg`. Kalau `as_of` dari `AsOfPicker` diabaikan, dua panel itu bercerita tentang tanggal berbeda dan filternya bohong. Ditemukan saat menyiapkan F14 — **bukan** dari pembacaan kode saja.
+
+Bukti awal (13 Okt 2026, server dev :8000):
+```
+GET /stocks?timeframe=d1&sector=IDXFINANCE&limit=2              → POLA close 90 rs_ratio 115,65 score 89,1 · data_status.as_of 2026-10-13
+GET /stocks?...&as_of=2026-09-01                                → POLA close 90 rs_ratio 115,65 score 89,1 · data_status.as_of 2026-09-01   ← baris identik, label tanggal beda
+GET /rrg?scope=sector&timeframe=d1                              → as_of 2026-10-13
+GET /rrg?scope=sector&timeframe=d1&as_of=2026-09-01             → as_of 2026-10-13 (badan respons identik)                                  ← cache
+GET /sectors/summary?timeframe=d1&sector=IDXFINANCE&as_of=2026-09-01 → rs_ratio 101,37 score 46,1 (identik dengan tanpa as_of)              ← cache
+```
+`LIST_SQL` (`app/api/stocks.py`) memakai `sm.as_of_date = (SELECT MAX(as_of_date) …)` hardcoded, sedangkan `sectors/summary` & `/rrg` memakai `as_of` yang diminta. Cache key `/rrg` dan `/sectors/summary` juga tidak memuat `as_of`, jadi permintaan tanggal lain dilayani badan respons permintaan pertama selama TTL.
+
+**Deliverable:**
+1. `/stocks` memakai `as_of` yang diminta (bukan `MAX(as_of_date)`), sehingga `items`, `total`, dan filter `sector`/`quadrant`/`min_turnover_idr` dihitung dari snapshot tanggal itu — konsisten dengan `data_status.as_of` yang sudah dilaporkan.
+2. Cache key `/rrg` dan `/sectors/summary` memuat `as_of`.
+3. Tanpa `as_of`, perilaku tetap: snapshot terakhir (jangan mengubah default).
+
+**AC:**
+1. `/stocks?…&as_of=<tanggal lama yang punya baris>` → `rs_ratio`/`close` berbeda dari permintaan tanpa `as_of`, dan `data_status.as_of` = tanggal itu.
+2. `/rrg?…&as_of=<tanggal lama>` → `as_of` di respons = tanggal itu walaupun permintaan tanpa `as_of` dipanggil lebih dulu; sama untuk `sectors/summary` (`rs_ratio`/`score` berubah). Uji lewat HTTP nyata, bukan hanya unit test (bug ini hanya muncul lintas-permintaan).
+3. Test regresi: dua panggilan berurutan dengan `as_of` berbeda mengembalikan `as_of` masing-masing.
+4. Tidak ada perubahan bentuk respons → `api_version` tetap; kalau ternyata perlu field baru, naikkan versi + ADR + update `docs/05`.
+5. `pytest -q` hijau.
+
+**Bukti:** potongan curl before/after untuk 3 endpoint + output pytest.
+Catatan: pilih tanggal uji dari `SELECT DISTINCT as_of_date FROM rrg_daily ORDER BY as_of_date DESC LIMIT 5` di DB dev — jangan menandai "terbukti" dari permintaan yang mengembalikan kosong.
+
+## B17 — Analisa teknikal & backtest MA (satu task: hitung, simpan, sajikan)
+
+**Kenapa ada:** fitur baru `docs/01` §3 butir 14 — analisa teknikal sektor & saham berbasis MA + backtest "breakout → berapa periode ke +5%/−5%". Rumus lengkap: **`docs/03` §10** (jangan mengarang rumus di kode). DDL: `docs/04` §4 (tabel `ta_breakout`). Kontrak: **`docs/05` §2 + §4.1/§4.6**. Semua angka ambang hanya dari `config ta.*`. Harga selalu **`adj_close`**.
+
+**Deliverable (satu task, mencakup hitung → simpan → sajikan → tombol):**
+1. `backend/app/compute/ta.py`:
+   - SMA untuk `config ta.ma_periods` (10/20/50) dari `adj_close`; `NULL` sebelum periode penuh (jangan 0, jangan jendela parsial);
+   - deteksi **breakout sebagai transisi** (`docs/03` §10.2) — satu event per transisi;
+   - entry D+1 hari bursa: saham `open` (`entry_basis='open'`, fallback `adj_close`), sektor = **nilai indeks D+1** (`entry_basis='index'`; indeks tidak punya `open` — `docs/03` §10.7);
+   - hasil: telusuri maju sampai `+target_pct` / `−target_pct` / `timeout_periods` / data habis → `win | loss | expired | open` dengan aturan tepi `docs/03` §10.3 (bar yang menyentuh +5% **dan** −5% → `loss`);
+   - dua varian filter tren (`trend_filter` 0/1) sebagai baris terpisah.
+2. Migrasi `backend/app/db/migrations/004_ta_breakout.sql` (`IF NOT EXISTS`, idempotent-safe) + `python -m backend.cli db-init`.
+3. Simpan hanya `ta_breakout`; **statistik tidak disimpan** — agregasi SQL saat endpoint dipanggil (`docs/04` catatan). Yang dibutuhkan: `n_events, win, loss, expired, open, win_rate, median_periods_win, median_periods_loss, latest, coverage`.
+4. `app/api/ta.py` + `response_model` pydantic di `app/api/schemas.py`: `GET /api/v1/ta/summary` dan `GET /api/v1/ta/{scope}/{ref_id}` **persis** bentuk `docs/05` §2 (kunci `items`/`coverage`/`stats.filter_on`/`stats.filter_off`/`latest`/`events`, `price_basis: "adj_close"`).
+5. `app/jobs.py`: `stage: "ta"` jalan; `stage=all` **menyertakan** TA; `kind` baru `compute_ta` di `ingest_run` (progres per grup emiten, 1 UPDATE per batch — pola sama seperti ingest); `/api/v1/meta/config` mengekspos blok `ta` (frontend tidak boleh menghardcode MA default/target/timeout).
+6. Update komentar `ingest_run.kind` di `docs/04` (daftar 7 nilai).
+
+**AC (satu task, semua harus terbukti):**
+1. `test_ma_warmup`: `p=20` pada 25 bar → 19 bar NULL, mulai bar ke-20 terisi.
+2. `test_breakout_sekali_per_transisi`: seri di atas MA terus → **1** event.
+3. `test_entry_pakai_bar_d_plus_1`: ubah harga D+1 → `entry_price` ikut berubah.
+4. `test_win_loss_same_bar` → `loss`; `test_expired_timeout` → `periods` = 60; `test_open_horizon_belum_selesai` → `open` + `periods` NULL.
+5. `test_median_bukan_mean`: satu trade 60 periode tidak menggeser median seperti mean.
+6. `test_trend_filter_mengurangi_event`: varian `on` ≤ `off`, kedua statistik bisa dibaca berdampingan.
+7. Idempotensi: `stage=ta` 2× → jumlah baris `ta_breakout` sama.
+8. `POST /admin/compute?async=true {"stage":"ta"}` → `202` + run `kind=compute_ta`; poling `GET /admin/runs/{id}` → `phase`/`rows` naik sampai `ok`; `result_json` sesuai `docs/05` §4.6.
+9. `{"stage":"all"}` menghasilkan baris `ta_breakout` (uji lewat HTTP, bukan unit test).
+10. `GET /ta/summary?scope=stock&ma_period=20&trend_filter=false` → `items` tidak kosong + `coverage` terisi; `GET /ta/stock/BBRI` memuat `stats.filter_on` & `filter_off`.
+11. `ma_period` di luar `ta.ma_periods` → `400`; `price_daily` kosong → `409 prereq_no_prices`; entitas tanpa event → `200` dengan `latest: null`, `events: []`.
+12. Entitas dengan riwayat < `ta.min_history` tidak diuji dan dihitung di `coverage.refs_skipped_short_history`.
+
+**Bukti:** `pytest -q` hijau + run nyata dengan config salinan (`ROTATION_CONFIG` ke DB di luar repo, 10–20 emiten — **jangan** backfill penuh) + dump JSON 3 endpoint (1 sektor + 1 saham) ke `docs/evidence/b17/` + 1 respons `400` + 1 respons `409` + potongan `ingest_run` setelah `stage=all` + 1 event yang direplay manual (tempel perhitungannya).
+Catatan: blok `ta` baru ditambahkan ke `config/default.yaml` → salinan config uji lama harus digenerate ulang dari config asli, kalau tidak `Settings()` gagal "Field required".
+Commit (satu task satu commit): `B17: analisa teknikal & backtest MA (SMA, breakout, /ta/*, stage ta)`.
+
 ---
 
 ## Aturan tambahan untuk agen backend
