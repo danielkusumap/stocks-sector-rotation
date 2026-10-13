@@ -1,0 +1,30 @@
+Replay manual event BBRI 2025-09-03 (ma_period=20, trend_filter=0)
+
+--- 1. MA20 di sekitar sinyal (adj_close, jendela penuh; docs/03 §10.1–§10.2) ---
+date=2025-09-01 · close=3602.707275390625 · ma20=3612.2119 · bar_ke=206
+date=2025-09-02 · close=3584.60302734375 · ma20=3623.5269 · bar_ke=207
+date=2025-09-03 · close=3647.96728515625 · ma20=3636.6523 · bar_ke=208
+date=2025-09-04 · close=3620.811279296875 · ma20=3649.7778 · bar_ke=209
+
+--- 2. Entry D+1 = open × adj_close / close (docs/03 §10.3) ---
+date=2025-09-04 · open_mentah=3980.0 · close=4000.0 · adj_close=3620.811279296875 · entry_price=3602.7072 · entry_basis=open
+
+--- 3. Telusuri maju sampai ±5% (periode = bar ke-n setelah entry) ---
+date=2025-09-08 · close=3530.291015625 · hari_kalender=4.0 · periods=1.0 · ret=-0.0201
+date=2025-09-09 · close=3430.71875 · hari_kalender=5.0 · periods=2.0 · ret=-0.0477
+date=2025-09-10 · close=3512.18701171875 · hari_kalender=6.0 · periods=3.0 · ret=-0.0251
+date=2025-09-11 · close=3693.2275390625 · hari_kalender=7.0 · periods=4.0 · ret=0.0251
+date=2025-09-12 · close=3783.747802734375 · hari_kalender=8.0 · periods=5.0 · ret=0.0503
+date=2025-09-15 · close=3747.53955078125 · hari_kalender=11.0 · periods=6.0 · ret=0.0402
+date=2025-09-16 · close=3738.48779296875 · hari_kalender=12.0 · periods=7.0 · ret=0.0377
+date=2025-09-17 · close=3819.9560546875 · hari_kalender=13.0 · periods=8.0 · ret=0.0603
+
+--- 4. Baris `ta_breakout` yang tersimpan (harus sama dengan hitungan di atas) ---
+scope=stock · ref_id=BBRI · ma_period=20 · trend_filter=0 · signal_date=2025-09-03 · entry_date=2025-09-04 · entry_price=3602.7072 · entry_basis=open · result=win · exit_date=2025-09-12 · exit_price=3783.7478 · periods=5
+
+--- 5. Return di bar exit (target 5%) ---
+date=2025-09-12 · close=3783.747802734375 · ret=0.0503
+
+--- 6. Statistik BBRI ma_period=20 trend_filter=0 & 1 (median, bukan mean) ---
+trend_filter=0 · n_events=29 · win=10 · loss=19 · expired=0 · open_flag=0 · win_rate=0.3448
+trend_filter=1 · n_events=7 · win=2 · loss=5 · expired=0 · open_flag=0 · win_rate=0.2857

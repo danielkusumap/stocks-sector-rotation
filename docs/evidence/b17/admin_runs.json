@@ -1,0 +1,235 @@
+{
+ "api_version": "1.1",
+ "total": 6,
+ "runs": [
+  {
+   "run_id": 44,
+   "kind": "compute_all",
+   "status": "ok",
+   "phase": "compute_ta",
+   "started_at": "2026-10-13T21:39:37+07:00",
+   "finished_at": "2026-10-13T21:40:44+07:00",
+   "rows": 58427,
+   "rows_total": null,
+   "percent": 100.0,
+   "message": "26/26 entitas · 3144 event",
+   "triggered_by": "api",
+   "failed_tickers": [],
+   "params_json": {
+    "stage": "all",
+    "timeframe": "d1",
+    "as_of": null
+   },
+   "result_json": {
+    "stage": "all",
+    "timeframe": "d1",
+    "sectors": 11,
+    "tickers": 15,
+    "weightings": [
+     "equal",
+     "turnover",
+     "captier"
+    ],
+    "timeframes": [
+     "d1",
+     "w1",
+     "w1_fri"
+    ],
+    "metrics_rows": 19056,
+    "score_rows": 1084,
+    "signal_weeks": 91,
+    "signal_rows": 65,
+    "ta_rows": 3144,
+    "ta_refs": 26,
+    "rows": 58427,
+    "duration_s": 66.57
+   }
+  },
+  {
+   "run_id": 43,
+   "kind": "compute_ta",
+   "status": "ok",
+   "phase": "compute_ta",
+   "started_at": "2026-10-13T21:39:36+07:00",
+   "finished_at": "2026-10-13T21:39:37+07:00",
+   "rows": 3144,
+   "rows_total": null,
+   "percent": 100.0,
+   "message": "26/26 entitas · 3144 event",
+   "triggered_by": "api",
+   "failed_tickers": [],
+   "params_json": {
+    "stage": "ta",
+    "timeframe": "d1",
+    "as_of": null
+   },
+   "result_json": {
+    "stage": "ta",
+    "timeframe": "d1",
+    "sectors": 11,
+    "tickers": 15,
+    "ta_rows": 3144,
+    "ta_refs": 26,
+    "events": 3144,
+    "refs": 26,
+    "ma_periods": [
+     10,
+     20,
+     50
+    ],
+    "variants": [
+     "filter_off",
+     "filter_on"
+    ],
+    "win_rate": 0.5148,
+    "rows": 3144,
+    "duration_s": 0.25
+   }
+  },
+  {
+   "run_id": 42,
+   "kind": "compute_all",
+   "status": "ok",
+   "phase": "compute_ta",
+   "started_at": "2026-10-13T21:34:48+07:00",
+   "finished_at": "2026-10-13T21:35:52+07:00",
+   "rows": 58427,
+   "rows_total": null,
+   "percent": 100.0,
+   "message": "26/26 entitas · 3144 event",
+   "triggered_by": "api",
+   "failed_tickers": [],
+   "params_json": {
+    "stage": "all",
+    "timeframe": "d1",
+    "as_of": null
+   },
+   "result_json": {
+    "stage": "all",
+    "timeframe": "d1",
+    "sectors": 11,
+    "tickers": 15,
+    "weightings": [
+     "equal",
+     "turnover",
+     "captier"
+    ],
+    "timeframes": [
+     "d1",
+     "w1",
+     "w1_fri"
+    ],
+    "metrics_rows": 19056,
+    "score_rows": 1084,
+    "signal_weeks": 91,
+    "signal_rows": 65,
+    "ta_rows": 3144,
+    "ta_refs": 26,
+    "rows": 58427,
+    "duration_s": 64.13
+   }
+  },
+  {
+   "run_id": 41,
+   "kind": "compute_ta",
+   "status": "ok",
+   "phase": "compute_ta",
+   "started_at": "2026-10-13T21:34:47+07:00",
+   "finished_at": "2026-10-13T21:34:48+07:00",
+   "rows": 2978,
+   "rows_total": null,
+   "percent": 100.0,
+   "message": "26/26 entitas · 2978 event",
+   "triggered_by": "api",
+   "failed_tickers": [],
+   "params_json": {
+    "stage": "ta",
+    "timeframe": "d1",
+    "as_of": null
+   },
+   "result_json": {
+    "stage": "ta",
+    "timeframe": "d1",
+    "sectors": 11,
+    "tickers": 15,
+    "ta_rows": 2978,
+    "ta_refs": 26,
+    "events": 2978,
+    "refs": 26,
+    "ma_periods": [
+     10,
+     20,
+     50
+    ],
+    "variants": [
+     "filter_off",
+     "filter_on"
+    ],
+    "win_rate": 0.3072,
+    "rows": 2978,
+    "duration_s": 0.5
+   }
+  },
+  {
+   "run_id": 40,
+   "kind": "compute_all",
+   "status": "ok",
+   "phase": "compute_signals",
+   "started_at": "2026-10-13T17:52:06+07:00",
+   "finished_at": "2026-10-13T17:59:20+07:00",
+   "rows": 502180,
+   "rows_total": null,
+   "percent": 100.0,
+   "message": "minggu 80/91",
+   "triggered_by": "api",
+   "failed_tickers": [],
+   "params_json": {
+    "stage": "all",
+    "timeframe": "d1",
+    "as_of": null
+   },
+   "result_json": {
+    "stage": "all",
+    "timeframe": "d1",
+    "sectors": 11,
+    "tickers": 962,
+    "weightings": [
+     "equal",
+     "turnover",
+     "captier"
+    ],
+    "timeframes": [
+     "d1",
+     "w1",
+     "w1_fri"
+    ],
+    "metrics_rows": 19962,
+    "score_rows": 1084,
+    "signal_weeks": 91,
+    "signal_rows": 109,
+    "rows": 502180,
+    "duration_s": 434.06
+   }
+  },
+  {
+   "run_id": 39,
+   "kind": "compute_all",
+   "status": "failed",
+   "phase": null,
+   "started_at": "2026-10-13T17:50:56+07:00",
+   "finished_at": "2026-10-13T17:51:06+07:00",
+   "rows": 0,
+   "rows_total": null,
+   "percent": null,
+   "message": "OperationalError: database is locked",
+   "triggered_by": "api",
+   "failed_tickers": [],
+   "params_json": {
+    "stage": "all",
+    "timeframe": "d1",
+    "as_of": null
+   },
+   "result_json": null
+  }
+ ]
+}

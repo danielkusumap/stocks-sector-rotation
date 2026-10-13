@@ -120,8 +120,8 @@ def ingest_prices(body: PricesBody, async_: bool = Query(False, alias="async")):
 def compute(body: ComputeBody, async_: bool = Query(False, alias="async")):
     """Stage hitung (`index` sekarang; `rrg`/`signals` menyusul). Prasyarat: `price_daily` cukup terisi."""
     cfg = get_settings()
-    if body.stage not in ("index", "rrg", "signals", "all"):
-        raise _error(400, "invalid_stage", "stage harus index | rrg | signals | all", {"received": body.stage})
+    if body.stage not in ("index", "rrg", "signals", "ta", "all"):
+        raise _error(400, "invalid_stage", "stage harus index | rrg | signals | ta | all", {"received": body.stage})
     if body.timeframe not in cfg.timeframes["allowed"]:
         raise _error(
             400,

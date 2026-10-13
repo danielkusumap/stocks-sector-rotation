@@ -179,7 +179,7 @@ CREATE INDEX IF NOT EXISTS idx_signal_week ON signal_weekly(week_end DESC, scope
 
 CREATE TABLE IF NOT EXISTS ingest_run (
   id          INTEGER PRIMARY KEY,
-  kind        TEXT NOT NULL,               -- excel | prices_daily | prices_intraday | compute_index | compute_rrg | compute_signals | midday
+  kind        TEXT NOT NULL,               -- import_excel | prices_daily | prices_intraday | compute_all | compute_signals | compute_ta | midday
   status      TEXT NOT NULL,               -- queued | running | ok | partial | failed | skipped
   phase       TEXT,                        -- tahap yang sedang jalan (mis. "ingest", "compute_rrg")
   started_at  TEXT NOT NULL,
@@ -193,6 +193,26 @@ CREATE TABLE IF NOT EXISTS ingest_run (
   triggered_by TEXT NOT NULL DEFAULT 'cli' -- cli | api | ui | cron
 );
 CREATE INDEX IF NOT EXISTS idx_ingest_run_started ON ingest_run(started_at DESC);
+
+CREATE TABLE IF NOT EXISTS ta_breakout (
+  id           INTEGER PRIMARY KEY,
+  scope        TEXT NOT NULL,             -- stock | sector
+  ref_id       TEXT NOT NULL,             -- ticker | kode sektor
+  weighting    TEXT,                      -- untuk scope=sector (equal|turnover|captier); NULL untuk saham
+  ma_period    INTEGER NOT NULL,          -- 10 | 20 | 50 (config ta.ma_periods)
+  trend_filter INTEGER NOT NULL,          -- 0 | 1 — varian yang dihitung (config ta.trend_filter)
+  signal_date  TEXT NOT NULL,             -- D: adj_close(D) > MA(D) DAN adj_close(D−1) <= MA(D−1)
+  entry_date   TEXT NOT NULL,             -- D+1 (hari bursa, bukan hari kalender)
+  entry_price  REAL NOT NULL,             -- adj_close/open D+1 (lihat entry_basis)
+  entry_basis  TEXT NOT NULL,             -- open | adj_close | index
+  result       TEXT,                      -- win | loss | expired | open (open = horizon belum selesai)
+  exit_date    TEXT,
+  exit_price   REAL,
+  periods      INTEGER,                   -- periode bursa dari entry_date (0 = bar entry); NULL saat open
+  computed_at  TEXT NOT NULL,
+  UNIQUE (scope, ref_id, ma_period, trend_filter, signal_date)
+);
+CREATE INDEX IF NOT EXISTS idx_ta_breakout_ref ON ta_breakout(scope, ref_id, ma_period, trend_filter, signal_date DESC);
 
 CREATE VIEW IF NOT EXISTS v_sector_latest AS
 SELECT s.code, s.name_id, s.color_hex,

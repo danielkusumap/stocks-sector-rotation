@@ -63,6 +63,7 @@ class MetaConfigResponse(Envelope):
     windows: list[str]
     midday_gate_min_bar_time: str
     market: MarketLimits
+    ta: dict[str, Any]  # docs/05 §1: UI tidak boleh menghardcode MA default/target/timeout
     last_ingest: LastIngest
 
 
@@ -391,6 +392,100 @@ class HeatmapRow(BaseModel):
 class HeatmapResponse(Envelope):
     columns: list[str]
     rows: list[HeatmapRow]
+    data_status: DataStatus
+
+
+# --- §2 analisa teknikal & backtest MA (docs/03 §10) ----------------------------
+
+
+class TaStats(BaseModel):
+    n_events: int | None
+    win: int | None
+    loss: int | None
+    expired: int | None
+    open: int | None
+    win_rate: float | None
+    median_periods_win: float | None
+    median_periods_loss: float | None
+
+
+class TaBreakout(BaseModel):
+    signal_date: str
+    entry_date: str
+    entry_price: float
+    entry_basis: str
+    periods_since: int | None
+    gain_since: float | None
+    result: str | None
+    exit_date: str | None
+    exit_price: float | None
+    periods: int | None
+
+
+class TaSummaryItem(TaStats):
+    ref_id: str
+    name: str | None
+    sector_code: str | None
+    close: float | None
+    ma: float | None
+    above_ma: bool | None
+    last_breakout: TaBreakout | None
+
+
+class TaCoverage(BaseModel):
+    refs_tested: int
+    refs_skipped_short_history: int
+    bars_from: str | None
+    bars_to: str | None
+    price_basis: str
+
+
+class TaSummaryResponse(Envelope):
+    scope: str
+    timeframe: str
+    ma_period: int
+    trend_filter: bool
+    total: int
+    limit: int
+    offset: int
+    items: list[TaSummaryItem]
+    coverage: TaCoverage
+    data_status: DataStatus
+
+
+class TaMaPoint(BaseModel):
+    date: str
+    close: float
+    ma: float
+
+
+class TaEvent(BaseModel):
+    signal_date: str
+    entry_date: str
+    entry_price: float
+    result: str | None
+    periods: int | None
+    exit_date: str | None
+    exit_price: float | None
+
+
+class TaStatsPair(BaseModel):
+    filter_on: TaStats
+    filter_off: TaStats
+
+
+class TaDetailResponse(Envelope):
+    scope: str
+    ref_id: str
+    name: str | None
+    ma_period: int
+    trend_filter: bool
+    price_basis: str
+    ma_series: list[TaMaPoint]
+    stats: TaStatsPair
+    latest: TaBreakout | None
+    events: list[TaEvent]
+    coverage: TaCoverage
     data_status: DataStatus
 
 

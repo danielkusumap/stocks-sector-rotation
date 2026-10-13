@@ -92,10 +92,13 @@ def test_meta_sectors_dan_config(client):
     assert finance["color_token"] == "sector-finance" and finance["constituents_active"] == 3
 
     cfg = client.get("/api/v1/meta/config").json()
-    assert set(cfg) == {"api_version", "universe", "rrg", "timeframes", "windows", "midday_gate_min_bar_time", "market", "last_ingest"}
+    assert set(cfg) == {"api_version", "universe", "rrg", "timeframes", "windows", "midday_gate_min_bar_time", "market", "ta", "last_ingest"}
     assert cfg["universe"] == {"min_turnover_idr": 1_000_000_000, "min_price_idr": 100, "max_rsi": 75}
     assert cfg["timeframes"] == ["d1", "w1", "w1_fri", "midday"]
     assert cfg["rrg"]["min_points"]["d1"] == 60
+    # docs/07 B17: blok `ta` diekspos supaya frontend tidak menghardcode MA/target/timeout
+    assert cfg["ta"]["ma_periods"] == [10, 20, 50] and cfg["ta"]["ma_default"] == 20
+    assert cfg["ta"]["target_pct"] == 0.05 and cfg["ta"]["timeout_periods"] == 60 and cfg["ta"]["trend_filter_period"] == 50
     assert cfg["last_ingest"] == {"prices_daily": None, "intraday": None, "signals_weekly": None}
 
 

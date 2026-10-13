@@ -1,0 +1,18 @@
+POST /admin/compute?async=true {"stage":"ta"} -> HTTP 202 {"api_version": "1.0", "run_id": 43, "status": "queued"}
+polling 10x: [{"status": "queued", "phase": null, "rows": 0, "percent": null, "message": null}, {"status": "running", "phase": null, "rows": 0, "percent": null, "message": null}] … {"status": "ok", "phase": "compute_ta", "rows": 3144, "percent": 100.0, "message": "26/26 entitas \u00b7 3144 event"}
+result_json compute_ta: {"stage": "ta", "timeframe": "d1", "sectors": 11, "tickers": 15, "ta_rows": 3144, "ta_refs": 26, "events": 3144, "refs": 26, "ma_periods": [10, 20, 50], "variants": ["filter_off", "filter_on"], "win_rate": 0.5148, "rows": 3144, "duration_s": 0.25}
+POST /admin/compute?async=true {"stage":"all"} -> HTTP 202 {"api_version": "1.0", "run_id": 44, "status": "queued"}
+polling 780x (contoh): [{"status": "queued", "phase": null, "rows": 0, "percent": null, "message": null}] … {"status": "ok", "phase": "compute_ta", "rows": 58427, "percent": 100.0, "message": "26/26 entitas \u00b7 3144 event"}
+result_json compute_all: {"stage": "all", "timeframe": "d1", "sectors": 11, "tickers": 15, "weightings": ["equal", "turnover", "captier"], "timeframes": ["d1", "w1", "w1_fri"], "metrics_rows": 19056, "score_rows": 1084, "signal_weeks": 91, "signal_rows": 65, "ta_rows": 3144, "ta_refs": 26, "rows": 58427, "duration_s": 66.57}
+ingest_run #44 kind=compute_all status=ok rows=58427 percent=100.0
+ingest_run #43 kind=compute_ta status=ok rows=3144 percent=100.0
+ingest_run #42 kind=compute_all status=ok rows=58427 percent=100.0
+ingest_run #41 kind=compute_ta status=ok rows=2978 percent=100.0
+ingest_run #40 kind=compute_all status=ok rows=502180 percent=100.0
+ingest_run #39 kind=compute_all status=failed rows=0 percent=None
+GET /ta/summary?scope=stock&ma_period=20&trend_filter=false&limit=100 -> HTTP 200, disimpan ta_summary_stock_ma20.json (10573 byte)
+GET /ta/summary?scope=sector&ma_period=20&trend_filter=false&limit=100 -> HTTP 200, disimpan ta_summary_sector_ma20.json (8164 byte)
+GET /ta/stock/BBRI?ma_period=20 -> HTTP 200, disimpan ta_stock_BBRI_ma20.json (7795 byte)
+GET /ta/sector/IDXFINANCE?ma_period=20 -> HTTP 200, disimpan ta_sector_IDXFINANCE_ma20.json (11629 byte)
+GET /ta/summary?scope=stock&ma_period=7 -> HTTP 400 {"api_version": "1.0", "error": {"code": "invalid_ma_period", "message": "ma_period harus salah satu dari: 10, 20, 50", "detail": {"received": 7, "allowed": [10, 20, 50]}}}
+GET /ta/stock/EXCL?ma_period=20 -> HTTP 200 latest={"signal_date": "2026-09-08", "entry_date": "2026-09-09", "entry_price": 2760.0, events=20 n_events=36

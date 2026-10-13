@@ -76,7 +76,7 @@ def test_migration_adds_progress_columns_to_old_db(tmp_path):
 def test_fresh_db_already_has_progress_columns(tmp_path):
     p = tmp_path / "fresh.db"
     info = db.init_db(p)  # schema.sql sudah memuat kolomnya → migrasi dilewati tanpa error
-    assert info["tables"] == 13
+    assert info["tables"] == 14
     assert info["user_version"] == LATEST_VERSION
 
     conn = db.connect(p)

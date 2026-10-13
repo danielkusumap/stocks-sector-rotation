@@ -13,7 +13,7 @@ import time
 from typing import Callable
 
 from . import db
-from .compute import index, metrics, midday as midday_compute, rrg, signals
+from .compute import index, metrics, midday as midday_compute, rrg, signals, ta
 from .ingest import excel, freshness, prices
 from .repo import run as runs
 
@@ -127,6 +127,14 @@ def compute(params: dict, report: Callable[..., None]) -> dict:
         if stage == "signals":  # bentuk result_json compute_signals (docs/05 §4.6)
             result["sectors"], result["stocks"] = signals_result["sectors"], signals_result["stocks"]
             result["week_end"] = signals_result["week_end"]
+
+    if stage in ("ta", "all"):
+        # docs/05 §4.1: `stage=all` (tombol 4) **ikut** menghitung analisa teknikal.
+        ta_result = ta.compute_ta(report=report)
+        rows += ta_result["rows"]
+        result["ta_rows"], result["ta_refs"] = ta_result["rows"], ta_result["refs"]
+        if stage == "ta":  # bentuk result_json compute_ta (docs/05 §4.6)
+            result.update({key: ta_result[key] for key in ("events", "refs", "ma_periods", "variants", "win_rate")})
 
     result["rows"] = rows
     result["duration_s"] = round(time.monotonic() - started, 2)

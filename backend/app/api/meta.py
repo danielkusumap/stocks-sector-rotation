@@ -119,6 +119,16 @@ def meta_config() -> dict:
             "move_flat_pct": cfg.market.move_flat_pct,
         },
         "last_ingest": last,
+        "ta": {
+            "ma_periods": cfg.ta["ma_periods"],
+            "ma_default": cfg.ta["ma_default"],
+            "trend_filter": cfg.ta["trend_filter"],
+            "trend_filter_period": cfg.ta["trend_filter_period"],
+            "target_pct": cfg.ta["target_pct"],
+            "timeout_periods": cfg.ta["timeout_periods"],
+            "min_history": cfg.ta["min_history"],
+            "entry_basis": cfg.ta["entry_basis"],
+        },
     }
 
 
