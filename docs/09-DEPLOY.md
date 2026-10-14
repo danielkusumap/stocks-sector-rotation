@@ -110,13 +110,13 @@ container ini — taruh di pengaturan Dokploy/Cloudflare. Jangan commit `.env`; 
 Lokal (uji cepat sebelum Dokploy), dari root repo:
 
 ```bash
-docker compose up --build          # UI: http://127.0.0.1:9101  · API langsung: http://127.0.0.1:9100/health
+docker compose up --build          # UI: http://127.0.0.1:9201  · API langsung: http://127.0.0.1:9200/health
 docker compose logs -f backend     # "db-init" jalan otomatis saat start
 docker compose down                # volume tetap ada; `down -v` menghapus DB
 ```
 
-**Port (permintaan owner):** di host **frontend 9101** (→ 80 di container, UI + proxy `/api`, terproteksi
-basic auth) dan **backend 9100** (→ 8000, diikat `127.0.0.1` saja — API-nya tidak punya basic auth, jadi
+**Port (permintaan owner):** di host **frontend 9201** (→ 80 di container, UI + proxy `/api`, terproteksi
+basic auth) dan **backend 9200** (→ 8000, diikat `127.0.0.1` saja — API-nya tidak punya basic auth, jadi
 jangan dibuka ke publik; hapus `127.0.0.1:` di `docker-compose.yml` kalau memang mau). Di dalam jaringan
 Docker tetap 80/8000, jadi Dokploy/Traefik tetap diarahkan ke `frontend:80`.
 
