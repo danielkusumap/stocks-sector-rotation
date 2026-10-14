@@ -17,9 +17,15 @@ FROM nginx:1.27-alpine
 # Target proxy `/api` (dan `/health`). Nama `backend` = nama service di docker-compose.yml.
 ENV BACKEND_ORIGIN=http://backend:8000
 
+# `openssl passwd -apr1` untuk membuat /etc/nginx/.htpasswd dari env (basic-auth.envsh).
+RUN apk add --no-cache openssl
+
 COPY --from=build /app/dist /usr/share/nginx/html
 # Entrypoint resmi nginx menjalankan envsubst pada /etc/nginx/templates/*.template → `${BACKEND_ORIGIN}` terisi.
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
+# Entrypoint resmi menjalankan /docker-entrypoint.d/*.envsh (di-source) sebelum envsubst & nginx.
+COPY basic-auth.envsh /docker-entrypoint.d/15-basic-auth.envsh
+RUN chmod +x /docker-entrypoint.d/15-basic-auth.envsh
 
 EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

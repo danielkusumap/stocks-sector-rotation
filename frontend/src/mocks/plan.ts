@@ -55,7 +55,7 @@ export const planHandlers = [
     };
 
     const plan = short ? null : planFor({ ticker, entry_ref: entry, stop: pick?.stop ?? round(close * 0.97), target: pick?.target ?? round(close * 1.06), atr14: pick?.atr14 ?? null }, 0, knob);
-    const scenario = short
+    const scenario = short || !pick
       ? null
       : {
           p_tp1_first: 0.62,

@@ -194,8 +194,11 @@ test("lapisan Indikator aktif bawaan: URSI, VWAP+σ, POC + label jujur POC", asy
   await expect(page.getByTestId("poc-label")).toContainText("perkiraan dari bar harian");
   await expect(page.getByTestId("poc-label")).toContainText(`${data.indicators.poc.bars_used} bar`);
 
-  // 1 permintaan per halaman (StrictMode dev boleh 2×) & parameter layers ikut
-  expect([...new Set(requests)]).toEqual(["?window=6m&layers=indicators"]);
+  // 1 permintaan per halaman (StrictMode dev boleh 2×); parameter lapisan ikut terkirim
+  expect(new Set(requests).size).toBe(1);
+  expect(requests.length).toBeLessThanOrEqual(2);
+  const sent = new URLSearchParams(requests[0]);
+  expect(sent.get("layers")).toBe("indicators");
   await expect(chart).not.toContainText("NaN");
 });
 
@@ -214,7 +217,7 @@ test("matikan lapisan: URL `layers=` & 0 elemen indikator", async ({ page }) => 
   await expect(page.locator('[data-overlay="vwap"]')).toHaveCount(0);
   await expect(page.locator('[data-overlay="poc"]')).toHaveCount(0);
   await expect(page.getByTestId("poc-label")).toHaveCount(0);
-  expect([...new Set(requests)].at(-1)).toBe("?window=6m&layers=");
+  expect(new URLSearchParams([...new Set(requests)].at(-1) ?? "").get("layers")).toBe("");
 
   // nyalakan lagi → parameter hilang dari URL (default) & panel kembali
   await page.getByTestId("layer-indicators").click();

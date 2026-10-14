@@ -35,6 +35,9 @@ services:
     environment:
       # Target proxy nginx untuk `/api` dan `/health`.
       BACKEND_ORIGIN: http://backend:8000
+      # Basic auth seluruh UI (dibuat jadi /etc/nginx/.htpasswd saat start; password kosong → acak + dicetak di log).
+      BASIC_AUTH_USER: ${BASIC_AUTH_USER:-admin}
+      BASIC_AUTH_PASSWORD: ${BASIC_AUTH_PASSWORD:-}
     depends_on:
       - backend
     expose:

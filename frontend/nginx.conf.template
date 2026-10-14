@@ -7,6 +7,11 @@ server {
     root /usr/share/nginx/html;
     index index.html;
 
+    # Basic auth untuk seluruh UI + API lewat proxy (permintaan owner). File dibuat saat start
+    # oleh /docker-entrypoint.d/15-basic-auth.envsh dari env BASIC_AUTH_USER/BASIC_AUTH_PASSWORD.
+    auth_basic "Sector Rotation IDX";
+    auth_basic_user_file /etc/nginx/.htpasswd;
+
     gzip on;
     gzip_min_length 1024;
     gzip_types text/css application/javascript application/json image/svg+xml;
@@ -35,8 +40,9 @@ server {
     location = /health {
         proxy_pass ${BACKEND_ORIGIN}/health;
     }
-    # Dipakai HEALTHCHECK image (tidak menyentuh backend).
+    # Dipakai HEALTHCHECK image (tidak menyentuh backend). Tanpa auth: healthcheck Docker tidak kirim kredensial.
     location = /healthz {
+        auth_basic off;
         access_log off;
         return 200 "ok\n";
     }

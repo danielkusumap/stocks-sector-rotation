@@ -50,6 +50,12 @@ INGEST__BATCH_SIZE=50
 
 # ── Frontend ──────────────────────────────────────────────────────────────────
 BACKEND_ORIGIN=http://backend:8000
+BASIC_AUTH_USER=admin
+BASIC_AUTH_PASSWORD=<password UI — WAJIB, lihat catatan di bawah>
+
+# Jatah CPU (10% server 8 core = 0,8; ganti kalau core server beda: 10% × nproc)
+DOCKER_CPUS_BACKEND=0.72
+DOCKER_CPUS_FRONTEND=0.08
 ```
 
 | Env | Wajib? | Guna |
@@ -61,6 +67,12 @@ BACKEND_ORIGIN=http://backend:8000
 | `API__CORS_ORIGINS` | hanya jika backend diberi domain | Daftar origin yang boleh memanggil API langsung dari browser |
 | `INGEST__DAILY_LOOKBACK_DAYS`, `INGEST__BATCH_SIZE` | opsional | Percepat backfill pertama / atur beban ke Yahoo |
 | `BACKEND_ORIGIN` | ya | Target proxy nginx (`http://backend:8000` = nama service compose) |
+| `BASIC_AUTH_USER`, `BASIC_AUTH_PASSWORD` | **ya sekarang** | Basic auth untuk **seluruh** UI (`auth_basic` di level `server`) — browser minta login sebelum halaman terbuka. nginx memakai `/etc/nginx/.htpasswd` yang dibuat **saat start** oleh `/docker-entrypoint.d/15-basic-auth.envsh` dari dua env ini, jadi password tidak pernah masuk image/log build. `BASIC_AUTH_PASSWORD` **kosong** → dibuat acak dan dicetak sekali: `docker logs <ctr> \| grep basic-auth` (tidak terkunci, tidak terbuka). Ganti password = ubah env lalu restart container |
+| `DOCKER_CPUS_BACKEND`, `DOCKER_CPUS_FRONTEND` | opsional | Jatah CPU stack (§5) |
+
+`/healthz` sengaja **tanpa** basic auth (dipakai HEALTHCHECK image — healthcheck Docker tidak mengirim
+kredensial), jadi container tidak pernah ditandai `unhealthy` gara-gara auth. Semua jalur lain, termasuk `/api`,
+ikut terproteksi.
 
 **Cara kerja override env (sudah diverifikasi):** `backend/app/config.py` membaca
 `init → env → YAML`, jadi env **menang** atas `config/default.yaml`. Key bertingkat ditulis dengan pemisah
@@ -68,8 +80,10 @@ BACKEND_ORIGIN=http://backend:8000
 `API={"host":"0.0.0.0","port":8000,"api_key":"…","cors_origins":[],"cache_ttl_seconds":60,"backup_enabled":true}`.
 Tanpa env, nilai YAML dipakai apa adanya — jadi dev lokal tidak berubah.
 
-**Rahasia & kredensial (audit 14 Okt 2026).** Satu-satunya kredensial aplikasi = `API__API_KEY`
-(grep `key|token|secret|password` di `config/default.yaml` hanya menemukan baris itu). Tidak ada kunci pihak
+**Rahasia & kredensial (audit 14 Okt 2026).** Kredensial aplikasi = `API__API_KEY` + `BASIC_AUTH_PASSWORD`
+(basic auth UI, ditambahkan 15 Okt; keduanya dari env, tidak ada yang di-commit).
+(grep `key|token|secret|password` di `config/default.yaml` tidak menemukan kredensial: password basic auth
+hanya ada di env, `/etc/nginx/.htpasswd` dibuat saat container start). Tidak ada kunci pihak
 ketiga: yfinance tanpa key, tidak ada password DB (SQLite lokal), dan kode tidak membaca `.env`
 (`settings_customise_sources` = `init → env → YAML`; `DotEnvSettingsSource` tidak dipakai). Frontend **tidak**
 menyimpan kunci saat build: pengguna menempelkannya di UI → `localStorage` → header `X-API-Key`

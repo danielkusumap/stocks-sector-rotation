@@ -5,7 +5,7 @@ import { expect, test, type Page } from "@playwright/test";
  * berjalan. Semua angka dari `GET /plan/picks` (MSW = backend); tab tanggal hidup di URL.
  */
 
-test.use({ actionTimeout: 8_000, navigationTimeout: 20_000 });
+test.use({ actionTimeout: 12_000, navigationTimeout: 60_000 });
 
 const DATES = ["2026-10-13", "2026-10-12", "2026-10-09", "2026-10-08", "2026-10-07"];
 

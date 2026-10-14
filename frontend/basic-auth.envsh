@@ -1,0 +1,17 @@
+#!/bin/sh
+# Basic auth UI (permintaan owner): nginx membaca /etc/nginx/.htpasswd, isinya dibuat di sini dari env.
+# Dijalankan entrypoint resmi nginx sebelum `20-envsubst-on-templates.sh` (nama berawalan 15).
+# `.envsh` = di-source, jadi variabel yang di-export tetap terlihat oleh skrip entrypoint berikutnya.
+set -eu
+
+user="${BASIC_AUTH_USER:-admin}"
+# Password kosong → JANGAN buka UI tanpa proteksi: pakai password acak dan cetak sekali di log
+# (`docker logs <ctr> | grep basic-auth`), jadi tidak ada deploy yang terkunci maupun bocor.
+if [ -z "${BASIC_AUTH_PASSWORD:-}" ]; then
+    BASIC_AUTH_PASSWORD="$(head -c 9 /dev/urandom | base64)"
+    echo "basic-auth: BASIC_AUTH_PASSWORD kosong → password acak, salin dari log ini: $BASIC_AUTH_PASSWORD"
+fi
+
+# format htpasswd: user:hash. `-stdin` supaya password berbintik/$ tidak jadi masalah di shell.
+printf '%s:%s\n' "$user" "$(printf '%s' "$BASIC_AUTH_PASSWORD" | openssl passwd -apr1 -stdin)" > /etc/nginx/.htpasswd
+echo "basic-auth: aktif untuk user '$user'"

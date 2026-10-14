@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { StockSeriesResponse } from "../../lib/api";
 import {
   bandWidth,
@@ -168,11 +168,19 @@ export function CandleChart({ data }: { data: StockSeriesResponse }) {
     setHover(null);
   };
 
-  // roda mouse: zoom di posisi kursor (docs/06 §6.8)
-  const onWheel = (event: React.WheelEvent<SVGSVGElement>) => {
-    event.preventDefault();
-    zoomBy(event.deltaY > 0 ? 1.25 : 0.8, indexAtClientX(event.clientX));
-  };
+  // roda mouse: zoom di posisi kursor (docs/06 §6.8). Listener native non-passive — React
+  // mendaftarkan `onWheel` sebagai passive, sehingga `preventDefault()` tidak menghentikan
+  // scroll halaman (grafik ikut tergeser) dan memicu warning konsol.
+  useEffect(() => {
+    const svg = svgRef.current;
+    if (!svg) return;
+    const onWheelNative = (event: WheelEvent) => {
+      event.preventDefault();
+      zoomBy(event.deltaY > 0 ? 1.25 : 0.8, indexAtClientX(event.clientX));
+    };
+    svg.addEventListener("wheel", onWheelNative, { passive: false });
+    return () => svg.removeEventListener("wheel", onWheelNative);
+  });
 
   // keyboard: `+` / `-` / `0` (reset) + pan dengan panah (geser = 20 bar)
   const onKeyDown = (event: React.KeyboardEvent<SVGSVGElement>) => {
@@ -299,7 +307,6 @@ export function CandleChart({ data }: { data: StockSeriesResponse }) {
         tabIndex={0}
         onMouseMove={onMove}
         onMouseLeave={() => setHover(null)}
-        onWheel={onWheel}
         onKeyDown={onKeyDown}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
