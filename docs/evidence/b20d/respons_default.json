@@ -1,0 +1,25 @@
+{
+ "api_version": "1.3",
+ "as_of": "2026-10-13",
+ "available_dates": [
+  "2026-10-13",
+  "2026-10-09",
+  "2026-10-08",
+  "2026-10-07"
+ ],
+ "limit": 3,
+ "min_turnover_idr": 2000000000.0,
+ "screened": 2,
+ "ihsg_support": 5828.67919921875,
+ "rules": [
+  "Likuiditas: median transaksi 20 hari ≥ `?min_turnover` (default `weekly.plan.min_turnover_idr`).",
+  "Gerbang sektor: ≥ `sector_gate_min_pass` dari 3 bobot (`equal`/`turnover`/`captier`) pada `w1_fri` memimpin/memperbaiki.",
+  "Rezim `tren_naik` atau `range` — `tipis`/`turun` dibuang.",
+  "ATR14 ≤ `picks_atr_max_pct` × harga.",
+  "Lebar zona ≤ `picks_zone_max_atr` × ATR14.",
+  "Batas rugi ≤ `picks_stop_max_pct` × harga.",
+  "Imbal hasil TP2 ≥ `rr_min_tp2` setelah biaya.",
+  "Label zona `di_zona` (gap ≤ `zone_touch_atr`) atau `mendekati` (gap ≤ `zone_near_atr`).",
+  "Denyut sektor harian (d1) ≥ `picks_sector_pulse_min` di semua bobot `picks_sector_pulse_weightings`."
+ ]
+}

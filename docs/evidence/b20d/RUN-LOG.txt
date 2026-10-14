@@ -1,0 +1,21 @@
+jobs.compute(stage=ta, plan_days=5) → durasi 217.8 s
+result_json: {"stage": "ta", "timeframe": "d1", "sectors": 11, "tickers": 962, "ta_rows": 120614, "ta_refs": 932, "events": 120614, "refs": 932, "ma_periods": [10, 20, 50], "variants": ["filter_off", "filter_on"], "win_rate": 0.4621, "plan_rows": 921, "plan_refs": 962, "plan_skipped_short_history": 0, "scenario_null_refs": 380, "plan_dates": ["2026-10-07", "2026-10-08", "2026-10-09", "2026-10-12", "2026-10-13"], "picks_saved": 43, "rows": 125219, "duration_s": 217.85}
+isi plan_pick per tanggal:
+  2026-10-13 → 2 baris (rank maksimum 2)
+  2026-10-09 → 18 baris (rank maksimum 18)
+  2026-10-08 → 9 baris (rank maksimum 9)
+  2026-10-07 → 14 baris (rank maksimum 14)
+available_dates dari respons: lihat di bawah
+durasi GET /plan/picks (time.perf_counter, 3× per tanggal):
+  /api/v1/plan/picks?as_of=2026-10-13 → 200 · min 249 ms · median 268 ms · screened 2 · picks 2
+  /api/v1/plan/picks?as_of=2026-10-13&limit=10 → 200 · min 259 ms · median 264 ms · screened 2 · picks 2
+  /api/v1/plan/picks?as_of=2026-10-09 → 200 · min 291 ms · median 292 ms · screened 18 · picks 3
+  /api/v1/plan/picks?as_of=2026-10-09&limit=10 → 200 · min 292 ms · median 293 ms · screened 18 · picks 10
+  /api/v1/plan/picks?as_of=2026-10-08 → 200 · min 261 ms · median 272 ms · screened 9 · picks 3
+  /api/v1/plan/picks?as_of=2026-10-08&limit=10 → 200 · min 255 ms · median 266 ms · screened 9 · picks 9
+  /api/v1/plan/picks?as_of=2026-10-07 → 200 · min 319 ms · median 376 ms · screened 14 · picks 3
+  /api/v1/plan/picks?as_of=2026-10-07&limit=10 → 200 · min 272 ms · median 277 ms · screened 14 · picks 10
+GET /plan/picks (default) → 229 ms · as_of 2026-10-13
+pick pertama: SMDR · status menunggu_zona · bars_sejak_asof 0 · ret_sejak_asof 0.0 · mfe None / mae None
+status_note: Zona beli belum tersentuh; tunggu harga masuk atau biarkan rencana gugur.
+as_of tak ada → 404 · {"api_version": "1.0", "error": {"code": "not_found", "message": "picks untuk 2020-01-02 belum dihitung — jalankan stage=ta (plan_days=N untuk backfill)", "detail": {"as_of": "2020-01-02", "available_

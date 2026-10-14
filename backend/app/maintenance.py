@@ -13,6 +13,7 @@ INTRADAY_DELETE_SQL = "DELETE FROM price_intraday WHERE substr(ts, 1, 10) < ?"
 MIDDAY_RRG_DELETE_SQL = "DELETE FROM rrg_daily WHERE timeframe = 'midday' AND as_of_date < ?"
 MIDDAY_METRICS_DELETE_SQL = "DELETE FROM sector_metrics WHERE timeframe = 'midday' AND as_of_date < ?"
 STOCK_PLAN_DELETE_SQL = "DELETE FROM stock_plan WHERE as_of_date < ?"
+PLAN_PICK_DELETE_SQL = "DELETE FROM plan_pick WHERE as_of_date < ?"
 
 
 def retention(*, db_path=None) -> dict:
@@ -33,6 +34,7 @@ def retention(*, db_path=None) -> dict:
         rrg = conn.execute(MIDDAY_RRG_DELETE_SQL, (midday_cutoff,)).rowcount
         metrics = conn.execute(MIDDAY_METRICS_DELETE_SQL, (midday_cutoff,)).rowcount
         plans = conn.execute(STOCK_PLAN_DELETE_SQL, (plan_cutoff,)).rowcount
+        picks = conn.execute(PLAN_PICK_DELETE_SQL, (plan_cutoff,)).rowcount
         conn.commit()
 
         target = Path(db_path) if db_path else db.db_path()
@@ -46,6 +48,7 @@ def retention(*, db_path=None) -> dict:
             "midday_rrg_deleted": rrg,
             "midday_metrics_deleted": metrics,
             "stock_plan_deleted": plans,
+            "plan_pick_deleted": picks,
             "intraday_cutoff": intraday_cutoff,
             "midday_cutoff": midday_cutoff,
             "plan_cutoff": plan_cutoff,

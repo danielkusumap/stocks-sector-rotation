@@ -911,17 +911,20 @@ def summary_lines(bars, metrics: dict, regime: str, plan: dict | None, scenario_
     return lines[:3]
 
 
-def plan_for_all(conn, cfg, report=None) -> dict:
-    """Plan + skenario untuk **semua** emiten aktif (docs/03 §6.5) → upsert `stock_plan` hari ini.
+def plan_for_all(conn, cfg, report=None, as_of: str | None = None, persist_picks: bool = True) -> dict:
+    """Plan + skenario untuk **semua** emiten aktif (docs/03 §6.5) → upsert `stock_plan` per `as_of_date`.
 
+    `as_of` = hitung dari bar `date <= as_of` (docs/03 §6.4.1); `None` = bar terakhir tiap emiten (perilaku lama).
     Mesin yang sama dengan pick mingguan (`build_plans` → `plan_levels`); hanya lingkupnya berbeda.
     `report(rows=…, rows_total=…, message=…)` menulis progres tiap 50 emiten.
     """
     plan_cfg = cfg.weekly["plan"]
     ma = cfg.ta["ma_default"]
     trend = 1 if cfg.ta["trend_filter"] else 0
+    requested_as_of = as_of  # loop di bawah memakai nama `as_of` untuk tanggal bar tiap emiten
+    cutoff = requested_as_of or FAR_FUTURE
     now = datetime.now(ZoneInfo(cfg.app.timezone)).isoformat(timespec="seconds")
-    benchmark_bars = load_bars(conn, cfg.ingest["benchmark_alias"], FAR_FUTURE)
+    benchmark_bars = load_bars(conn, cfg.ingest["benchmark_alias"], cutoff)
     support_ihsg = (
         float(benchmark_bars["low"].iloc[-plan_cfg["donchian_fast"] :].min())
         if len(benchmark_bars) > plan_cfg["donchian_fast"]
@@ -931,7 +934,7 @@ def plan_for_all(conn, cfg, report=None) -> dict:
     refs = [row["ticker"] for row in conn.execute(ACTIVE_STOCKS_SQL)]
     written = skipped = null_scenario = 0
     for index, ticker in enumerate(refs, 1):
-        bars = load_bars(conn, ticker, FAR_FUTURE)
+        bars = load_bars(conn, ticker, cutoff)
         if not len(bars):
             continue
         as_of = str(bars["date"].iloc[-1])
@@ -1001,7 +1004,15 @@ def plan_for_all(conn, cfg, report=None) -> dict:
         if report and (index % 50 == 0 or index == len(refs)):
             report(rows=written, rows_total=len(refs), message=f"emiten {index}/{len(refs)}")
     conn.commit()
-    return {"rows": written, "refs": len(refs), "skipped_short_history": skipped, "scenario_null_refs": null_scenario}
+    picks_saved = 0
+    if persist_picks and written:
+        # Hasil saring disimpan di sini (bukan saat request) supaya `/plan/picks` hanya membaca tabel (B20d).
+        persist_as_of = requested_as_of or conn.execute("SELECT MAX(as_of_date) FROM stock_plan").fetchone()[0]
+        picks_saved = screen_picks(conn, cfg, as_of=persist_as_of, persist=True)["screened"]
+    return {
+        "rows": written, "refs": len(refs), "skipped_short_history": skipped,
+        "scenario_null_refs": null_scenario, "picks_saved": picks_saved,
+    }
 
 
 def stock_plan_row(conn, ticker: str, as_of: str | None = None) -> dict | None:
@@ -1026,6 +1037,7 @@ PICKS_RULES = (
     "Batas rugi ≤ `picks_stop_max_pct` × harga.",
     "Imbal hasil TP2 ≥ `rr_min_tp2` setelah biaya.",
     "Label zona `di_zona` (gap ≤ `zone_touch_atr`) atau `mendekati` (gap ≤ `zone_near_atr`).",
+    "Denyut sektor harian (d1) ≥ `picks_sector_pulse_min` di semua bobot `picks_sector_pulse_weightings`.",
 )
 
 PICKS_SQL = """
@@ -1047,6 +1059,28 @@ SECTOR_SCORE_SQL = """
      WHERE scope = 'sector' AND ref_id = ? AND weighting = ? AND timeframe = ? AND as_of_date <= ?
      ORDER BY as_of_date DESC LIMIT 1
 """
+
+SECTOR_PULSE_SQL = """
+    SELECT sm.score FROM sector_metrics sm
+      JOIN sector s ON s.id = sm.sector_id
+     WHERE s.code = ? AND sm.timeframe = 'd1' AND sm.weighting = ? AND sm.as_of_date <= ?
+     ORDER BY sm.as_of_date DESC LIMIT 1
+"""
+
+
+def sector_pulse(conn, sector_code: str | None, as_of: str, cfg) -> tuple[dict, bool]:
+    """Skor **denyut harian** (d1) per bobot + apakah saring ini bisa dinilai sama sekali.
+
+    Dipakai untuk menahan pick di sektor yang sedang dijual hari itu — penyebab SL yang paling sering
+    (pelajaran 14 Okt 2026: pick BARANG BAKU lolos gerbang mingguan padahal skor hariannya lagging).
+    `False` = tidak ada metrik d1 sama sekali → saring dilewati, bukan menolak semua.
+    """
+    plan = cfg.weekly["plan"]
+    skor: dict[str, float | None] = {}
+    for weighting in plan.get("picks_sector_pulse_weightings") or [cfg.universe["weighting"]]:
+        row = conn.execute(SECTOR_PULSE_SQL, (sector_code, weighting, as_of)).fetchone()
+        skor[weighting] = float(row["score"]) if row and row["score"] is not None else None
+    return skor, any(value is not None for value in skor.values())
 
 
 def ihsg_support(conn, cfg, week_end: str = FAR_FUTURE) -> float | None:
@@ -1115,16 +1149,12 @@ def picks_validity(zone_low: float | None, stop: float | None, tp2: float | None
     }
 
 
-def screen_picks(conn, cfg, *, limit: int | None = None, min_turnover: float | None = None) -> dict:
-    """≤N rencana terbaik dari `stock_plan`, disaring & diurutkan dengan aturan 14 Okt 2026 (docs/05 §2).
+def _screen_candidates(conn, cfg, as_of: str, ambang: float) -> tuple[list[dict], float | None]:
+    """Kandidat yang lolos saring picks untuk satu `as_of` (docs/05 §2) — level dibaca dari `stock_plan`.
 
-    Membaca baris `stock_plan` (level tidak dihitung ulang saat request) dan memakai aturan yang sama untuk
-    semua pemakai (API, laporan harian, skrip) supaya angka antar pemanggil tidak berbeda.
+    Dipakai dua jalur: compute (`save_picks` menyimpan hasilnya) dan pembacaan langsung (uji/laporan).
     """
     plan = cfg.weekly["plan"]
-    batas = max(1, min(int(limit or plan["picks_limit"]), int(plan["picks_max_limit"])))
-    ambang = float(plan["min_turnover_idr"] if min_turnover is None else min_turnover)
-    as_of = conn.execute("SELECT MAX(as_of_date) FROM stock_plan").fetchone()[0]
     support = ihsg_support(conn, cfg)
     kandidat: list[dict] = []
     for row in (conn.execute(PICKS_SQL, (as_of,)) if as_of else ()):
@@ -1159,6 +1189,12 @@ def screen_picks(conn, cfg, *, limit: int | None = None, min_turnover: float | N
             continue
         sector_ok, _ = sector_gate(conn, row["sector_code"], as_of, cfg)
         if sector_ok is not True:
+            continue
+        pulse, ada_pulse = sector_pulse(conn, row["sector_code"], as_of, cfg)
+        ambang_pulse = plan["picks_sector_pulse_min"]
+        # Ada metrik d1 tapi ada bobot di bawah ambang → sektor sedang dijual hari itu → tahan pick ini.
+        # Tanpa metrik d1 sama sekali, saring dilewati (data parsial tidak boleh mengosongkan daftar).
+        if ada_pulse and any(value is not None and value < ambang_pulse for value in pulse.values()):
             continue
         entry = (low + high) / 2
         gap_atr = (close - high) / atr
@@ -1217,6 +1253,8 @@ def screen_picks(conn, cfg, *, limit: int | None = None, min_turnover: float | N
                 "sector_quadrants": kuadran,
                 "sector_score": skor_sektor,
                 "sector_pass": lolos,
+                "sector_pulse": pulse,
+                "sector_pulse_min": ambang_pulse,
                 "skor": skor,
                 "skor_rincian": rincian,
                 "validity": picks_validity(low, stop, tp2, support),
@@ -1224,12 +1262,179 @@ def screen_picks(conn, cfg, *, limit: int | None = None, min_turnover: float | N
             }
         )
     kandidat.sort(key=lambda pick: (-pick["skor"], -(pick["turnover_idr"] or 0)))
+    return kandidat, support
+
+
+# Kolom `plan_pick` (docs/04 §4, migrasi 008) — hasil saring disimpan **saat compute**, bukan saat request.
+PLAN_PICK_COLUMNS = (
+    "as_of_date", "ticker", "rank", "score", "zone_status", "zone_gap_atr", "entry", "stop", "tp1", "tp2",
+    "rr_tp2", "sector_code", "quadrant", "rules_version", "payload_json", "computed_at",
+)
+PLAN_PICK_SQL = (
+    f"INSERT INTO plan_pick ({', '.join(PLAN_PICK_COLUMNS)}) "
+    f"VALUES ({', '.join('?' * len(PLAN_PICK_COLUMNS))}) "
+    "ON CONFLICT(as_of_date, ticker) DO UPDATE SET "
+    + ", ".join(f"{column} = excluded.{column}" for column in PLAN_PICK_COLUMNS if column not in ("as_of_date", "ticker"))
+)
+
+
+def save_picks(conn, cfg, as_of: str, kandidat: list[dict]) -> int:
+    """Simpan hasil saring satu tanggal ke `plan_pick`: hapus tanggal itu dulu, lalu tulis ulang."""
+    conn.execute("DELETE FROM plan_pick WHERE as_of_date = ?", (as_of,))
+    now = datetime.now(ZoneInfo(cfg.app.timezone)).isoformat(timespec="seconds")
+    version = cfg.weekly["plan"]["picks_rules_version"]
+    for rank, pick in enumerate(kandidat, 1):
+        row = {
+            "as_of_date": as_of,
+            "ticker": pick["ticker"],
+            "rank": rank,
+            "score": pick["skor"],
+            "zone_status": pick["zone_status"],
+            "zone_gap_atr": pick["zone_gap_atr"],
+            "entry": pick["entry"],
+            "stop": (pick["stop"] or {}).get("level"),
+            "tp1": (pick["tp1"] or {}).get("level"),
+            "tp2": (pick["tp2"] or {}).get("level"),
+            "rr_tp2": (pick["tp2"] or {}).get("rr"),
+            "sector_code": pick["sector_code"],
+            "quadrant": (pick["sector_quadrants"] or {}).get(cfg.universe["weighting"]),
+            "rules_version": version,
+            "payload_json": json.dumps(pick, ensure_ascii=False),
+            "computed_at": now,
+        }
+        conn.execute(PLAN_PICK_SQL, tuple(row[column] for column in PLAN_PICK_COLUMNS))
+    conn.commit()
+    return len(kandidat)
+
+
+def available_dates(conn, cfg, limit: int | None = None) -> list[str]:
+    """Tanggal yang **punya isi** di `plan_pick`, urut menurun (UI tidak mengarang tanggal)."""
+    batas = int(limit or cfg.weekly["plan"]["picks_available_dates"])
+    rows = conn.execute("SELECT DISTINCT as_of_date FROM plan_pick ORDER BY as_of_date DESC LIMIT ?", (batas,))
+    return [row[0] for row in rows]
+
+
+def screen_picks(conn, cfg, *, limit=None, min_turnover=None, as_of=None, persist=False) -> dict:
+    """≤N rencana terbaik dari `stock_plan` (aturan 14 Okt 2026, docs/05 §2).
+
+    `persist=True` (jalur compute) menyimpan hasil saring ke `plan_pick`; endpoint membacanya lewat
+    `load_picks()` supaya satu permintaan tidak perlu menyaring 900+ baris (dulu 20,0 s).
+    """
+    plan = cfg.weekly["plan"]
+    batas = max(1, min(int(limit or plan["picks_limit"]), int(plan["picks_max_limit"])))
+    ambang = float(plan["min_turnover_idr"] if min_turnover is None else min_turnover)
+    as_of = as_of or conn.execute("SELECT MAX(as_of_date) FROM stock_plan").fetchone()[0]
+    kandidat, support = _screen_candidates(conn, cfg, as_of, ambang) if as_of else ([], None)
+    if persist and as_of:
+        save_picks(conn, cfg, as_of, kandidat)
+    return {
+        "as_of": as_of, "limit": batas, "min_turnover_idr": ambang, "screened": len(kandidat),
+        "ihsg_support": support, "rules": list(PICKS_RULES), "picks": kandidat[:batas],
+    }
+
+
+# --- Status berjalan pick (docs/05 §2 B20d) — dihitung dari bar **setelah** `as_of`, maks horizon+2 bar ---
+STATUS_BARS_SQL = """
+    SELECT date, adj_close AS close,
+           high * adj_close / NULLIF(close, 0) AS high,
+           low  * adj_close / NULLIF(close, 0) AS low
+    FROM price_daily
+    WHERE ticker = ? AND date >= ? AND adj_close IS NOT NULL AND close IS NOT NULL
+    ORDER BY date
+    LIMIT ?
+"""
+
+
+def _status_note(status: str, levels: dict, bars_since: int, cfg) -> str:
+    """Kalimat status ≤140 char, bahasa Indonesia tanpa istilah mentah (docs/05 §2)."""
+    stop, tp1, tp2 = levels["stop"], levels["tp1"], levels["tp2"]
+    if status == "kena_tp2":
+        return _trim(f"Target kedua {format_id_number(tp2)} sudah kena di bar ke-{bars_since} — rencana selesai di sisi untung.")
+    if status == "kena_tp1":
+        return _trim(f"Target pertama {format_id_number(tp1)} sudah kena (bar ke-{bars_since}); pertimbangkan mengunci sebagian.")
+    if status == "kena_stop":
+        return _trim(f"Batas rugi {format_id_number(stop)} kena di bar ke-{bars_since} — rencana ini selesai sebagai rugi.")
+    if status == "di_zona":
+        return _trim("Harga sudah masuk zona beli; target maupun batas rugi belum tersentuh.")
+    if status == "kedaluwarsa":
+        return _trim(f"Lewat {cfg.ta['timeout_periods']} bar tanpa menyentuh zona, target, atau batas rugi — rencana gugur; jangan kejar harga.")
+    return _trim("Zona beli belum tersentuh; tunggu harga masuk atau biarkan rencana gugur.")
+
+
+def pick_status(conn, ticker: str, as_of: str, pick: dict, cfg) -> dict:
+    """Status berjalan satu pick: `menunggu_zona`/`di_zona`/`kena_tp1`/`kena_tp2`/`kena_stop`/`kedaluwarsa`.
+
+    Sentuhan batas rugi diperiksa **lebih dulu** di tiap bar (pesimis, sama seperti `simulate_result`) —
+    bar yang menyentuh keduanya dihitung rugi, bukan untung.
+    """
+    horizon = cfg.ta["timeout_periods"]
+    zone_high = (pick.get("entry_zone") or {}).get("high")
+    levels = {
+        "stop": (pick.get("stop") or {}).get("level"),
+        "tp1": (pick.get("tp1") or {}).get("level"),
+        "tp2": (pick.get("tp2") or {}).get("level"),
+    }
+    rows = conn.execute(STATUS_BARS_SQL, (ticker, as_of, horizon + 2)).fetchall()
+    close_latest = float(rows[-1]["close"]) if rows else None
+    base = next((float(row["close"]) for row in rows if row["date"] == as_of), close_latest)
+    after = [row for row in rows if row["date"] > as_of]
+    bars_since = len(after)
+    entry = pick.get("entry") or base
+
+    status = None
+    touched = False
+    for row in after:
+        low, high = float(row["low"]), float(row["high"])
+        if levels["stop"] and low <= levels["stop"]:
+            status = "kena_stop"
+            break
+        if levels["tp2"] and high >= levels["tp2"]:
+            status = "kena_tp2"
+            break
+        if levels["tp1"] and high >= levels["tp1"]:
+            status = "kena_tp1"
+            break
+        if zone_high and low <= zone_high:
+            touched = True
+    if status is None:
+        status = "kedaluwarsa" if bars_since > horizon else ("di_zona" if touched else "menunggu_zona")
+
+    return {
+        "status": status,
+        "close_latest": close_latest,
+        "ret_sejak_asof": round(close_latest / base - 1, 4) if close_latest and base else None,
+        "bars_sejak_asof": bars_since,
+        "mfe_pct": round(max(float(row["high"]) for row in after) / entry - 1, 4) if bars_since and entry else None,
+        "mae_pct": round(min(float(row["low"]) for row in after) / entry - 1, 4) if bars_since and entry else None,
+        "status_note": _status_note(status, levels, max(bars_since, 1), cfg),
+    }
+
+
+def load_picks(conn, cfg, *, as_of=None, limit=None, min_turnover=None) -> dict | None:
+    """Baca `plan_pick` (bukan hitung ulang) — `None` bila `as_of` tidak punya isi (endpoint → 404)."""
+    plan = cfg.weekly["plan"]
+    batas = max(1, min(int(limit or plan["picks_limit"]), int(plan["picks_max_limit"])))
+    dates = available_dates(conn, cfg, limit=plan["picks_available_dates"])
+    as_of = as_of or (dates[0] if dates else None)
+    if not as_of or not conn.execute("SELECT 1 FROM plan_pick WHERE as_of_date = ? LIMIT 1", (as_of,)).fetchone():
+        return None
+    ambang = float(plan["min_turnover_idr"] if min_turnover is None else min_turnover)
+    picks: list[dict] = []
+    for row in conn.execute("SELECT rank, payload_json FROM plan_pick WHERE as_of_date = ? ORDER BY rank", (as_of,)):
+        pick = json.loads(row["payload_json"])
+        # Tersimpan memakai ambang default config; permintaan yang lebih ketat disaring di sini (lebih longgar
+        # tidak bisa menghidupkan kembali kandidat yang sudah tidak disimpan — lihat ADR-058).
+        if min_turnover is not None and (pick.get("turnover_idr") or 0) < ambang:
+            continue
+        pick.update(pick_status(conn, pick["ticker"], as_of, pick, cfg))
+        picks.append(pick)
     return {
         "as_of": as_of,
+        "available_dates": dates,
         "limit": batas,
         "min_turnover_idr": ambang,
-        "screened": len(kandidat),
-        "ihsg_support": support,
+        "screened": len(picks),
+        "ihsg_support": ihsg_support(conn, cfg),
         "rules": list(PICKS_RULES),
-        "picks": kandidat[:batas],
+        "picks": picks[:batas],
     }

@@ -74,6 +74,15 @@ def midday(params: dict, report: Callable[..., None]) -> dict:
         conn.close()
 
 
+def trading_dates(conn, days: int) -> list[str]:
+    """`days` tanggal bursa terakhir yang **punya bar** di `price_daily` (urut menaik) — libur/akhir pekan
+    otomatis terlewat karena tidak ada bar-nya, jadi tidak ada tanggal kosong yang dibuatkan plan."""
+    rows = conn.execute(
+        "SELECT DISTINCT date FROM price_daily ORDER BY date DESC LIMIT ?", (max(1, int(days)),)
+    )
+    return [row[0] for row in rows][::-1]
+
+
 def compute(params: dict, report: Callable[..., None]) -> dict:
     """Stage hitung pipa (docs/05 §4.1): `index` → `rrg` (+ metrik & skor) → `signals` (mingguan)."""
     started = time.monotonic()
@@ -137,15 +146,27 @@ def compute(params: dict, report: Callable[..., None]) -> dict:
         if stage == "ta":  # bentuk result_json compute_ta (docs/05 §4.6)
             result.update({key: ta_result[key] for key in ("events", "refs", "ma_periods", "variants", "win_rate")})
         # (b) plan + skenario untuk **semua** emiten aktif → `stock_plan` (docs/03 §6.5, B20).
+        # `plan_days` = jumlah hari bursa terakhir yang dihitung (default 1; >1 untuk backfill picks harian).
+        plan_days = max(1, int(params.get("plan_days") or 1))
+        as_of = params.get("as_of")
         conn = db.connect()
         try:
-            plan_result = plan.plan_for_all(conn, get_settings(), report=report)
+            dates = [as_of] if as_of else trading_dates(conn, plan_days)
+            total_picks = 0
+            for position, date in enumerate(dates, 1):
+                if report:
+                    report(phase="plan", message=f"plan {position}/{len(dates)} ({date})")
+                plan_result = plan.plan_for_all(conn, get_settings(), report=report, as_of=date)
+                rows += plan_result["rows"]
+                result["plan_rows"] = plan_result["rows"]
+                total_picks += plan_result["picks_saved"]
+                result["plan_refs"] = plan_result["refs"]
+                result["plan_skipped_short_history"] = plan_result["skipped_short_history"]
+                result["scenario_null_refs"] = plan_result["scenario_null_refs"]
         finally:
             conn.close()
-        rows += plan_result["rows"]
-        result["plan_rows"], result["plan_refs"] = plan_result["rows"], plan_result["refs"]
-        result["plan_skipped_short_history"] = plan_result["skipped_short_history"]
-        result["scenario_null_refs"] = plan_result["scenario_null_refs"]
+        result["plan_dates"] = dates
+        result["picks_saved"] = total_picks
 
     result["rows"] = rows
     result["duration_s"] = round(time.monotonic() - started, 2)

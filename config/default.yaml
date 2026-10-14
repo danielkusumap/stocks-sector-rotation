@@ -159,6 +159,8 @@ weekly:
     tp1_fallback_atr: 1.5             # TP1 kalau tidak ada resistance di atas entry
     min_events_hold: 5                # minimal event TA sebelum median lama tahan ditampilkan
     min_events_scenario: 10           # minimal event sebelum skenario peluang ditampilkan (di bawah ini → null)
+    picks_rules_version: "2026-10-14" # versi aturan saring picks yang tertulis di `plan_pick` (docs/05 §2)
+    picks_available_dates: 5          # jumlah tanggal yang dilaporkan di `available_dates` (picks harian)
     # Biaya transaksi (basis poin). R:R dihitung SETELAH biaya; RR bruto membuat target dekat
     # terlihat lebih baik daripada kenyataannya. 15 + 25 bps = 0,15% beli + 0,25% jual
     # (komisi broker + levy + pajak jual). SESUAIKAN dengan brokermu.
@@ -176,6 +178,11 @@ weekly:
     picks_atr_max_pct: 0.06            # ATR14 maksimum terhadap harga — di atas ini stop terlalu lebar untuk swing
     picks_zone_max_atr: 0.70           # lebar zona maksimum (× ATR14) — zona lebih lebar dari ini bukan titik masuk
     picks_stop_max_pct: 0.10           # stop maksimum terhadap harga
+    # Denyut sektor harian (d1): jangan beli pullback di sektor yang sedang dijual hari itu — penekan SL.
+    # Dinilai di SEMUA bobot (`picks_sector_pulse_weightings`); satu bobot saja bisa menyesatkan
+    # (BASIC 14 Okt 2026: equal 60 tapi turnover 42). Tidak ada metrik d1 sama sekali → saring ini dilewati.
+    picks_sector_pulse_min: 60
+    picks_sector_pulse_weightings: ["equal", "turnover"]
     picks_tp_artifact_pct: 0.30        # target > ini × harga → ditandai `artefak` (acuan kanal jauh, bukan target swing)
     zone_atr: 0.35                    # setengah lebar zona = ±0,35 × ATR14 dari pusat zona
     zone_min_pct: 0.006               # lantai setengah lebar = 0,6% harga (ATR kecil tidak bikin zona terlalu sempit)

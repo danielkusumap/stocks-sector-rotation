@@ -1,0 +1,86 @@
+{
+ "ticker": "SMDR",
+ "name": "Samudera Indonesia  Tbk.",
+ "sector_code": "IDXTRANS",
+ "close": 412.0,
+ "turnover_idr": 11502554500.0,
+ "atr14": 15.801558379873143,
+ "atr_pct": 0.038353297038527044,
+ "rsi14": 63.01911239515212,
+ "regime": "tren_naik",
+ "regime_label": "Tren naik",
+ "entry_zone": {
+  "low": 401.6289644369477,
+  "high": 412.68703556305235,
+  "reason": "Harga masih dekat penyangga 20 hari; beli di penyangga membuat batas rugi lebih dekat dan imbal hasil lebih baik. Zona dari 2 acuan…"
+ },
+ "zone_status": "di_zona",
+ "zone_pct": 0.027159164565364463,
+ "zone_gap_atr": -0.04347897508181489,
+ "entry": 407.158,
+ "stop": {
+  "level": 383.4621333012043,
+  "pct": -0.05819820978292389,
+  "basis": "volatilitas_atr",
+  "reason": "Titik terendah terdekat terlalu jauh (8,6%); batas rugi ditaruh 1,5 kali volatilitas di bawah harga acuan supaya posisi tidak kebesaran."
+ },
+ "tp0": {
+  "level": 430.86033756980976,
+  "pct": 0.05821410255922688,
+  "rr": 0.8716344529599486,
+  "basis": "cepat_1,5atr",
+  "reason": "Target cepat (1,5 × ATR14): ambil sebagian di sini, sisanya dibiarkan ke TP1/TP2."
+ },
+ "tp1": {
+  "level": 434.0,
+  "pct": 0.06592526734093385,
+  "rr": 0.9956117315443237,
+  "basis": "resistance_20",
+  "reason": "Puncak 20 hari terakhir adalah tempat penjual menumpuk — ambil sebagian di situ."
+ },
+ "tp2": {
+  "level": 484.7601280963872,
+  "pct": 0.1905946293487717,
+  "rr": 2.9999999999999996,
+  "basis": "target_terukur_minimal",
+  "reason": "Target terukur dari level 485; imbal hasil terhadap risiko setelah biaya 0,40% masih 3,00:1."
+ },
+ "tp1_artefak": false,
+ "tp2_artefak": false,
+ "sector_quadrants": {
+  "equal": "leading",
+  "turnover": "leading",
+  "captier": "weakening"
+ },
+ "sector_score": 68.1,
+ "sector_pass": 2,
+ "sector_pulse": {
+  "equal": 74.4,
+  "turnover": 71.2
+ },
+ "sector_pulse_min": 60.0,
+ "skor": 7.362,
+ "skor_rincian": {
+  "kedekatan_zona": 3.0,
+  "rr_tp2": 3.0,
+  "skor_sektor": 1.362
+ },
+ "validity": {
+  "valid_until": "10:00 WIB sesi bursa berikutnya",
+  "valid_if": "tutup harian masih di atas 402 dan IHSG masih di atas 5.829",
+  "invalidate_below": 401.6289644369477,
+  "expires_if": "zona belum tersentuh sampai 10:00 → rencana gugur; jangan geser zona untuk memaksa masuk",
+  "done_if": "TP2 485 kena / stop 383 kena / kedaluwarsa"
+ },
+ "notes": [
+  "Catatan (bukan penolakan): riwayat sinyal MA 12 kejadian, win-rate 50% — di bawah acuan 8 kejadian / 55%.",
+  "Gerbang sektor lolos: 2 dari 3 bobot memimpin/memperbaiki (equal leading, turnover leading, captier weakening)."
+ ],
+ "status": "menunggu_zona",
+ "close_latest": 412.0,
+ "ret_sejak_asof": 0.0,
+ "bars_sejak_asof": 0,
+ "mfe_pct": null,
+ "mae_pct": null,
+ "status_note": "Zona beli belum tersentuh; tunggu harga masuk atau biarkan rencana gugur."
+}

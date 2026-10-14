@@ -21,6 +21,7 @@ from .schemas import PlanPicksResponse, PlanStockResponse, SeriesStockResponse
 
 router = APIRouter(prefix="/api/v1", tags=["plan"])
 _API_VERSION = get_settings().app.api_version
+_PICKS_API_VERSION = "1.3"  # B20d: `plan_pick` + `available_dates` + status berjalan (docs/05 §2, 1.2 → 1.3)
 PRICE_BASIS = "adj_close"  # docs/03 §10: selalu harga penyesuaian
 
 HEAD_SQL = """
@@ -400,14 +401,31 @@ def stock_series(
 
 
 @router.get("/plan/picks", response_model=PlanPicksResponse)
-def plan_picks(limit: int = Query(3, ge=1), min_turnover: float | None = Query(None, ge=0)) -> dict:
-    """≤`limit` rencana terbaik hasil saring aturan 14 Okt 2026 (docs/05 §2) — bukan daftar 962 emiten."""
+def plan_picks(
+    limit: int = Query(3, ge=1),
+    min_turnover: float | None = Query(None, ge=0),
+    as_of: str | None = None,
+) -> dict:
+    """≤`limit` rencana terbaik dari `plan_pick` (docs/05 §2) — **dibaca**, bukan dihitung saat request.
+
+    Hasil saring disimpan saat compute (`stage=ta`/`all`, `plan_days` untuk backfill N hari bursa). Dulu
+    endpoint ini menyaring 900+ baris `stock_plan` per permintaan → 20,0 s (B20d).
+    """
     cfg = get_settings()
     conn = db.connect()
     try:
-        body = plan_compute.screen_picks(conn, cfg, limit=limit, min_turnover=min_turnover)
+        body = plan_compute.load_picks(conn, cfg, as_of=as_of, limit=limit, min_turnover=min_turnover)
+        if body is None:
+            raise HTTPException(
+                404,
+                {
+                    "code": "not_found",
+                    "message": f"picks untuk {as_of} belum dihitung — jalankan stage=ta (plan_days=N untuk backfill)",
+                    "detail": {"as_of": as_of, "available_dates": plan_compute.available_dates(conn, cfg)},
+                },
+            )
         return {
-            "api_version": _API_VERSION,
+            "api_version": _PICKS_API_VERSION,
             **body,
             "data_status": read.data_status(
                 conn, as_of=body.get("as_of"), timeframe="d1", weighting=cfg.universe["weighting"]

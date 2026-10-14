@@ -890,9 +890,21 @@ class PlanPickValidity(BaseModel):
     done_if: str
 
 
+class PlanPickStatus(BaseModel):
+    """Status berjalan pick (docs/05 §2 B20d) — dihitung dari bar setelah `as_of`."""
+
+    status: str
+    close_latest: float | None
+    ret_sejak_asof: float | None
+    bars_sejak_asof: int
+    mfe_pct: float | None
+    mae_pct: float | None
+    status_note: str
+
+
 class PlanPick(BaseModel):
     ticker: str
-    name: str
+    name: str | None  # nama emiten NULL di DB (belum terisi Excel) → jangan gagalkan respons
     sector_code: str | None
     close: float | None
     turnover_idr: float | None
@@ -915,14 +927,25 @@ class PlanPick(BaseModel):
     sector_quadrants: dict[str, str | None]
     sector_score: float | None
     sector_pass: int
+    sector_pulse: dict[str, float | None]
+    sector_pulse_min: float
     skor: float
     skor_rincian: dict[str, float]
     validity: PlanPickValidity
     notes: list[str]
+    # B20d — status berjalan, dihitung dari bar setelah `as_of` (`plan.pick_status`).
+    status: str
+    close_latest: float | None
+    ret_sejak_asof: float | None
+    bars_sejak_asof: int
+    mfe_pct: float | None
+    mae_pct: float | None
+    status_note: str
 
 
 class PlanPicksResponse(Envelope):
     as_of: str | None
+    available_dates: list[str]  # tanggal yang punya isi di `plan_pick` (urut menurun) — B20d
     limit: int
     min_turnover_idr: float
     screened: int  # jumlah kandidat yang lolos saring (sebelum dipotong `limit`)

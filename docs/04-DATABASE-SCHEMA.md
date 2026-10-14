@@ -282,6 +282,35 @@ bungkus dengan pengecekan `PRAGMA table_info`).
 
 Catatan: statistik (win rate, median periode) **tidak** disimpan di tabel — diagregasi SQL saat endpoint dipanggil supaya tidak ada angka basi. `ingest_run.kind` bertambah satu nilai (`compute_ta`, `docs/05` §4.6).
 
+### `plan_pick` — hasil saring picks per tanggal (docs/07 B20d)
+
+```sql
+CREATE TABLE plan_pick (
+  as_of_date    TEXT NOT NULL,            -- tanggal pick (bar terakhir yang dipakai)
+  ticker        TEXT NOT NULL,
+  rank          INTEGER NOT NULL,         -- urutan skor saat disimpan (1 = terbaik)
+  score         REAL,
+  zone_status   TEXT,                     -- di_zona | mendekati (saat disaring)
+  zone_gap_atr  REAL,                     -- jarak harga ke batas atas zona, satuan ATR
+  entry         REAL,
+  stop          REAL,
+  tp1           REAL,
+  tp2           REAL,
+  rr_tp2        REAL,
+  sector_code   TEXT,
+  quadrant      TEXT,                     -- kuadran sektor (bobot default) saat itu
+  rules_version TEXT,                     -- versi aturan saring (`weekly.plan.picks_rules_version`)
+  payload_json  TEXT NOT NULL,            -- kartu siap-tampil: plan, rules, validity, skor_rincian
+  computed_at   TEXT NOT NULL,
+  PRIMARY KEY (as_of_date, ticker)
+);
+CREATE INDEX idx_plan_pick_date ON plan_pick(as_of_date, rank);
+```
+
+Retensi: ikut `retention.plan_days` (dihapus bersamaan dengan `stock_plan` di housekeeping).
+Isi ditulis **saat compute** (`stage=ta`/`all`, param `plan_days` untuk backfill N hari bursa) —
+endpoint `/plan/picks` hanya membaca, karena versi hitung-langsung memakan 20,0 s per panggilan.
+
 ### `stock_plan` — analisa teknikal untuk **semua emiten** (docs/03 §6.5)
 
 ```sql
