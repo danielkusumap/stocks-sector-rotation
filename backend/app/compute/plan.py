@@ -90,7 +90,139 @@ def channels(levels: list[float], close: float, tol_pct: float) -> list[dict]:
     return [{"level": sum(g) / len(g), "strength": len(g)} for g in groups]
 
 
-def regime_of(bars: pd.DataFrame, metrics: dict, *, sector_quadrant: str | None, cfg) -> str:
+LEADING_QUADRANTS = ("leading", "improving")
+
+
+def _mid(group: list[tuple[str, float]]) -> float:
+    return sum(value for _, value in group) / len(group)
+
+
+def sector_gate(conn, sector_code: str | None, as_of: str, cfg) -> tuple[bool | None, str | None]:
+    """Gerbang sektor (docs/03 §6.4.0) dinilai di beberapa bobot.
+
+    Satu bobot saja bisa menyesatkan: sektor yang sama di pekan yang sama bisa `weakening` menurut
+    bobot `equal` tapi `improving` menurut `turnover`. Lolos bila ≥ `sector_gate_min_pass` bobot
+    menyatakan memimpin/memperbaiki. `None` = tidak ada data kuadran (gerbang dilewati).
+    """
+    plan = cfg.weekly["plan"]
+    if not sector_code:
+        return None, None
+    weightings = plan.get("sector_gate_weightings") or [cfg.universe["weighting"]]
+    known = []
+    for weighting in weightings:
+        row = conn.execute(SECTOR_QUADRANT_SQL, (weighting, sector_code, as_of)).fetchone()
+        if row and row[0]:
+            known.append((weighting, row[0]))
+    if not known:
+        return None, None
+    passed = sum(1 for _, quadrant in known if quadrant in LEADING_QUADRANTS)
+    needed = min(plan["sector_gate_min_pass"], len(known))
+    ok = passed >= needed
+    detail = ", ".join(f"{weighting} {quadrant}" for weighting, quadrant in known)
+    if ok:
+        return True, _trim(
+            f"Gerbang sektor lolos: {passed} dari {len(known)} bobot memimpin/memperbaiki ({detail})."
+        )
+    return False, _trim(
+        f"Gerbang sektor belum lolos: baru {passed} dari {len(known)} bobot memimpin/memperbaiki ({detail}) — tunggu kuadran membaik."
+    )
+
+
+def _volume_node(features: dict, cfg) -> float | None:
+    """Harga dengan volume terbesar 20 bar (median harga bar bervolume di atas rata-rata)."""
+    plan = cfg.weekly["plan"]
+    window = plan["donchian_fast"]
+    closes, volumes = features.get("close_arr"), features.get("vol_arr")
+    if closes is None or volumes is None or len(closes) < window:
+        return None
+    pairs = [(float(c), float(v)) for c, v in zip(closes.iloc[-window:], volumes.iloc[-window:]) if v and v > 0]
+    if not pairs:
+        return None
+    average = sum(v for _, v in pairs) / len(pairs)
+    heavy = sorted(c for c, v in pairs if v >= average)
+    return heavy[len(heavy) // 2] if heavy else None
+
+
+def _anchors(features: dict, levels: dict, cfg) -> list[tuple[str, float]]:
+    """Acuan harga yang bisa dipakai sebagai pusat zona (docs/03 §6.4.2) — bukan hanya SMA20."""
+    plan = cfg.weekly["plan"]
+    candidates: list[tuple[str, float | None]] = [
+        ("penyangga 20 hari", features.get("sma20")),
+        ("penyangga 50 hari", features.get("sma50")),
+        ("puncak 20 hari sebelumnya", features.get("don_high_prev")),
+        ("terendah 10 hari", features.get("swing_low")),
+        ("batas kanal bawah", levels.get("support")),
+        ("simpul volume 20 hari", _volume_node(features, cfg)),
+    ]
+    leg_low, leg_high = features.get("don_low_f"), features.get("don_high_s")
+    if leg_low and leg_high and leg_high > leg_low:
+        span = leg_high - leg_low
+        for ratio in plan["retrace_ratios"]:
+            candidates.append((f"koreksi {format_id_number(ratio * 100, 1)}%", leg_high - ratio * span))
+    return [(label, float(value)) for label, value in candidates if value and value > 0]
+
+
+def _entry_zone(features: dict, levels: dict, cfg, fallback: float, regime: str) -> tuple[float, float, float, str]:
+    """Zona entry = kelompok acuan yang paling banyak berkumpul, lebarnya adaptif (docs/03 §6.4.2).
+
+    Pusat zona bukan satu level formula: semua acuan (MA, puncak sebelumnya, swing low, koreksi Fibonacci,
+    simpul volume) dikelompokkan dengan toleransi `anchor_tol_atr` × ATR; kelompok terbesar menang.
+    Kalau tidak ada kelompok yang cukup (`anchor_min_count`), dipakai acuan rezim saja.
+    """
+    plan = cfg.weekly["plan"]
+    close, atr = features["close"], features["atr14"]
+    tolerance = plan["anchor_tol_atr"] * atr
+    anchors = sorted(_anchors(features, levels, cfg), key=lambda item: item[1])
+    clusters: list[list[tuple[str, float]]] = []
+    for index, anchor in enumerate(anchors):
+        group = [other for other in anchors[index:] if other[1] - anchor[1] <= tolerance]
+        if group:
+            clusters.append(group)
+    eligible = [group for group in clusters if len(group) >= plan["anchor_min_count"]]
+    below_eligible = [group for group in eligible if _mid(group) <= close]
+    below_any = [group for group in clusters if _mid(group) <= close]
+    if below_eligible:
+        center_group, relaxed = max(below_eligible, key=_mid), False  # support terdekat di bawah harga
+    elif below_any:
+        center_group, relaxed = max(below_any, key=_mid), True  # relaksasi: satu acuan di bawah harga tetap dipakai
+    elif eligible:
+        center_group, relaxed = min(eligible, key=_mid), False  # semua acuan di atas harga (mode breakout)
+    else:
+        center_group, relaxed = [], True
+    if center_group and (not relaxed or len(center_group) >= 1):
+        chosen, labels = center_group, ", ".join(label for label, _ in center_group)
+        reason = f"Zona dari {len(chosen)} acuan berdekatan ({labels})."
+    else:
+        chosen = [(ANCHOR_FALLBACK.get(regime, "level acuan"), fallback)]
+        reason = f"Belum ada acuan yang berkumpul; zona memakai {chosen[0][0]} saja."
+    center = sum(value for _, value in chosen) / len(chosen)
+    half = max(plan["zone_atr"] * atr, plan["zone_min_pct"] * close)
+    if regime == "tipis":
+        half *= plan["zone_thin_mult"]
+    return center - half, center + half, center, _trim(reason)
+
+
+def _zone_status(close: float, zone_high: float, atr: float, cfg) -> str:
+    """Seberapa dekat harga sekarang ke zona entry — supaya pick yang zonanya jauh tidak dibaca sebagai siap beli.
+
+    Ambang sentuh (`zone_touch_atr`, default 0,25) ada supaya harga yang hanya `0,1 × ATR` di atas zona
+    tidak salah dilabeli "mendekati" padahal praktis menempel (temuan 14 Okt 2026: MEDC 1.450 vs zona 1.444).
+    """
+    plan = cfg.weekly["plan"]
+    gap = (close - zone_high) / atr if atr else 0.0
+    if gap <= plan.get("zone_touch_atr", 0.0):
+        return "di_zona"
+    if gap <= plan["zone_near_atr"]:
+        return "mendekati"
+    if gap <= plan["zone_far_atr"]:
+        return "jauh"
+    return "sangat_jauh"
+
+
+ANCHOR_FALLBACK = {"tren_naik": "penyangga 20 hari", "range": "batas kanal bawah", "tipis": "level pantulan"}
+
+
+def regime_of(bars: pd.DataFrame, metrics: dict, *, sector_quadrant: str | None, cfg, sector_ok: bool | None = None) -> str:
     """Rezim pasar (docs/03 §6.4.0) — urutan cek: `tipis` > `turun` > `range` > `tren_naik`."""
     plan = cfg.weekly["plan"]
     if bars.empty:
@@ -111,7 +243,7 @@ def regime_of(bars: pd.DataFrame, metrics: dict, *, sector_quadrant: str | None,
     period, offset = cfg.ta["ma_default"], plan["ma_slope_bars"]
     sma20_prev = float(bars["close"].iloc[-period - offset : -offset].mean()) if len(bars) > period + offset else None
     rising = sma20_prev is not None and sma20 > sma20_prev
-    if close > sma20 > sma50 and rising and sector_quadrant in ("leading", "improving"):
+    if close > sma20 > sma50 and rising and (sector_ok if sector_ok is not None else sector_quadrant in LEADING_QUADRANTS):
         return "tren_naik"
     return "range"  # sisa: tidak ada tren naik yang sah → konservatif (menyamping)
 
@@ -119,6 +251,7 @@ def regime_of(bars: pd.DataFrame, metrics: dict, *, sector_quadrant: str | None,
 def _features(bars: pd.DataFrame, metrics: dict, cfg) -> dict:
     plan = cfg.weekly["plan"]
     close = float(bars["close"].iloc[-1])
+    close_series = bars["close"].astype(float)
     high, low, volume = bars["high"], bars["low"], bars["volume"]
     vol20 = volume.iloc[-cfg.chart["volume_ma"] :]
     vol20 = vol20[vol20 > 0]
@@ -126,6 +259,9 @@ def _features(bars: pd.DataFrame, metrics: dict, cfg) -> dict:
         "close": close,
         "high": high,
         "low": low,
+        "close_arr": close_series,
+        "vol_arr": volume,
+        "turnover": metrics.get("median_turnover_20d_idr"),
         "atr14": metrics.get("atr14"),
         "rsi14": metrics.get("rsi14"),
         "sma20": metrics.get("sma20"),
@@ -147,6 +283,8 @@ def _empty_plan(regime: str, note: str, *, entry_mode: str = "no_trade") -> dict
         "confirm_tool": "none",
         "entry_mode": entry_mode,
         "entry_zone": {"low": None, "high": None, "reason": _trim("Level belum bisa dihitung; jangan pasang posisi dulu.")},
+        "zone_status": None,
+        "zone_pct": None,
         "stop": {"level": None, "pct": None, "basis": None, "reason": _trim(note)},
         "tp1": {"level": None, "pct": None, "rr": None, "basis": None, "reason": _trim(note)},
         "tp2": {"level": None, "pct": None, "rr": None, "basis": None, "reason": _trim(note)},
@@ -244,7 +382,7 @@ def _targets(features: dict, entry_mid: float, stop: float, regime: str, levels:
     )
 
 
-def plan_levels(bars: pd.DataFrame, metrics: dict, regime: str, ta_stats: dict, cfg, *, support_ihsg: float | None = None) -> dict:
+def plan_levels(bars: pd.DataFrame, metrics: dict, regime: str, ta_stats: dict, cfg, *, support_ihsg: float | None = None, sector_ok: bool | None = None, sector_note: str | None = None) -> dict:
     """Level + alasan satu pick (docs/03 §6.4.1–§6.4.6). **Fungsi murni, tanpa DB** supaya mudah diuji."""
     plan = cfg.weekly["plan"]
     needed = plan["donchian_slow"] + 1
@@ -277,15 +415,22 @@ def plan_levels(bars: pd.DataFrame, metrics: dict, regime: str, ta_stats: dict, 
     notes: list[str] = []
     confirm = "none"
     if regime == "range":
-        if levels["support"] is None:
+        # Rezim menyamping: alat utama kanal S/R. Konfirmasi momentum dipakai sebagai PERINGATAN, bukan
+        # penolakan — kalau tidak, hampir semua nama di pasar sideways kehilangan rencana (revisi 14 Okt 2026).
+        level = levels["support"] or sma20 or features["swing_low"]
+        if level is None:
             return _empty_plan(regime, "Pasar menyamping tanpa batas bawah yang jelas (kanal belum terbentuk); tidak ambil posisi.")
         entry_tool, entry_mode = "sr_channel", "pullback"
-        confirm = "rsi_tepi_range"
-        if (features["rsi14"] or 0) > plan["rsi_range_max"]:
-            plan_out = _empty_plan(regime, f"Harga menyentuh batas bawah kanal tetapi momentum harian {format_id_number(features['rsi14'] or 0)} belum di tepi bawah — belum ada konfirmasi pantulan, jadi tidak ambil posisi.")
-            plan_out["notes"].append("Sinyal bertentangan (struktur vs momentum) → seri; aturan: seri = tidak ambil posisi.")
-            return plan_out
-        level = levels["support"]
+        if (features["rsi14"] or 0) <= plan["rsi_range_max"]:
+            confirm = "rsi_tepi_range"
+        else:
+            confirm = "none"
+            notes.append(
+                _trim(
+                    f"Momentum harian {format_id_number(features['rsi14'] or 0)} belum di tepi bawah "
+                    f"(maksimal {format_id_number(plan['rsi_range_max'])}) — tunggu RSI mendingin sebelum entry di zona."
+                )
+            )
         zone_reason = "Pantulan di batas bawah kanal: di pasar menyamping beli di tepi bawah lebih aman daripada mengejar penembusan batas atas."
     elif regime == "tipis":
         entry_tool = "pivot_level" if levels["pivot_high"] or levels["support"] else "none"
@@ -315,13 +460,23 @@ def plan_levels(bars: pd.DataFrame, metrics: dict, regime: str, ta_stats: dict, 
             level = sma20
             zone_reason = "Harga masih dekat penyangga 20 hari; beli di penyangga membuat batas rugi lebih dekat dan imbal hasil lebih baik."
 
-    zone_low, zone_high = level - plan["zone_atr"] * atr, level + plan["zone_atr"] * atr
-    entry_mid = (zone_low + zone_high) / 2
+    zone_low, zone_high, entry_mid, anchor_reason = _entry_zone(features, levels, cfg, fallback=level, regime=regime)
+    zone_reason = f"{zone_reason} {anchor_reason}"
+    zone_status = _zone_status(close, zone_high, atr, cfg)
     if not entry_mid:  # harga acuan 0 → tidak ada level yang bisa dihitung
         return _empty_plan(regime, "Harga acuan tidak terbaca; level tidak dihitung supaya tidak mengarang angka.")
     stop = _stop(features, entry_mid, regime, cfg)
     stop["pct"] = _pct(stop["level"], entry_mid)
     tp1, tp2 = _targets(features, entry_mid, stop["level"], regime, levels, cfg)
+    if tp1["level"] is not None and tp2["level"] is not None and tp2["level"] < tp1["level"]:
+        # Urutan target harus naik: TP1 selalu lebih dekat dari TP2 (temuan 14 Okt 2026, mis. MEDC 1784/1702).
+        tp1["level"], tp2["level"] = tp2["level"], tp1["level"]
+        tp1["basis"], tp2["basis"] = tp2["basis"], tp1["basis"]
+        tp1["pct"], tp2["pct"] = _pct(tp1["level"], entry_mid), _pct(tp2["level"], entry_mid)
+        cost = (plan["fee_buy_bps"] + plan["fee_sell_bps"]) / 10_000
+        risk = entry_mid - stop["level"]
+        for target in (tp1, tp2):
+            target["rr"] = (target["level"] - entry_mid - cost * entry_mid) / (risk + cost * entry_mid)
 
     mfe = [value for value in (ta_stats.get("mfe_pct") or []) if value is not None]
     n_events = ta_stats.get("n_events") or 0
@@ -356,6 +511,36 @@ def plan_levels(bars: pd.DataFrame, metrics: dict, regime: str, ta_stats: dict, 
     if tp2["rr"] < plan["rr_min_tp2"] - 1e-9:  # level TP2 dihitung tepat di ambang minimal → toleransi float
         plan_ok = False
         notes.append(f"Imbal hasil terhadap risiko target kedua hanya {format_id_number(tp2['rr'], 2)}:1 (minimal {format_id_number(plan['rr_min_tp2'], 1)}:1) setelah biaya.")
+    turnover = features.get("turnover")
+    if turnover is not None and turnover < plan["min_turnover_idr"]:
+        # Permintaan user 14 Okt 2026: saham tidak likuid tidak boleh lolos sebagai rencana yang dipakai.
+        plan_ok = False
+        notes.append(
+            _trim(
+                f"Nilai transaksi harian {format_id_number(turnover / 1_000_000_000, 2)} M di bawah ambang "
+                f"{format_id_number(plan['min_turnover_idr'] / 1_000_000_000, 0)} M — terlalu tipis untuk swing."
+            )
+        )
+    if n_events < plan["min_events_plan"] or (ta_stats.get("win_rate") or 0) < plan["min_win_rate_plan"]:
+        # Sejak 14 Okt 2026 statistik breakout-MA hanya catatan, bukan gerbang plan_ok (keputusan user:
+        # win-rate sistem MA diabaikan — ia menguji sistem lain, bukan zona plan ini).
+        notes.append(
+            _trim(
+                f"Catatan (bukan penolakan): riwayat sinyal MA {n_events} kejadian, win-rate "
+                f"{format_id_number((ta_stats.get('win_rate') or 0) * 100)}% — di bawah acuan "
+                f"{plan['min_events_plan']} kejadian / {format_id_number(plan['min_win_rate_plan'] * 100)}%."
+            )
+        )
+    if sector_note:
+        notes.append(sector_note)
+        if sector_ok is False:
+            plan_ok = False
+    if zone_status in ("jauh", "sangat_jauh"):
+        notes.append(
+            _trim(
+                f"Zona entry masih {format_id_number((close - zone_high) / atr, 1)} kali volatilitas harian di bawah harga — tunggu pullback, jangan chase."
+            )
+        )
 
     return {
         "regime": regime,
@@ -363,6 +548,8 @@ def plan_levels(bars: pd.DataFrame, metrics: dict, regime: str, ta_stats: dict, 
         "confirm_tool": confirm,
         "entry_mode": entry_mode,
         "entry_zone": {"low": zone_low, "high": zone_high, "reason": _trim(zone_reason)},
+        "zone_status": zone_status,
+        "zone_pct": (zone_high - zone_low) / entry_mid if entry_mid else None,
         "stop": stop,
         "tp1": tp1,
         "tp2": tp2,
@@ -511,16 +698,14 @@ def build_plans(conn, week_end: str, picks: list[dict], cfg, *, weighting: str |
         metrics = metrics_for(conn, ticker, week_end)
         metrics.update(indicators_from_bars(bars, cfg))
         sector_code = conn.execute("SELECT code FROM sector WHERE id = ?", (row["sector_id"],)).fetchone()
-        quadrant = None
-        if sector_code:
-            found = conn.execute(SECTOR_QUADRANT_SQL, (weighting, sector_code[0], week_end)).fetchone()
-            quadrant = found[0] if found else None
-        regime = regime_of(bars, metrics, sector_quadrant=quadrant, cfg=cfg)
+        sector_ok, sector_note = sector_gate(conn, sector_code[0] if sector_code else None, week_end, cfg)
+        regime = regime_of(bars, metrics, sector_quadrant=None, cfg=cfg, sector_ok=sector_ok)
         if not metrics.get("atr14"):  # ATR `None` **atau** 0 (harga datar/suspend) → tidak ada level, hindari bagi nol
             out[ticker] = None
             continue
         out[ticker] = plan_levels(
-            bars, metrics, regime, ta_stats_for(conn, ticker, cfg), cfg, support_ihsg=support_ihsg
+            bars, metrics, regime, ta_stats_for(conn, ticker, cfg), cfg, support_ihsg=support_ihsg,
+            sector_ok=sector_ok, sector_note=sector_note,
         )
         validate(out[ticker])
     return out
@@ -568,7 +753,7 @@ FAR_FUTURE = "9999-12-31"  # batas atas tanggal: "bar terakhir yang tersedia"
 # Alasan rezim (docs/03 §6.4.0 → docs/05 §2 `regime.reason`) — dipakai `weekly/picks` dan `/plan/stock`.
 REGIME_REASON = {
     "tren_naik": "Harga di atas penyangga 20 & 50 hari dan penyangganya menanjak — alat utama pantulan ke penyangga.",
-    "range": "Penyangga 20 & 50 hari berdekatan (pasar menyamping) — alat utama level pantulan di kanal.",
+    "range": "Belum ada tren naik yang sah (harga/penyangga menyamping atau sektor belum memimpin) — alat utama level pantulan di kanal.",
     "turun": "Harga di bawah penyangga 20 & 50 hari — mode gagal saat turun, tidak ambil posisi.",
     "tipis": "Transaksi harian jarang atau banyak bar tanpa volume — hanya level pantulan, tanpa konfirmasi volume.",
     "tidak_cukup_data": "Riwayat harga belum cukup untuk menghitung level.",
@@ -760,14 +945,15 @@ def plan_for_all(conn, cfg, report=None) -> dict:
             metrics = metrics_for(conn, ticker)
             metrics.update(indicators_from_bars(bars, cfg))
             sector = conn.execute("SELECT code FROM sector WHERE id = (SELECT sector_id FROM stock WHERE ticker = ?)", (ticker,)).fetchone()
-            quadrant = (
-                conn.execute(SECTOR_QUADRANT_SQL, (cfg.universe["weighting"], sector[0], as_of)).fetchone() if sector else None
-            )
-            regime = regime_of(bars, metrics, sector_quadrant=quadrant[0] if quadrant else None, cfg=cfg)
+            sector_ok, sector_note = sector_gate(conn, sector[0] if sector else None, as_of, cfg)
+            regime = regime_of(bars, metrics, sector_quadrant=None, cfg=cfg, sector_ok=sector_ok)
             if not metrics.get("atr14"):  # ATR `None` **atau** 0 (harga datar/suspend) → tidak ada level, hindari bagi nol
                 plan = None
             else:
-                plan = plan_levels(bars, metrics, regime, ta_stats_for(conn, ticker, cfg), cfg, support_ihsg=support_ihsg)
+                plan = plan_levels(
+                    bars, metrics, regime, ta_stats_for(conn, ticker, cfg), cfg, support_ihsg=support_ihsg,
+                    sector_ok=sector_ok, sector_note=sector_note,
+                )
                 validate(plan)
             events = [dict(event) for event in conn.execute(STOCK_EVENTS_SQL, (ticker, ma, trend))]
             # Plan tanpa level (`no_trade`/data kurang) → tidak ada level untuk diukur skenarionya.
@@ -827,3 +1013,223 @@ def stock_plan_row(conn, ticker: str, as_of: str | None = None) -> dict | None:
         params += (as_of,)
     found = conn.execute(sql + " ORDER BY as_of_date DESC LIMIT 1", params).fetchone()
     return dict(found) if found else None
+
+
+# --- Picks terkurasi: `GET /plan/picks` (aturan saring 14 Okt 2026, docs/05 §2) ----------------
+
+PICKS_RULES = (
+    "Likuiditas: median transaksi 20 hari ≥ `?min_turnover` (default `weekly.plan.min_turnover_idr`).",
+    "Gerbang sektor: ≥ `sector_gate_min_pass` dari 3 bobot (`equal`/`turnover`/`captier`) pada `w1_fri` memimpin/memperbaiki.",
+    "Rezim `tren_naik` atau `range` — `tipis`/`turun` dibuang.",
+    "ATR14 ≤ `picks_atr_max_pct` × harga.",
+    "Lebar zona ≤ `picks_zone_max_atr` × ATR14.",
+    "Batas rugi ≤ `picks_stop_max_pct` × harga.",
+    "Imbal hasil TP2 ≥ `rr_min_tp2` setelah biaya.",
+    "Label zona `di_zona` (gap ≤ `zone_touch_atr`) atau `mendekati` (gap ≤ `zone_near_atr`).",
+)
+
+PICKS_SQL = """
+    SELECT p.ticker, st.name, sec.code AS sector_code, p.regime, p.entry_zone_low, p.entry_zone_high,
+           p.stop, p.stop_pct, p.stop_basis, p.tp1, p.tp2, p.rr_tp1, p.rr_tp2, p.plan_json,
+           m.close, m.atr14, m.rsi14, m.median_turnover_20d_idr
+      FROM stock_plan p
+      JOIN stock st ON st.ticker = p.ticker
+      JOIN sector sec ON sec.id = st.sector_id
+      JOIN stock_metrics m ON m.ticker = p.ticker AND m.timeframe = 'd1'
+      JOIN (SELECT ticker, MAX(as_of_date) AS as_of_date FROM stock_metrics WHERE timeframe = 'd1' GROUP BY ticker) mm
+        ON mm.ticker = m.ticker AND mm.as_of_date = m.as_of_date
+     WHERE p.as_of_date = ?
+     ORDER BY p.ticker
+"""
+
+SECTOR_SCORE_SQL = """
+    SELECT score FROM rrg_daily
+     WHERE scope = 'sector' AND ref_id = ? AND weighting = ? AND timeframe = ? AND as_of_date <= ?
+     ORDER BY as_of_date DESC LIMIT 1
+"""
+
+
+def ihsg_support(conn, cfg, week_end: str = FAR_FUTURE) -> float | None:
+    """Terendah `donchian_fast` bar IHSG = level jeda entry pasar (docs/03 §6.4.0)."""
+    bars = load_bars(conn, cfg.ingest["benchmark_alias"], week_end)
+    window = cfg.weekly["plan"]["donchian_fast"]
+    return float(bars["low"].iloc[-window:].min()) if len(bars) > window else None
+
+
+def sector_pick_context(conn, sector_code: str | None, as_of: str, cfg) -> tuple[float | None, dict, int]:
+    """Skor sektor (bobot `universe.weighting`) + kuadran tiga bobot `w1_fri` + jumlah bobot yang lolos."""
+    plan = cfg.weekly["plan"]
+    kuadran: dict[str, str | None] = {}
+    for weighting in plan.get("sector_gate_weightings") or [cfg.universe["weighting"]]:
+        row = conn.execute(SECTOR_QUADRANT_SQL, (weighting, sector_code, as_of)).fetchone()
+        kuadran[weighting] = row[0] if row and row[0] else None
+    score = None
+    for timeframe in ("w1_fri", "w1"):
+        row = conn.execute(SECTOR_SCORE_SQL, (sector_code, cfg.universe["weighting"], timeframe, as_of)).fetchone()
+        if row and row["score"] is not None:
+            score = float(row["score"])
+            break
+    lolos = sum(1 for quadrant in kuadran.values() if quadrant in LEADING_QUADRANTS)
+    return score, kuadran, lolos
+
+
+def picks_score(
+    gap_atr: float, rr_tp2: float | None, sector_score: float | None, artefak: bool = False
+) -> tuple[float, dict]:
+    """Urutan picks: kedekatan zona (×3) + R:R TP2 (cap 6) + skor sektor/50 — semua komponen dikembalikan.
+
+    R:R ikut dipotong separuh bila targetnya `artefak` (> `picks_tp_artifact_pct` dari harga): angka R:R
+    dari acuan kanal yang jauh bukan imbal hasil yang bisa dieksekusi.
+    """
+    rr = min(rr_tp2 or 0.0, 6.0)
+    rincian = {
+        "kedekatan_zona": round(3 * (1 - min(max(gap_atr, 0.0), 1.0)), 3),
+        "rr_tp2": round(rr / 2 if artefak else rr, 3),
+        "skor_sektor": round((sector_score or 0.0) / 50, 3),
+    }
+    return round(sum(rincian.values()), 3), rincian
+
+
+def _picks_rr(entry: float, stop: float, target: float | None, cfg) -> float | None:
+    """R:R setelah biaya — rumus sama dengan `plan_levels` supaya angkanya tidak berbeda antar endpoint."""
+    if not target or not entry or not stop or entry <= stop:
+        return None
+    plan = cfg.weekly["plan"]
+    cost = (plan["fee_buy_bps"] + plan["fee_sell_bps"]) / 10_000
+    return (target - entry - cost * entry) / (entry - stop + cost * entry)
+
+
+def picks_validity(zone_low: float | None, stop: float | None, tp2: float | None, support_ihsg: float | None) -> dict:
+    """Blok valid/batal/kedaluwarsa/selesai — wajib ada di setiap rencana (permintaan user 14 Okt 2026)."""
+    return {
+        "valid_until": "10:00 WIB sesi bursa berikutnya",
+        "valid_if": (
+            f"tutup harian masih di atas {format_id_number(zone_low)}"
+            + (f" dan IHSG masih di atas {format_id_number(support_ihsg)}" if support_ihsg else "")
+        ),
+        "invalidate_below": zone_low,
+        "expires_if": "zona belum tersentuh sampai 10:00 → rencana gugur; jangan geser zona untuk memaksa masuk",
+        "done_if": (
+            f"TP2 {format_id_number(tp2)} kena / stop {format_id_number(stop)} kena / kedaluwarsa"
+        ),
+    }
+
+
+def screen_picks(conn, cfg, *, limit: int | None = None, min_turnover: float | None = None) -> dict:
+    """≤N rencana terbaik dari `stock_plan`, disaring & diurutkan dengan aturan 14 Okt 2026 (docs/05 §2).
+
+    Membaca baris `stock_plan` (level tidak dihitung ulang saat request) dan memakai aturan yang sama untuk
+    semua pemakai (API, laporan harian, skrip) supaya angka antar pemanggil tidak berbeda.
+    """
+    plan = cfg.weekly["plan"]
+    batas = max(1, min(int(limit or plan["picks_limit"]), int(plan["picks_max_limit"])))
+    ambang = float(plan["min_turnover_idr"] if min_turnover is None else min_turnover)
+    as_of = conn.execute("SELECT MAX(as_of_date) FROM stock_plan").fetchone()[0]
+    support = ihsg_support(conn, cfg)
+    kandidat: list[dict] = []
+    for row in (conn.execute(PICKS_SQL, (as_of,)) if as_of else ()):
+        close, atr = row["close"], row["atr14"]
+        detail = json.loads(row["plan_json"]) if row["plan_json"] else {}
+        # Zona/stop/target diambil dari `plan_json` lebih dulu: kolom level di `stock_plan` hanya terisi
+        # saat `plan_ok=true` (aturan writer), sedangkan saring picks di sini tidak memakai `plan_ok`.
+        zona = detail.get("entry_zone") or {}
+        stop_detail = detail.get("stop") or {}
+        tp1_detail = detail.get("tp1") or {}
+        tp2_detail = detail.get("tp2") or {}
+        low = zona.get("low") or row["entry_zone_low"]
+        high = zona.get("high") or row["entry_zone_high"]
+        stop = stop_detail.get("level") or row["stop"]
+        stop_pct = stop_detail.get("pct") if stop_detail.get("pct") is not None else row["stop_pct"]
+        tp1 = tp1_detail.get("level") or row["tp1"]
+        tp2 = tp2_detail.get("level") or row["tp2"]
+        rr_tp1 = tp1_detail.get("rr") if tp1_detail.get("rr") is not None else row["rr_tp1"]
+        rr_tp2 = tp2_detail.get("rr") if tp2_detail.get("rr") is not None else row["rr_tp2"]
+        if not close or not atr or not low or not high or row["median_turnover_20d_idr"] is None:
+            continue
+        if row["median_turnover_20d_idr"] < ambang or row["regime"] not in ("tren_naik", "range"):
+            continue
+        if atr / close > plan["picks_atr_max_pct"] or (high - low) > plan["picks_zone_max_atr"] * atr:
+            continue
+        if abs(stop_pct or 0.0) > plan["picks_stop_max_pct"]:
+            continue
+        if (rr_tp2 or 0.0) < plan["rr_min_tp2"] - 1e-9:
+            continue
+        status = _zone_status(close, high, atr, cfg)
+        if status not in ("di_zona", "mendekati"):
+            continue
+        sector_ok, _ = sector_gate(conn, row["sector_code"], as_of, cfg)
+        if sector_ok is not True:
+            continue
+        entry = (low + high) / 2
+        gap_atr = (close - high) / atr
+        artefak_pct = 1 + plan["picks_tp_artifact_pct"]
+        tp1_artefak = bool(tp1 and tp1 > entry * artefak_pct)
+        tp2_artefak = bool(tp2 and tp2 > entry * artefak_pct)
+        skor_sektor, kuadran, lolos = sector_pick_context(conn, row["sector_code"], as_of, cfg)
+        skor, rincian = picks_score(gap_atr, rr_tp2, skor_sektor, artefak=tp1_artefak or tp2_artefak)
+        tp0 = entry + plan["tp1_fallback_atr"] * atr
+        kandidat.append(
+            {
+                "ticker": row["ticker"],
+                "name": row["name"],
+                "sector_code": row["sector_code"],
+                "close": close,
+                "turnover_idr": row["median_turnover_20d_idr"],
+                "atr14": atr,
+                "atr_pct": atr / close,
+                "rsi14": row["rsi14"],
+                "regime": row["regime"],
+                "regime_label": REGIME_LABEL.get(row["regime"], row["regime"]),
+                "entry_zone": {"low": low, "high": high, "reason": zona.get("reason", "")},
+                "zone_status": status,
+                "zone_pct": (high - low) / entry,
+                "zone_gap_atr": gap_atr,
+                "entry": entry,
+                "stop": {
+                    "level": stop,
+                    "pct": stop_pct,
+                    "basis": row["stop_basis"],
+                    "reason": stop_detail.get("reason", ""),
+                },
+                "tp0": {
+                    "level": tp0,
+                    "pct": tp0 / entry - 1,
+                    "rr": _picks_rr(entry, stop, tp0, cfg),
+                    "basis": "cepat_1,5atr",
+                    "reason": "Target cepat (1,5 × ATR14): ambil sebagian di sini, sisanya dibiarkan ke TP1/TP2.",
+                },
+                "tp1": {
+                    "level": tp1,
+                    "pct": (tp1 / entry - 1) if tp1 else None,
+                    "rr": rr_tp1,
+                    "basis": tp1_detail.get("basis"),
+                    "reason": tp1_detail.get("reason", ""),
+                },
+                "tp2": {
+                    "level": tp2,
+                    "pct": (tp2 / entry - 1) if tp2 else None,
+                    "rr": rr_tp2,
+                    "basis": tp2_detail.get("basis"),
+                    "reason": tp2_detail.get("reason", ""),
+                },
+                "tp1_artefak": tp1_artefak,
+                "tp2_artefak": tp2_artefak,
+                "sector_quadrants": kuadran,
+                "sector_score": skor_sektor,
+                "sector_pass": lolos,
+                "skor": skor,
+                "skor_rincian": rincian,
+                "validity": picks_validity(low, stop, tp2, support),
+                "notes": detail.get("notes", []),
+            }
+        )
+    kandidat.sort(key=lambda pick: (-pick["skor"], -(pick["turnover_idr"] or 0)))
+    return {
+        "as_of": as_of,
+        "limit": batas,
+        "min_turnover_idr": ambang,
+        "screened": len(kandidat),
+        "ihsg_support": support,
+        "rules": list(PICKS_RULES),
+        "picks": kandidat[:batas],
+    }

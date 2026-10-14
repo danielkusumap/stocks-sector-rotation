@@ -666,6 +666,8 @@ class TaPlan(BaseModel):
     plan_ok: bool
     notes: list[str]
     risk_pct: float | None = None  # B18c: |stop.pct| supaya UI bisa menampilkan risiko per lembar
+    zone_status: str | None = None  # 14 Okt 2026: di_zona | mendekati | jauh | sangat_jauh
+    zone_pct: float | None = None  # lebar zona relatif terhadap pusat zona (transparansi)
 
 
 class PlanStockHead(BaseModel):
@@ -874,3 +876,56 @@ class RunsResponse(Envelope):
 
 class RunDetailResponse(Envelope):
     run: RunItem
+
+
+# --- §2 `GET /plan/picks` (picks terkurasi, aturan 14 Okt 2026) ----------------
+
+class PlanPickValidity(BaseModel):
+    """Blok valid/batal — wajib ada supaya pemakai tahu kapan rencana masih berlaku dan kapan gugur."""
+
+    valid_until: str
+    valid_if: str
+    invalidate_below: float | None
+    expires_if: str
+    done_if: str
+
+
+class PlanPick(BaseModel):
+    ticker: str
+    name: str
+    sector_code: str | None
+    close: float | None
+    turnover_idr: float | None
+    atr14: float | None
+    atr_pct: float | None
+    rsi14: float | None
+    regime: str
+    regime_label: str
+    entry_zone: PlanEntryZone
+    zone_status: str | None
+    zone_pct: float | None
+    zone_gap_atr: float | None
+    entry: float | None
+    stop: PlanStop
+    tp0: PlanTarget
+    tp1: PlanTarget
+    tp2: PlanTarget
+    tp1_artefak: bool
+    tp2_artefak: bool
+    sector_quadrants: dict[str, str | None]
+    sector_score: float | None
+    sector_pass: int
+    skor: float
+    skor_rincian: dict[str, float]
+    validity: PlanPickValidity
+    notes: list[str]
+
+
+class PlanPicksResponse(Envelope):
+    as_of: str | None
+    limit: int
+    min_turnover_idr: float
+    screened: int  # jumlah kandidat yang lolos saring (sebelum dipotong `limit`)
+    ihsg_support: float | None
+    rules: list[str]
+    picks: list[PlanPick]

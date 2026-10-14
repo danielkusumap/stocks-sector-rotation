@@ -17,7 +17,7 @@ from ..config import get_settings
 from ..labels import REGIME_LABEL
 from ..repo import read
 from .rrg import _check
-from .schemas import PlanStockResponse, SeriesStockResponse
+from .schemas import PlanPicksResponse, PlanStockResponse, SeriesStockResponse
 
 router = APIRouter(prefix="/api/v1", tags=["plan"])
 _API_VERSION = get_settings().app.api_version
@@ -395,5 +395,23 @@ def stock_series(
             ),
         }
         return body
+    finally:
+        conn.close()
+
+
+@router.get("/plan/picks", response_model=PlanPicksResponse)
+def plan_picks(limit: int = Query(3, ge=1), min_turnover: float | None = Query(None, ge=0)) -> dict:
+    """≤`limit` rencana terbaik hasil saring aturan 14 Okt 2026 (docs/05 §2) — bukan daftar 962 emiten."""
+    cfg = get_settings()
+    conn = db.connect()
+    try:
+        body = plan_compute.screen_picks(conn, cfg, limit=limit, min_turnover=min_turnover)
+        return {
+            "api_version": _API_VERSION,
+            **body,
+            "data_status": read.data_status(
+                conn, as_of=body.get("as_of"), timeframe="d1", weighting=cfg.universe["weighting"]
+            ),
+        }
     finally:
         conn.close()

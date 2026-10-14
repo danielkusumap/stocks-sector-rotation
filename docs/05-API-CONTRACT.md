@@ -310,6 +310,43 @@ Aturan:
 - Semua angka harga penyesuaian; label UI "harga penyesuaian". Frontend tidak menghitung apa pun (R:R, %, peluang semua dari sini).
 - `levels_table` disediakan supaya UI tidak perlu merakit ulang daftar level dari banyak blok (satu tempat, urutan tetap).
 
+### `GET /api/v1/plan/picks`
+**Picks terkurasi (default 3)** — hasil saring aturan 14 Okt 2026 dari `stock_plan`, supaya UI/laporan tidak perlu menarik 962 emiten lalu menyaring sendiri.
+Query: `limit` (default `weekly.plan.picks_limit` = 3, di-clamp ke `picks_max_limit` = 10), `min_turnover` (default `weekly.plan.min_turnover_idr` = Rp2 M/hari).
+```json
+{ "api_version": "1.2", "as_of": "2026-10-13", "limit": 3, "min_turnover_idr": 2000000000.0, "screened": 21,
+  "ihsg_support": 5828.68,
+  "rules": ["Likuiditas: median transaksi 20 hari ≥ `?min_turnover` (default `weekly.plan.min_turnover_idr`).", "…"],
+  "picks": [ { "ticker": "SMDR", "name": "Samudera Indonesia Tbk.", "sector_code": "IDXTRANS",
+               "close": 412.0, "turnover_idr": 11500000000.0, "atr14": 15.6, "atr_pct": 0.0379, "rsi14": 63.1,
+               "regime": "tren_naik", "regime_label": "Tren naik",
+               "entry_zone": { "low": 402.0, "high": 413.0, "reason": "…" },
+               "zone_status": "di_zona", "zone_pct": 0.027, "zone_gap_atr": -0.04, "entry": 407.5,
+               "stop": { "level": 383.0, "pct": -0.058, "basis": "volatilitas_atr", "reason": "…" },
+               "tp0": { "level": 431.0, "pct": 0.058, "rr": 1.0, "basis": "cepat_1,5atr", "reason": "…" },
+               "tp1": { "level": 434.0, "pct": 0.066, "rr": 1.12, "basis": "resistance_20", "reason": "…" },
+               "tp2": { "level": 485.0, "pct": 0.19, "rr": 3.0, "basis": "donchian_40", "reason": "…" },
+               "tp1_artefak": false, "tp2_artefak": false,
+               "sector_quadrants": { "equal": "leading", "turnover": "leading", "captier": "weakening" },
+               "sector_score": 66.2, "sector_pass": 2,
+               "skor": 7.362, "skor_rincian": { "kedekatan_zona": 3.0, "rr_tp2": 3.0, "skor_sektor": 1.324 },
+               "validity": { "valid_until": "10:00 WIB sesi bursa berikutnya",
+                             "valid_if": "tutup harian masih di atas 402 dan IHSG masih di atas 5.829",
+                             "invalidate_below": 402.0,
+                             "expires_if": "zona belum tersentuh sampai 10:00 → rencana gugur; jangan geser zona untuk memaksa masuk",
+                             "done_if": "TP2 485 kena / stop 383 kena / kedaluwarsa" },
+               "notes": [] } ],
+  "data_status": { "...": "lihat konvensi" } }
+```
+Aturan:
+- Sumber = baris `stock_plan` (`as_of` = tanggal terakhir) — level **tidak** dihitung ulang saat request. Zona/stop/target dibaca dari `plan_json` lebih dulu (kolom `entry_zone_low`/`stop`/`tp*` hanya terisi saat `plan_ok=true`), jadi baris `plan_ok=false` tetap bisa disaring.
+- `plan_ok` **tidak** dipakai sebagai syarat; saring memakai `rules` di atas dengan ambang `config weekly.plan.picks_*`.
+- `screened` = jumlah kandidat yang lolos saring sebelum dipotong `limit` (angka ini yang memberi tahu UI "ada 21 kandidat, ini 3 teratas").
+- `skor = 3 × kedekatan_zona + min(R:R TP2, 6) + skor_sektor/50`; komponen R:R dipotong separuh bila TP1/TP2 bertanda `artefak` (> `picks_tp_artifact_pct` dari harga). Urutan akhir: `skor` turun, lalu likuiditas.
+- `validity` **wajib** ada di setiap pick: kapan masih sah (`valid_if`, `valid_until`), kapan batal (`invalidate_below`), kapan gugur tanpa eksekusi (`expires_if`), kapan selesai (`done_if`).
+- Belum ada kandidat → `picks: []`, `screened: 0`, HTTP **200** (bukan 404/500).
+- Karena sumbernya baris tersimpan: kalau aturan/ambang berubah, `stock_plan` harus dihitung ulang (`compute --stage ta` / tombol TA) supaya levelnya ikut versi terbaru; UI menampilkan `computed_at` baris sebagai penanda.
+
 ### `GET /api/v1/rotation/matrix`
 Matriks transisi kuadran (untuk panel "apa yang berubah").
 Query: `timeframe, window`, `scope` (default `sector`).

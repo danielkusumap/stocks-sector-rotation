@@ -104,8 +104,10 @@ def evaluate_sector(row, constituents: int | None, cfg) -> dict:
 def evaluate_stock(row, *, close: float | None, last_bar: str | None, cutoff: str, cfg) -> dict:
     """Aturan §6.2 (semua wajib). `cutoff` = tanggal bar ke-5 terakhir (batas suspend)."""
     uni = cfg.universe
+    # Likuiditas pick memakai ambang plan (Rp2 M/hari, 14 Okt 2026); ambang universe tetap untuk penyaringan broad.
+    min_turnover = max(uni["min_turnover_idr"], cfg.weekly["plan"]["min_turnover_idr"])
     hits = {
-        "liquidity_ok": bool(row["median_turnover_20d_idr"] and row["median_turnover_20d_idr"] >= uni["min_turnover_idr"]),
+        "liquidity_ok": bool(row["median_turnover_20d_idr"] and row["median_turnover_20d_idr"] >= min_turnover),
         "price_ok": bool(close is not None and close >= uni["min_price_idr"]),
         "trend_ok": bool(close is not None and row["sma20"] and row["sma50"] and close > row["sma20"] > row["sma50"]),
         "rs_ok": bool(row["rs_ratio"] and row["rs_ratio"] > 100),
