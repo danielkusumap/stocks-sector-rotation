@@ -381,6 +381,50 @@ Commit: `F24: gate cepat (paralel, tag a11y/slow, script gate)`.
 
 ---
 
+## F25 — Menu "Swing Trade": rekomendasi 5 hari bursa terakhir + pantau yang berjalan
+
+**Kenapa ada:** user mau bisa **melihat rekomendasi baru sambil memantau rekomendasi yang sudah berjalan** dalam satu halaman. Sumbernya endpoint picks (B20d): `GET /api/v1/plan/picks?as_of=YYYY-MM-DD&limit=`, yang mengembalikan ≤`limit` rencana terbaik hasil saring aturan (rezim, likuiditas, gerbang sektor, ATR/zona/stop, RR, denyut sektor) **untuk tanggal itu**, lengkap dengan `rules[]` (aturan yang dipakai) dan alasan tiap level.
+
+**Data yang tersedia di respons (jangan hitung apa pun di frontend):**
+`as_of`, `available_dates[]` (tanggal yang **ada** isinya — 5 hari bursa terakhir), `screened` (jumlah kandidat lolos sebelum dipotong `limit`), `rules[]` (9 kalimat aturan), `ihsg_support`, dan `picks[]`:
+`ticker`, `name`, `sector_code`, `sector_name`, `close`, `turnover_idr`, `atr14`, `atr_pct`, `rsi14`, `regime`, `regime_label`, `entry_zone{low,high,reason}`, `zone_status` (`di_zona`/`mendekati`), `zone_pct`, `zone_gap_atr`, `entry`, `stop{level,pct,basis,reason}`, `tp1{…}`, `tp2{…}`, `rr_tp2`, `score`, `score_parts`, kuadran sektor, dan **status berjalan**: `status` (`menunggu_zona`/`di_zona`/`kena_tp1`/`kena_tp2`/`kena_stop`/`kedaluwarsa`), `close_latest`, `ret_sejak_asof`, `bars_sejak_asof`, `mfe_pct`, `mae_pct`, `status_note`.
+
+**Tampilan (docs/06 — pakai token, tanpa dependency baru):**
+1. **Side menu baru "Swing Trade"** (ikon `lucide-react` yang sudah ada, mis. `Crosshair`/`TrendingUp`), rute `/swing`, entri di navigasi samping **di atas** menu Weekly (ini halaman yang dibuka tiap hari). Judul halaman: "Swing Trade".
+2. **Baris pemilih hari** di bawah judul: satu tab per tanggal dari `available_dates` (5 hari bursa terakhir), label Indonesia (`Sel, 13 Okt`), tab terpilih disimpan di **URL** (`/swing?date=2026-10-13`) supaya bisa di-bookmark/di-refresh; default = tanggal terbaru. Tab yang tidak punya isi tetap tampil dengan penanda "0".
+3. **Ringkasan hari** (satu baris, angka Indonesia): `N kandidat lolos · M emiten disaring · support IHSG 6.412` + badge status bursa bila tanggal itu bukan hari terakhir data ("data per 13 Okt, hari ini 14 Okt").
+4. **Kartu pick** (satu kartu per pick, urut `rank`):
+   - Kepala: `TICKER` tebal + nama perusahaan + chip sektor (warna sektor dari token 11 warna) + chip rezim (`Tren naik`/`Range`) + **badge status berjalan** berwarna (lihat 5).
+   - Baris angka: harga (`close`), jarak ke zona (`zone_pct` bertanda, format Indonesia), RSI14, ATR% — semua dari API.
+   - **Penggaris level** (SVG kecil, tinggi ±120 px, lebar penuh kartu): posisi `stop`, `entry_zone` (pita), `tp1`, `tp2`, dan titik harga terakhir (`close_latest` bila ada, `close` bila tanggal itu hari terakhir) — label angka di kanan. Ini yang membuat user langsung tahu "harga sekarang di mana dibanding rencana".
+   - **Rencana** (tabel 2 kolom ringkas): `Zona beli` (low–high), `Batas rugi` (level + `pct`), `Target 1` (+`pct`, `rr`), `Target 2` (+`pct`, `rr`), `Peluang TP1` (persen **tanpa tanda**, dari `hit_tp1`/`p_tp1_first`) — peluang ditulis "62%", bukan "+62%".
+   - **Alasan** (kalimat dari API, ≤2 baris per level): `entry_zone.reason`, `stop.reason`, `tp2.reason` — pakai `<details>`/disclosure agar kartu tidak terlalu panjang ("Kenapa level ini?").
+   - **Status berjalan** (hanya untuk tanggal < tanggal terbaru): baris `status_note` + `ret_sejak_asof` (bertanda) + `mfe_pct`/`mae_pct` ("sempat naik 4,9%, sempat turun −1,1%") + `bars_sejak_asof` hari.
+   - Tautan **"Buka detail"** → `/stocks/<ticker>` (halaman F19/F20 yang sudah ada: grafik candle + panel analisa) — jangan bikin panel baru di sini.
+5. **Badge status** (warna dari token, teks Indonesia): `menunggu_zona` = "Menunggu zona" (netral) · `di_zona` = "Di zona beli" (aksen) · `kena_tp1` = "Kena target 1" (hijau) · `kena_tp2` = "Kena target 2" (hijau tua) · `kena_stop` = "Kena batas rugi" (merah) · `kedaluwarsa` = "Kedaluwarsa" (abu).
+6. **Seksi "Pantau yang berjalan"** di bawah daftar: hanya tampil bila ada pick dari hari-hari sebelumnya. Kelompokkan per status (Kena target 1 · Di zona beli · Menunggu zona · Kena batas rugi · Kedaluwarsa) dengan jumlah + daftar `TICKER` ringkas; klik → pindah ke tab tanggal pick itu (`?date=`) + sorot kartunya. Tujuannya persis yang diminta user: rekomendasi baru dan yang sudah berjalan terlihat bersamaan.
+7. **Panel aturan**: tombol "Aturan penyaringan" (disclosure) yang menampilkan `rules[]` apa adanya + catatan "aturan ini satu-satunya penentu pick — bukan daftar 962 emiten".
+8. **Keadaan kosong / belum dihitung** (jujur, jangan tampilkan kartu palsu):
+   - Tanggal ada di `available_dates` tapi `picks` kosong → "Tidak ada kandidat lolos saring pada tanggal ini (`screened` kandidat sebelum potong)" + tombol "Aturan penyaringan".
+   - `available_dates` kurang dari 5 hari bursa (mis. baru dihitung untuk 1 tanggal) → banner di atas: "5 hari bursa terakhir belum dihitung (baru N tanggal tersedia)" + **tombol "Hitung 5 hari terakhir"** yang memanggil `POST /api/v1/admin/compute` `{"stage":"ta","plan_days":5}` `?async=true`, lalu **poll** `GET /api/v1/admin/runs/{id}` dan tampilkan progres (perkiraan ±2,5 menit, sebutkan di UI) + tombol "Muat ulang" setelah selesai. Satu klik, tanpa terminal — ini pengganti tombol di halaman Data (user: "ga usah bikin button di data").
+9. **Kecepatan**: satu permintaan per tanggal (B20d sudah menyimpan hasil saring → respons ms). Simpan per tanggal di cache react-query (`staleTime` ≥ 5 menit), **jangan** panggil ulang saat berpindah tab bolak-balik; jangan memanggil 5 tanggal sekaligus saat halaman dibuka — muat tanggal aktif saja, lalu pre-fetch tab lain **setelah** idle (`requestIdleCallback`) bila mudah, atau biarkan saat diklik.
+10. Aturan umum yang tetap berlaku: angka & tanggal format Indonesia, semua string Bahasa Indonesia, warna hanya token, tanpa dependency baru (SVG + d3-scale), filter/tab hidup di URL, tidak ada perhitungan finansial di frontend, MSW untuk dev.
+
+**AC:**
+1. Menu samping punya entri **Swing Trade**; halaman `/swing` memuat picks tanggal terbaru tanpa klik apa pun.
+2. Berpindah tab tanggal mengubah URL (`?date=`) dan **tidak** menambah permintaan berulang saat kembali ke tab sebelumnya (bukti Network: 1 permintaan per tanggal, bukan per klik).
+3. Kartu menampilkan: ticker + nama + chip sektor + rezim + zona + penggaris level (stop/zona/tp1/tp2/harga terakhir) + rencana + alasan + peluang (tanpa tanda) + status berjalan untuk hari lama.
+4. Seksi "Pantau yang berjalan" menampilkan pick hari-hari sebelumnya dikelompokkan per status; klik mengarah ke tab tanggalnya.
+5. Keadaan kosong & banner "belum dihitung" sesuai butir 8; tombol "Hitung 5 hari terakhir" benar-benar memanggil `POST /admin/compute` (bukti Network + `run_id`) dan menampilkan progres sampai selesai (uji dengan MSW).
+6. Tidak ada satu pun angka finansial yang dihitung di frontend: bukti uji silang — ambil 3 angka dari kartu (zona, stop, RR) dan bandingkan dengan respons API via `page.evaluate(fetch)`.
+7. 4 gerbang hijau (`npm run typecheck`, `vitest run`, `playwright test e2e/swing-trade.spec.ts`, `npm run build`) + screenshot terang & gelap (daftar penuh, keadaan kosong, banner belum dihitung, satu kartu dengan status `kena_tp1`).
+8. Aksesibilitas: tab tanggal = `role="tablist"`/`aria-selected`, penggaris level punya `aria-label` berisi angka (mis. "batas rugi 384,3"), badge status punya teks (bukan warna saja).
+
+**Bukti:** screenshot 4 keadaan × 2 tema + potongan Network (1 permintaan/tanggal) + uji silang 3 angka + hasil 4 gerbang + potongan JSON API 1 pick.
+Commit: `F25: menu Swing Trade (picks 5 hari bursa + pantau yang berjalan)`.
+
+---
+
 ## Aturan tambahan untuk agen frontend
 
 1. **Jangan menghitung rumus finansial apa pun** (kuadran, RS, skor, ATR). Semua dari API; kalau field kurang → catat di `DECISIONS.md` dan minta backend, jangan hitung sendiri.

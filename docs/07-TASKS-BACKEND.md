@@ -290,6 +290,33 @@ Commit: `B18c: plan_ok hanya untuk RR/no_trade + ambang stop lebar adaptif ATR`.
 **Bukti:** 4 potongan respons JSON (berkoma / berulang / kosong / tak dikenal) + `curl` nyata ke server dev untuk `KLBF?window=1y&layers=indicators,smc` → `200` (tempel kode status + `layers` di respons).
 Commit: `B19b: layers terima daftar berkoma (fix 422 invalid_layer)`.
 
+## B20d — Picks harian: simpan hasil saring + `as_of` + backfill N hari bursa
+
+**Kenapa ada (diukur 14 Okt 2026, jangan diulang pengukurannya):**
+- `GET /api/v1/plan/picks` = **20,0 detik** (TestClient in-process, DB dev: 834 baris `stock_plan` as_of 2026-10-14, `screened=1`, `picks=1`). Sebabnya `screen_picks` menyaring **per baris** dengan query tambahan (`sector_gate` ×3 bobot, `sector_pulse`, `sector_pick_context`, `_zone_status`) → ~900 baris × beberapa query. Memanggil ini tiap kali halaman dibuka (apalagi ×5 hari) **tidak aman**.
+- `stock_plan` per tanggal: `2026-10-14` (834 baris, 51 `plan_ok`), `2026-10-13` (918, 51), `2026-10-09` (88, 1). **Tanggal lain belum ada** → menu "5 hari bursa terakhir" akan kosong.
+- `plan_for_all(conn, cfg, report)` menghitung **hanya untuk bar terakhir** tiap ticker (`as_of = bars["date"].iloc[-1]`); tidak ada jalur per-tanggal. Durasi sapu penuh (bukti `docs/evidence/`): **31,4 s untuk 921 baris** → 5 hari ≈ 2,5 menit sekali jalan.
+- Kalender: 13 Okt 2026 = **Selasa**, jadi 5 hari bursa terakhir = **13, 12, 9, 8, 7 Okt** (10–11 Okt = Sabtu/Minggu, tidak dihitung).
+
+**Deliverable:**
+1. **Tabel `plan_pick`** (migrasi bernomor 008, idempotent-safe) menyimpan **hasil saring** per tanggal: `as_of_date`, `ticker`, `rank`, `score`, `zone_status`, `zone_gap_atr`, `entry`, `stop`, `tp1`, `tp2`, `rr_tp2`, `sector_code`, `quadrant`, `rules_version`, `payload_json` (kartu siap-tampil: alasan, plan, `rules[]`), `computed_at`. PK `(as_of_date, rank)` atau `(as_of_date, ticker)`. Tulis dengan pola upsert yang sudah ada (`ON CONFLICT … DO UPDATE`), dan hapus baris tanggal itu sebelum menulis ulang.
+2. **Isi tabel saat compute**, bukan saat request: `plan.plan_for_all` memanggil `screen_picks` di akhir untuk `as_of` yang baru dihitung lalu menyimpan hasilnya (satu pass, tanpa query tambahan dari endpoint).
+3. **`as_of` di jalur compute**: `plan_for_all(conn, cfg, report=None, as_of=None)` — bila diisi, setiap ticker memakai bar `date <= as_of` (hitung `sma/rsi/atr` dari bar itu, sesuai `docs/03` §6.4.1). `jobs.compute` meneruskan `params["as_of"]`.
+4. **Backfill N hari bursa**: `jobs.compute({"stage": "ta"|"all", "plan_days": 5})` → ambil 5 tanggal bursa terakhir dari `price_daily` (mundur dari `MAX(date)`, lewati akhir pekan/libur yang memang tidak punya bar) lalu hitung `plan_for_all(as_of=…)` untuk tiap tanggal. Default `plan_days: 1` (perilaku lama). Laporkan progres per tanggal di `ingest_run` seperti stage lain.
+5. **Endpoint baca tabel, bukan hitung**: `GET /plan/picks?as_of=YYYY-MM-DD&limit=&min_turnover=` membaca `plan_pick` (default `as_of` = tanggal terbaru yang ada). Tambah `available_dates: [YYYY-MM-DD]` (5 hari bursa terakhir yang **ada** di `plan_pick`) supaya UI tidak mengarang tanggal.
+6. **Status berjalan** untuk pick hari lama (dipakai bagian "pantau" di UI): untuk tiap pick hitung dari bar **setelah** `as_of` → `status`: `menunggu_zona` (belum tersentuh) · `di_zona` · `kena_tp1` · `kena_tp2` · `kena_stop` · `kedaluwarsa` (lewat `timeout_periods`), plus `close_latest`, `ret_sejak_asof`, `bars_sejak_asof`, `mfe_pct`, `mae_pct`, `status_note` (kalimat Indonesia ≤140 char). Hitung dari `price_daily` (bar `> as_of`, maks 60 bar per ticker) — murah karena pick ≤ 10 per hari.
+
+**AC:**
+1. `GET /plan/picks?as_of=2026-10-13` mengembalikan isi yang sama dengan `screen_picks` untuk tanggal itu (bandingkan JSON sebelum/sesudah refactor; tempel dua potongan).
+2. **Durasi**: `GET /plan/picks` (semua bentuk) ≤ **0,3 s** (sebelumnya 20,0 s) — tempel angka `time.perf_counter()` untuk 5 tanggal berbeda.
+3. `available_dates` berisi tepat tanggal yang punya baris `plan_pick`, urut menurun; `as_of` yang tidak ada di tabel → `404 not_found` dengan pesan jelas (bukan 200 kosong).
+4. `plan_days=5` mengisi 5 tanggal bursa terakhir (tempel `SELECT as_of_date, COUNT(*) FROM plan_pick GROUP BY 1`); tanggal tanpa bar harga **tidak** dibuatkan baris kosong.
+5. Status berjalan diuji dengan data buatan: satu ticker yang setelah `as_of` menyentuh zona (→ `di_zona`), satu kena stop (→ `kena_stop`), satu kena TP1 (→ `kena_tp1`), satu belum tersentuh (→ `menunggu_zona`), satu lewat 60 bar (→ `kedaluwarsa`). Tempel hasilnya.
+6. `api_version` endpoint ini naik (`docs/05` §2) + ADR; `pytest -q backend -n auto` hijau.
+
+**Bukti:** durasi 5 tanggal + potongan JSON 1 pick lengkap (dengan `status` + `rules`) + isi `plan_pick` per tanggal + output `plan_days=5`.
+Commit: `B20d: plan_pick tersimpan per tanggal + as_of + plan_days (picks 20 s → ms)`.
+
 ## B19 — `GET /api/v1/series/stock/{ticker}`: bahan grafik candle + overlay TA
 
 **Kenapa ada:** user ingin melihat **candlestick beserta TA** di halaman detail saham, dengan overlay yang **sesuai aturan & rezim** kita (docs/03 §6.4.0, §6.4.9) — bukan indikator sembarangan. Data sudah ada (`price_daily` 2 tahun OHLC penyesuaian + `ta_breakout`), yang kurang hanya endpoint yang menyajikannya. Kontrak: `docs/05` §2. Tampilan: `docs/06` §6.5.

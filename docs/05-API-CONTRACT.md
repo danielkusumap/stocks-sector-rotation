@@ -312,7 +312,8 @@ Aturan:
 
 ### `GET /api/v1/plan/picks`
 **Picks terkurasi (default 3)** — hasil saring aturan 14 Okt 2026 dari `stock_plan`, supaya UI/laporan tidak perlu menarik 962 emiten lalu menyaring sendiri.
-Query: `limit` (default `weekly.plan.picks_limit` = 3, di-clamp ke `picks_max_limit` = 10), `min_turnover` (default `weekly.plan.min_turnover_idr` = Rp2 M/hari).
+Query: `limit` (default `weekly.plan.picks_limit` = 3, di-clamp ke `picks_max_limit` = 10), `min_turnover` (default `weekly.plan.min_turnover_idr` = Rp2 M/hari), **`as_of`** (tanggal pick; default = tanggal terbaru yang ada di `plan_pick`).
+**B20d (wajib, sebelum halaman Swing Trade dipakai):** hasil saring disimpan per tanggal di tabel `plan_pick` saat compute (`stage=ta`/`all`, param `plan_days` untuk backfill N hari bursa) sehingga endpoint ini hanya **membaca** tabel — diukur 14 Okt 2026 endpoint versi hitung-langsung memakan **20,0 s** per panggilan; target setelah B20d **≤ 0,3 s**. Respons menambah: `available_dates[]` (tanggal yang punya isi, urut menurun — UI tidak mengarang tanggal), dan per pick **status berjalan** (`status`: `menunggu_zona`/`di_zona`/`kena_tp1`/`kena_tp2`/`kena_stop`/`kedaluwarsa`, `close_latest`, `ret_sejak_asof`, `bars_sejak_asof`, `mfe_pct`, `mae_pct`, `status_note`) dihitung dari bar setelah `as_of`. `as_of` yang tidak ada isinya → `404 not_found`. `api_version` naik ke `"1.3"`.
 ```json
 { "api_version": "1.2", "as_of": "2026-10-13", "limit": 3, "min_turnover_idr": 2000000000.0, "screened": 21,
   "ihsg_support": 5828.68,
