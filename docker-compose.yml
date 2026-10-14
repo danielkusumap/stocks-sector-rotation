@@ -5,6 +5,9 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
+    # Jatah CPU seluruh stack = 10% server. 8 core → 0,8 vCPU, dibagi backend 0,72 + frontend 0,08.
+    # Server beda core count? ganti lewat env: 10% × nproc (mis. 4 core → 0,36 dan 0,04).
+    cpus: "${DOCKER_CPUS_BACKEND:-0.72}"
     environment:
       TZ: Asia/Jakarta
       ROTATION_CONFIG: /app/config/default.yaml
@@ -28,6 +31,7 @@ services:
   frontend:
     build:
       context: ./frontend
+    cpus: "${DOCKER_CPUS_FRONTEND:-0.08}"   # sisa jatah 10% (nginx statis, hampir tidak terpakai)
     environment:
       # Target proxy nginx untuk `/api` dan `/health`.
       BACKEND_ORIGIN: http://backend:8000

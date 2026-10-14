@@ -127,6 +127,12 @@ kalau tidak, tombol-tombol admin akan ditolak 401.
   `docker run --rm -v <volume>:/data -v $PWD:/out alpine cp /data/rotation.db /out/`.
 - **Resource**: siapkan RAM ≥ 2 GB (pandas + yfinance + 962 emiten) dan disk ≥ 5 GB (DB dev sekarang ± 50 MB;
   tumbuh dengan bar intraday). Backfill penuh butuh waktu lama dan CPU saat tahap `compute`.
+- **Jatah CPU = 10% server** (permintaan owner): `cpus` di `docker-compose.yml` — 8 core → total 0,8 vCPU,
+  dibagi **backend 0,72** + **frontend 0,08**; server dengan core lain: 10% × `nproc`, setel lewat env
+  `DOCKER_CPUS_BACKEND` / `DOCKER_CPUS_FRONTEND` (tidak perlu mengedit compose). Konsekuensinya **backfill
+  962 emiten berjalan lambat** — hitung dulu sebelum maraton ~4 menit jadi belasan menit; naikkan sementara
+  jatahnya kalau mau backfill, lalu turunkan lagi. `cpus` berlaku di `docker compose` (cgroup); kalau deploy
+  diubah ke mode Swarm, pindahkan angka ini ke `deploy.resources.limits.cpus`.
 - **Egress**: container backend butuh akses keluar ke Yahoo Finance (`query1.finance.yahoo.com`). Tanpa itu,
   langkah 2–3 di halaman Data akan gagal.
 - **Update**: `git push` ke repo → Deploy ulang dari Dokploy (atau aktifkan auto-deploy). Build frontend & backend
