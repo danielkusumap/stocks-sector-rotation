@@ -87,3 +87,24 @@ def test_cli_db_init_runs_twice():
         )
         assert r.returncode == 0, r.stderr
         assert json.loads(r.stdout)["tables"] == len(TABLES)
+
+
+def test_admin_butuh_kunci_bila_api_key_diisi(tmp_path, monkeypatch):
+    """docs/05 §4.5: `api_key` kosong = `/admin/*` terbuka; diisi (mis. dari env deployment) = wajib `X-API-Key`."""
+    f = tmp_path / "rotation.db"
+    db.init_db(f)
+    monkeypatch.setattr(db, "db_path", lambda: f)
+    monkeypatch.setenv("API__API_KEY", "rahasia-uji")  # bentuk env deployment: API__API_KEY (config.py)
+    get_settings.cache_clear()
+    try:
+        from backend.app.main import app
+
+        client = TestClient(app)
+        assert client.get("/api/v1/admin/runs").status_code == 401
+        assert client.get("/api/v1/admin/runs", headers={"X-API-Key": "salah"}).status_code == 401
+        assert client.get("/api/v1/admin/runs", headers={"X-API-Key": "rahasia-uji"}).status_code == 200
+        # Endpoint non-admin tidak ikut terkunci.
+        assert client.get("/health").status_code == 200
+        assert client.get("/api/v1/meta/config").status_code == 200
+    finally:
+        get_settings.cache_clear()

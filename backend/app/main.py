@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import secrets
 import time
 
 from fastapi import FastAPI, HTTPException, Request
@@ -32,6 +33,27 @@ app.include_router(stocks.router)
 app.include_router(ta.router)
 app.include_router(plan.router)
 app.include_router(briefing.router)
+
+
+@app.middleware("http")
+async def admin_key_guard(request: Request, call_next):
+    """docs/05 §4.5 — bila `config.api.api_key` diisi, semua `/api/v1/admin/*` wajib header `X-API-Key`.
+
+    Dibaca per request (`get_settings()` sudah di-cache) supaya nilai dari environment deployment
+    langsung berlaku tanpa menulis ulang config. Kosong = terbuka (pemakaian lokal single-user).
+    """
+    key = get_settings().api.api_key
+    if key and request.url.path.startswith("/api/v1/admin"):
+        provided = request.headers.get("x-api-key", "")
+        if not secrets.compare_digest(provided, key):
+            return JSONResponse(
+                status_code=401,
+                content={
+                    "api_version": _settings.app.api_version,
+                    "error": {"code": "unauthorized", "message": "header X-API-Key tidak sah", "detail": {}},
+                },
+            )
+    return await call_next(request)
 
 
 @app.exception_handler(HTTPException)

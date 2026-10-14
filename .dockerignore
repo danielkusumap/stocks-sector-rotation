@@ -1,0 +1,20 @@
+# Build backend (context = root repo). Jangan kirim DB/venv/frontend ke image.
+.git
+.gitignore
+.venv
+**/__pycache__
+**/*.py[cod]
+**/*.egg-info
+.pytest_cache
+.ruff_cache
+frontend/
+docs/
+data/
+*.db
+*.db-wal
+*.db-shm
+test-results*/
+playwright-report/
+node_modules/
+.env
+.env.local

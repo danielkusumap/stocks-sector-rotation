@@ -467,6 +467,15 @@ Format:
 - **Knob dev:** `?mock=notrade` (tanpa level), `?mock=planfail` (`plan_ok=false` + notes), `?mock=noplan`
   (pick lama tanpa `plan` — dipakai membuktikan AC 6: tidak ada `NaN`/`undefined`).
 
+## ADR-047 — Deploy: satu repo, dua image (backend python-slim + frontend nginx), satu volume SQLite
+- tanggal: 2026-10-14
+- status: diterima
+- konteks: user mau deploy ke Dokploy. Repo berisi backend (FastAPI + SQLite + yfinance) dan frontend (Vite → statis) — dua runtime berbeda. Backend butuh akses tulis ke DB sepanjang waktu dan menjalankan job ingest di thread prosesnya sendiri.
+- keputusan: (1) **dua Dockerfile** (`backend/Dockerfile`, `frontend/Dockerfile`) disatukan `docker-compose.yml` di root; (2) frontend disajikan nginx yang sekaligus mem-proxy `/api` dan `/health` ke `backend:8000` → **satu origin**, tidak ada CORS, tidak ada `VITE_*` base URL (`API_BASE` tetap relatif `/api/v1`); (3) DB di volume `rotation-data` → `/app/data`, `db-init` otomatis saat start (idempotent); (4) **satu worker** (`--workers 1`) karena job ingest hidup di thread proses backend dan SQLite punya satu penulis; (5) install backend **editable** (`pip install -e ./backend`) karena `app/config.py` menghitung root repo dari lokasi berkas (`parents[2]`) — non-editable akan membuat `config/` tidak ketemu.
+- alternatif: (a) satu container (nginx + Python) → ditolak: dua proses dalam satu container, build saling mengunci; (b) frontend statis disajikan backend (StaticFiles) → ditolak: build frontend butuh Node di image backend dan cache aset/kompresi jadi urusan Python; (c) Postgres → ditolak: proyek ini single-user lokal, SQLite cukup dan gratis.
+- dampak: `backend/app/config.py` diubah supaya **env menang atas YAML** (urutan sumber `init → env → YAML`, pydantic-settings 2.x memakai tuple dengan prioritas tertinggi lebih dulu) + `env_nested_delimiter="__"`. Dengan itu seluruh nilai deployment (`DATABASE__PATH`, `API__API_KEY`, `API__CORS_ORIGINS`, `INGEST__*`) diisi lewat env Dokploy tanpa menyentuh `config/default.yaml`. Risiko: env yang salah ketik kini bisa menimpa config — dicek oleh test `test_b0_smoke.py` (4 passed) dan env hanya dipakai di container.
+- catatan keamanan: `api.api_key` default kosong = `/admin/*` terbuka. Di domain publik wajib diisi (frontend menyimpan kunci di `localStorage` dan mengirim `X-API-Key`). Token Cloudflare/tunnel tidak masuk container; taruh di Dokploy.
+
 ## ADR-046 — `pytest-xdist` (dev) + template DB sesi untuk mempercepat suite backend
 - tanggal: 2026-10-13
 - status: diterima

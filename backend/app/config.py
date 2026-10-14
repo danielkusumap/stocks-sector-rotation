@@ -58,7 +58,9 @@ class MarketCfg(BaseModel):
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(extra="allow")
+    # `env_nested_delimiter="__"`: key bertingkat bisa diisi lewat env, mis. `API__API_KEY`,
+    # `DATABASE__PATH` — dipakai deployment (Docker/Dokploy), lihat docs/09.
+    model_config = SettingsConfigDict(extra="allow", env_nested_delimiter="__")
 
     app: AppCfg
     database: DatabaseCfg
@@ -74,10 +76,12 @@ class Settings(BaseSettings):
         dotenv_settings: PydanticBaseSettingsSource,
         file_secret_settings: PydanticBaseSettingsSource,
     ) -> tuple[PydanticBaseSettingsSource, ...]:
+        # Urutan tuple = prioritas TERTINGGI dulu (pydantic-settings 2.x): env menang atas YAML
+        # supaya nilai deployment (host/api_key/db path) bisa disetel tanpa mengubah file.
         return (
             init_settings,
-            YamlConfigSettingsSource(settings_cls, yaml_file=config_path()),
             env_settings,
+            YamlConfigSettingsSource(settings_cls, yaml_file=config_path()),
         )
 
 

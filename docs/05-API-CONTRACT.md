@@ -329,6 +329,7 @@ Query: `limit` (default `weekly.plan.picks_limit` = 3, di-clamp ke `picks_max_li
                "tp1_artefak": false, "tp2_artefak": false,
                "sector_quadrants": { "equal": "leading", "turnover": "leading", "captier": "weakening" },
                "sector_score": 66.2, "sector_pass": 2,
+               "sector_pulse": { "equal": 90.7, "turnover": 92.0 }, "sector_pulse_min": 60,
                "skor": 7.362, "skor_rincian": { "kedekatan_zona": 3.0, "rr_tp2": 3.0, "skor_sektor": 1.324 },
                "validity": { "valid_until": "10:00 WIB sesi bursa berikutnya",
                              "valid_if": "tutup harian masih di atas 402 dan IHSG masih di atas 5.829",
@@ -341,6 +342,7 @@ Query: `limit` (default `weekly.plan.picks_limit` = 3, di-clamp ke `picks_max_li
 Aturan:
 - Sumber = baris `stock_plan` (`as_of` = tanggal terakhir) — level **tidak** dihitung ulang saat request. Zona/stop/target dibaca dari `plan_json` lebih dulu (kolom `entry_zone_low`/`stop`/`tp*` hanya terisi saat `plan_ok=true`), jadi baris `plan_ok=false` tetap bisa disaring.
 - `plan_ok` **tidak** dipakai sebagai syarat; saring memakai `rules` di atas dengan ambang `config weekly.plan.picks_*`.
+- **Denyut sektor harian** (`sector_pulse`): skor sektor `d1` per bobot `picks_sector_pulse_weightings` harus ≥ `picks_sector_pulse_min`. Gerbang mingguan (`w1_fri`) bisa meloloskan sektor yang hari itu sedang dijual (contoh 14 Okt 2026: BARANG BAKU lolos gerbang mingguan tapi skor hariannya 42 → pick di situ rawan kena batas rugi). Dinilai di **semua** bobot karena satu bobot bisa menyesatkan (`equal` 60 vs `turnover` 42). Tidak ada metrik `d1` sama sekali → saring ini dilewati, bukan menolak semua.
 - `screened` = jumlah kandidat yang lolos saring sebelum dipotong `limit` (angka ini yang memberi tahu UI "ada 21 kandidat, ini 3 teratas").
 - `skor = 3 × kedekatan_zona + min(R:R TP2, 6) + skor_sektor/50`; komponen R:R dipotong separuh bila TP1/TP2 bertanda `artefak` (> `picks_tp_artifact_pct` dari harga). Urutan akhir: `skor` turun, lalu likuiditas.
 - `validity` **wajib** ada di setiap pick: kapan masih sah (`valid_if`, `valid_until`), kapan batal (`invalidate_below`), kapan gugur tanpa eksekusi (`expires_if`), kapan selesai (`done_if`).
@@ -578,7 +580,7 @@ Sebelum menjalankan **tombol 2** (ingest harga) pertama kali, UI menampilkan dia
 |---|---|---|
 | `GET /api/v1/admin/export/backup` | — | unduhan `rotation.db` (streaming) |
 
-Opsional (kalau `config.api.api_key` diisi): header `X-API-Key` wajib untuk semua `/admin/*`. Karena sekarang UI ikut memanggil `/admin/*`, kalau `api_key` diisi maka frontend membacanya dari `localStorage` (diisi manual oleh user sekali) — **jangan** taruh kunci di kode frontend atau di `VITE_*` env.
+Opsional (kalau `config.api.api_key` diisi): header `X-API-Key` wajib untuk semua `/admin/*` — ditegakkan middleware `admin_key_guard` di `main.py`, kunci tidak sah → **401 `unauthorized`** (`{"error":{"code":"unauthorized",…}}`). Nilai kunci dibaca dari config **atau env deployment** `API__API_KEY` (env menang atas YAML, `docs/09-DEPLOY.md`). Karena sekarang UI ikut memanggil `/admin/*`, kalau `api_key` diisi maka frontend membacanya dari `localStorage` (diisi manual oleh user sekali) — **jangan** taruh kunci di kode frontend atau di `VITE_*` env.
 
 ---
 

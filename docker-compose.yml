@@ -1,0 +1,41 @@
+# Deploy Dokploy — satu repo, dua service (backend API + frontend nginx), satu volume SQLite.
+# Cara pakai: docs/09-DEPLOY.md. Lokal: `docker compose up --build`.
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      TZ: Asia/Jakarta
+      ROTATION_CONFIG: /app/config/default.yaml
+      DATABASE__PATH: /app/data/rotation.db
+      API__HOST: 0.0.0.0
+      API__PORT: "8000"
+      # Kunci untuk /admin/* (docs/05 §4.5). KOSONG = siapa pun bisa menekan tombol ingest/backfill.
+      API__API_KEY: ${API__API_KEY:-}
+      # Hanya perlu bila backend diberi domain sendiri (UI sudah lewat proxy nginx, tanpa CORS).
+      API__CORS_ORIGINS: ${API__CORS_ORIGINS:-[]}
+      APP__TIMEZONE: Asia/Jakarta
+      # Opsional: percepat backfill pertama / atur kesopanan ke Yahoo.
+      INGEST__DAILY_LOOKBACK_DAYS: ${INGEST__DAILY_LOOKBACK_DAYS:-730}
+      INGEST__BATCH_SIZE: ${INGEST__BATCH_SIZE:-50}
+    volumes:
+      - rotation-data:/app/data
+    expose:
+      - "8000"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    environment:
+      # Target proxy nginx untuk `/api` dan `/health`.
+      BACKEND_ORIGIN: http://backend:8000
+    depends_on:
+      - backend
+    expose:
+      - "80"
+    restart: unless-stopped
+
+volumes:
+  rotation-data:
