@@ -317,6 +317,36 @@ Commit: `B19b: layers terima daftar berkoma (fix 422 invalid_layer)`.
 **Bukti:** durasi 5 tanggal + potongan JSON 1 pick lengkap (dengan `status` + `rules`) + isi `plan_pick` per tanggal + output `plan_days=5`.
 Commit: `B20d: plan_pick tersimpan per tanggal + as_of + plan_days (picks 20 s → ms)`.
 
+## B20e — `as_of_date` = **cutoff yang diminta**, bukan tanggal bar terakhir tiap emiten
+
+**Kenapa ada (temuan user 15 Okt 2026, sudah dibuktikan dengan data — jangan diulang penelusurannya):**
+Arti tab tanggal di halaman Swing Trade adalah **cutoff**: tab 14 Okt = "dihitung dari data sampai 14 Okt", tab 13 Okt = "sampai 13 Okt". Implementasi sekarang tidak begitu:
+
+- Run **#51** (`compute_ta`, params `{"stage":"ta","timeframe":"d1","as_of":null}`, `computed_at 2026-10-15T01:23:11+07:00`) menulis **dua tanggal sekaligus**: `SELECT as_of_date, COUNT(*)` → `2026-10-14` **834** baris dan `2026-10-13` **87** baris.
+- 87 baris itu = emiten **tanpa bar 14 Okt** (contoh: `ABBA`, `ADCP`, `ADHI`, `AIMS`, `ALMI`). Jadi satu run dengan cutoff 14 Okt memecah hasilnya ke keranjang 13 Okt.
+- `plan_pick` ikut terbelah: `2026-10-14` 1 pick, `2026-10-13` 5 pick.
+- Akar kode: `backend/app/compute/plan.py` `plan_for_all` → `as_of = str(bars["date"].iloc[-1])` lalu `row = {"as_of_date": as_of, …}`. `cutoff` benar (`date <= as_of`), **kunci barisnya salah**.
+
+**Dampak:** emiten yang tidak diperdagangkan pada tanggal cutoff (suspensi, tipis, IPO baru, data belum masuk) jatuh ke tanggal sebelumnya sehingga (a) tab tanggal menampilkan komposisi yang salah, (b) `screen_picks` yang memfilter `stock_plan.as_of_date = D` **kehilangan** emiten itu, (c) `available_dates`/`plan_pick` tidak konsisten dengan judul tab.
+
+**Deliverable:**
+1. `plan_for_all(conn, cfg, report=None, as_of=None)`: `as_of_date` = **cutoff** untuk SEMUA emiten. Bila `as_of` None → cutoff = `SELECT MAX(date) FROM price_daily` (satu tanggal untuk seluruh run, bukan per emiten). Bar tetap `date <= cutoff`; indikator tetap dihitung dari bar itu (`docs/03` §6.4.1).
+2. Tambah kolom `last_bar_date` di `stock_plan` (migrasi bernomor 009, idempotent-safe, `ADD COLUMN` dibungkus cek `PRAGMA table_info`) = tanggal bar terakhir yang dipakai emiten itu. Gunanya: membedakan "harga cutoff" dari "harga terakhir emiten" — UI/detail bisa menyebut "harga terakhir 13 Okt" untuk emiten yang tidak aktif pada cutoff, tanpa salah label.
+3. `screen_picks(as_of=D)` tetap `WHERE as_of_date = D`; setelah fix isinya = seluruh universe yang dihitung pada cutoff itu (bukan subset yang kebetulan punya bar di D).
+4. Jalur `plan_days=N`: tiap tanggal cutoff menghasilkan **satu** keranjang (`SELECT as_of_date, COUNT(*) … GROUP BY 1` = N baris, masing-masing ±jumlah emiten aktif).
+5. Perbarui `docs/03` §6.4.1/§6.5 dan `docs/04` (kolom baru) + ADR; sebutkan bahwa baris lama hasil run yang terbelah **tertimpa** oleh hitung ulang (PK `(as_of_date, ticker)`) — jadi setelah fix wajib `plan_days=5` sekali untuk merapikan riwayat.
+
+**AC:**
+1. Satu run cutoff `D` → `SELECT as_of_date, COUNT(*) FROM stock_plan GROUP BY 1 ORDER BY 1 DESC LIMIT 3` hanya memuat **satu** tanggal (`D`), jumlahnya ±jumlah emiten aktif (bandingkan dengan `SELECT COUNT(*) FROM stock`). Tempel keluaran sebelum (834 + 87) dan sesudah.
+2. Emiten tanpa bar pada `D` **tetap** punya baris `as_of_date = D` dengan level dari bar terakhirnya ≤ `D`, dan `last_bar_date`-nya lebih kecil dari `D`. Tempel 5 contoh (ABBA/ADCP/ADHI/AIMS/ALMI) sebelum vs sesudah.
+3. `plan_days=5` → `SELECT as_of_date, COUNT(*) FROM stock_plan GROUP BY 1` = 5 tanggal, tiap tanggal ±jumlah emiten aktif; `SELECT as_of_date, COUNT(*) FROM plan_pick GROUP BY 1` juga 5 tanggal (boleh 0 pick, tapi baris tanggalnya ada bila ada kandidat — atau `plan_pick` boleh kosong untuk tanggal itu, sebutkan mana yang dipilih).
+4. Tidak ada regresi nilai: untuk emiten yang punya bar di `D`, level/zona/stop sebelum vs sesudah fix **identik** (toleransi 1e-9) — tempel 3 emiten.
+5. `GET /plan/picks?as_of=D` untuk 5 tanggal berturut-turut mengembalikan `as_of` = D yang diminta dan `screened` ≥ sebelum fix (emiten yang tadinya hilang kini ikut disaring).
+6. `pytest -q backend -n auto` hijau; test baru menutup AC 1–3.
+
+**Bukti:** keluaran SQL sebelum/sesudah untuk `stock_plan` & `plan_pick`, 5 contoh emiten tanpa bar cutoff, 3 emiten pembanding nilai level, dan `screened` per tanggal.
+Commit: `B20e: as_of_date = cutoff (bukan bar terakhir emiten) + last_bar_date`.
+
 ## B19 — `GET /api/v1/series/stock/{ticker}`: bahan grafik candle + overlay TA
 
 **Kenapa ada:** user ingin melihat **candlestick beserta TA** di halaman detail saham, dengan overlay yang **sesuai aturan & rezim** kita (docs/03 §6.4.0, §6.4.9) — bukan indikator sembarangan. Data sudah ada (`price_daily` 2 tahun OHLC penyesuaian + `ta_breakout`), yang kurang hanya endpoint yang menyajikannya. Kontrak: `docs/05` §2. Tampilan: `docs/06` §6.5.
