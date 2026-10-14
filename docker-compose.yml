@@ -24,8 +24,10 @@ services:
       INGEST__BATCH_SIZE: ${INGEST__BATCH_SIZE:-50}
     volumes:
       - rotation-data:/app/data
-    expose:
-      - "8000"
+    # 9100 di host → 8000 di container. Diikat ke loopback: API ini TIDAK punya basic auth
+    # (auth ada di nginx frontend), jadi jangan dibuka ke publik — hapus `127.0.0.1:` kalau memang mau.
+    ports:
+      - "127.0.0.1:9100:8000"
     restart: unless-stopped
 
   frontend:
@@ -40,8 +42,9 @@ services:
       BASIC_AUTH_PASSWORD: ${BASIC_AUTH_PASSWORD:-}
     depends_on:
       - backend
-    expose:
-      - "80"
+    # 9101 di host → 80 di container (UI + proxy /api, terproteksi basic auth).
+    ports:
+      - "9101:80"
     restart: unless-stopped
 
 volumes:

@@ -99,7 +99,7 @@ container ini — taruh di pengaturan Dokploy/Cloudflare. Jangan commit `.env`; 
    default kosong dan itu satu-satunya kunci aplikasi. Nilai env di-inject ke container lewat interpolasi
    compose (`${API__API_KEY}`); kalau nilainya mengandung `$`, tulis `$$` (aturan compose).
 4. Tab **Domains**: tambahkan domain untuk service **`frontend`**, port **80** (Dokploy menambahkan label
-   Traefik). Backend biarkan internal — cukup `expose: 8000`.
+   Traefik). Backend biarkan internal — container-nya tetap `expose: 8000`.
    *Kalau mau API punya domain sendiri:* tambahkan domain untuk service `backend` port 8000 **dan** isi
    `API__CORS_ORIGINS=["https://<domain-ui>"]`.
 5. **Deploy**. Yang terjadi: `backend` di-build dari root repo (`pip install -e ./backend`), `frontend` di-build
@@ -110,13 +110,15 @@ container ini — taruh di pengaturan Dokploy/Cloudflare. Jangan commit `.env`; 
 Lokal (uji cepat sebelum Dokploy), dari root repo:
 
 ```bash
-docker compose up --build          # lalu buka http://127.0.0.1/ (frontend) — lihat catatan port di bawah
+docker compose up --build          # UI: http://127.0.0.1:9101  · API langsung: http://127.0.0.1:9100/health
 docker compose logs -f backend     # "db-init" jalan otomatis saat start
 docker compose down                # volume tetap ada; `down -v` menghapus DB
 ```
-Compose ini sengaja **tidak** mem-publish port (Dokploy/Traefik yang mengekspos). Untuk mencoba lokal,
-pakai override kecil di luar repo, mis. `docker compose -f docker-compose.yml -f ~/port.yml up --build`
-dengan isi `services: { frontend: { ports: ["18080:80"] } }`.
+
+**Port (permintaan owner):** di host **frontend 9101** (→ 80 di container, UI + proxy `/api`, terproteksi
+basic auth) dan **backend 9100** (→ 8000, diikat `127.0.0.1` saja — API-nya tidak punya basic auth, jadi
+jangan dibuka ke publik; hapus `127.0.0.1:` di `docker-compose.yml` kalau memang mau). Di dalam jaringan
+Docker tetap 80/8000, jadi Dokploy/Traefik tetap diarahkan ke `frontend:80`.
 
 ## 4. Setelah deploy pertama — semua dari UI
 
