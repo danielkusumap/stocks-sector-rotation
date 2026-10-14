@@ -31,6 +31,7 @@ import { adminHandlers } from "./admin";
 import { taHandlers } from "./ta";
 import { seriesHandlers } from "./series";
 import { planHandlers } from "./plan";
+import { picksHandlers } from "./picks";
 import { planFor } from "./plans";
 
 /**
@@ -903,4 +904,5 @@ export const handlers = [
   ...taHandlers,
   ...seriesHandlers,
   ...planHandlers,
+  ...picksHandlers,
 ];

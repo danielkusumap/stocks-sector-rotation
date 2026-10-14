@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from "react-router";
 import {
   Activity,
   CalendarCheck,
+  Crosshair,
   Database,
   LayoutGrid,
   Layers,
@@ -20,6 +21,7 @@ const NAV = [
   { to: "/", label: "Overview", icon: LayoutGrid, end: true },
   { to: "/sectors", label: "Sektor", icon: Layers },
   { to: "/stocks", label: "Saham", icon: LineChart },
+  { to: "/swing", label: "Swing Trade", icon: Crosshair },
   { to: "/weekly", label: "Weekly", icon: CalendarCheck },
   { to: "/status", label: "Status", icon: Activity },
   { to: "/data", label: "Data", icon: Database },

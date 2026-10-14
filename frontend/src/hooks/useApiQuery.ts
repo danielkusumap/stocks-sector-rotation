@@ -10,6 +10,8 @@ import {
   type MetaDatesParams,
   type MetaDatesResponse,
   type MetaSectorsResponse,
+  type PlanPicksParams,
+  type PlanPicksResponse,
   type RrgParams,
   type RrgResponse,
   type RotationMatrixParams,
@@ -147,6 +149,18 @@ export const useTaDetail = (scope: TaScope, refId: string, params: TaDetailParam
 /** Analisa lengkap satu saham (`docs/05` §2 `/plan/stock/{ticker}`) — panel halaman detail. */
 export const useStockPlan = (ticker: string, params: StockPlanParams = {}) =>
   useApi<StockPlanResponse, StockPlanParams>(`stock-plan:${ticker}`, `/plan/stock/${ticker}`, params, Boolean(ticker));
+
+/**
+ * Picks swing trade satu tanggal (`docs/05` §2 `/plan/picks`, docs/08 F25). `staleTime` dinaikkan
+ * supaya berpindah tab bolong-bolik **tidak** memanggil ulang (AC 2): hasil saring sudah tersimpan
+ * backend (B20d), jadi aman di-cache lebih lama dari default 60 s.
+ */
+export const usePlanPicks = (params: PlanPicksParams = {}) =>
+  useQuery({
+    queryKey: keyFor("plan-picks", params),
+    queryFn: ({ signal }) => apiGet<PlanPicksResponse, PlanPicksParams>("/plan/picks", params, signal),
+    staleTime: 5 * 60_000,
+  });
 
 /** Poll 1 s selama status belum final; berhenti sendiri saat `ok|partial|failed|skipped` (docs/05 §5.1). */
 export function useRun(runId: number | null) {

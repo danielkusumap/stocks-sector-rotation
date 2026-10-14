@@ -855,6 +855,112 @@ export interface WeeklyStockPick {
   plan?: WeeklyPlan | null;
 }
 
+// ── §2e Picks swing trade — `/plan/picks` (docs/05 §2, docs/08 F25) ──────────
+
+/** Status berjalan sebuah pick (`docs/05` §2, B20d) — dihitung backend dari bar setelah `as_of`. */
+export type PickStatus =
+  | "menunggu_zona"
+  | "di_zona"
+  | "kena_tp1"
+  | "kena_tp2"
+  | "kena_stop"
+  | "kedaluwarsa";
+
+/** Satu level rencana: angka + alasan dari API (`stop`/`tp0`/`tp1`/`tp2`). */
+export interface PickLevel {
+  level: number;
+  pct: number | null;
+  rr?: number | null;
+  basis?: string;
+  reason?: string;
+}
+
+export interface PickZone {
+  low: number;
+  high: number;
+  reason?: string;
+}
+
+export interface PickValidity {
+  valid_until?: string | null;
+  valid_if?: string | null;
+  invalidate_below?: number | null;
+  expires_if?: string | null;
+  done_if?: string | null;
+}
+
+export interface PlanPick {
+  ticker: string;
+  name: string;
+  sector_code: string;
+  close: number;
+  turnover_idr: number | null;
+  atr14: number | null;
+  atr_pct: number | null;
+  rsi14: number | null;
+  regime: string;
+  regime_label?: string | null;
+  entry_zone: PickZone;
+  zone_status: "di_zona" | "mendekati";
+  zone_pct: number | null;
+  zone_gap_atr: number | null;
+  entry: number | null;
+  stop: PickLevel;
+  tp0?: PickLevel | null;
+  tp1: PickLevel;
+  tp2: PickLevel;
+  tp1_artefak?: boolean;
+  tp2_artefak?: boolean;
+  sector_quadrants?: Record<string, Quadrant>;
+  sector_score?: number | null;
+  sector_pass?: number | null;
+  sector_pulse?: Record<string, number> | null;
+  sector_pulse_min?: number | null;
+  /** Skor akhir urutan pick (`docs/05` §2: `skor = 3×kedekatan + min(R:R TP2, 6) + skor_sektor/50`). */
+  skor?: number | null;
+  skor_rincian?: Record<string, number> | null;
+  validity?: PickValidity | null;
+  notes?: string[];
+  /** Urutan dari backend (1 = teratas); dipakai hanya untuk label, bukan pengurutan di sini. */
+  rank?: number | null;
+  /** Peluang historis TP1 — belum dikirim `/plan/picks` (lihat ADR-056); baris hanya tampil bila ada. */
+  hit_tp1?: number | null;
+  p_tp1_first?: number | null;
+  // ── status berjalan (B20d) ──
+  status?: PickStatus | null;
+  close_latest?: number | null;
+  ret_sejak_asof?: number | null;
+  bars_sejak_asof?: number | null;
+  mfe_pct?: number | null;
+  mae_pct?: number | null;
+  status_note?: string | null;
+}
+
+export interface PlanPicksParams extends CommonParams {
+  /** Tanggal pick; kosong = tanggal terbaru yang ada isinya (default backend). */
+  as_of?: string;
+  /** Jumlah pick (default `weekly.plan.picks_limit`, maks `picks_max_limit`). */
+  limit?: number;
+  /** Ambang likuiditas minimum (default `weekly.plan.min_turnover_idr`). */
+  min_turnover?: number;
+}
+
+export interface PlanPicksResponse {
+  api_version: string;
+  as_of: string;
+  /** Tanggal yang **ada** isinya, urut menurun (UI tidak mengarang tanggal) — B20d. */
+  available_dates: string[];
+  limit: number;
+  min_turnover_idr: number;
+  /** Jumlah kandidat lolos saring sebelum dipotong `limit`. */
+  screened: number;
+  ihsg_support: number | null;
+  /** 9 kalimat aturan penyaringan (`docs/05` §2) — ditampilkan apa adanya. */
+  rules: string[];
+  picks: PlanPick[];
+  data_status: DataStatus;
+}
+
 export interface WeeklyPicksParams {
   week_end?: string;
   scope?: "sector" | "stock" | "sector,stock";

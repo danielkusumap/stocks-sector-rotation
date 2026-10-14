@@ -9,6 +9,7 @@ import OverviewPage from "./pages/OverviewPage";
 import SectorPage from "./pages/SectorPage";
 import StockPage from "./pages/StockPage";
 import StatusPage from "./pages/StatusPage";
+import SwingPage from "./pages/SwingPage";
 import WeeklyPage from "./pages/WeeklyPage";
 
 // Playground komponen hanya ada di dev → tidak ikut bundle produksi (docs/08 F2).
@@ -25,6 +26,7 @@ export default function App() {
               <Route path="/sectors" element={<SectorPage />} />
               <Route path="/stocks" element={<StockPage />} />
               <Route path="/stocks/:ticker" element={<StockPage />} />
+              <Route path="/swing" element={<SwingPage />} />
               <Route path="/weekly" element={<WeeklyPage />} />
               <Route path="/status" element={<StatusPage />} />
               <Route path="/data" element={<DataPage />} />
