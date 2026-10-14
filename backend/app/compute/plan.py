@@ -772,7 +772,7 @@ STOCK_PLAN_COLUMNS = (
     "entry_zone_low", "entry_zone_high", "stop", "stop_pct", "stop_basis", "tp1", "tp2",
     "rr_tp1", "rr_tp2", "volume_ratio", "hold_median_periods", "hit_tp1", "hit_tp2",
     "p_tp1_first", "p_sl_first", "p_timeout", "p_tp2_first", "median_periods_tp1", "median_periods_sl",
-    "n_events", "invalidation", "summary_lines", "plan_ok", "notes", "plan_json", "computed_at",
+    "n_events", "invalidation", "summary_lines", "plan_ok", "notes", "plan_json", "computed_at", "last_bar_date",
 )
 STOCK_PLAN_SQL = (
     f"INSERT INTO stock_plan ({', '.join(STOCK_PLAN_COLUMNS)}) "
@@ -922,7 +922,13 @@ def plan_for_all(conn, cfg, report=None, as_of: str | None = None, persist_picks
     ma = cfg.ta["ma_default"]
     trend = 1 if cfg.ta["trend_filter"] else 0
     requested_as_of = as_of  # loop di bawah memakai nama `as_of` untuk tanggal bar tiap emiten
-    cutoff = requested_as_of or FAR_FUTURE
+    # Cutoff = satu tanggal untuk SELURUH run (B20e): `as_of` yang diminta, atau bar terakhir di DB.
+    # Sebelumnya `as_of_date` baris diisi tanggal bar terakhir tiap emiten → satu run terpecah ke dua keranjang.
+    cutoff = (
+        requested_as_of
+        or conn.execute("SELECT MAX(date) FROM price_daily").fetchone()[0]
+        or FAR_FUTURE
+    )
     now = datetime.now(ZoneInfo(cfg.app.timezone)).isoformat(timespec="seconds")
     benchmark_bars = load_bars(conn, cfg.ingest["benchmark_alias"], cutoff)
     support_ihsg = (
@@ -937,8 +943,8 @@ def plan_for_all(conn, cfg, report=None, as_of: str | None = None, persist_picks
         bars = load_bars(conn, ticker, cutoff)
         if not len(bars):
             continue
-        as_of = str(bars["date"].iloc[-1])
-        row = {"as_of_date": as_of, "ticker": ticker, "computed_at": now}
+        as_of = str(bars["date"].iloc[-1])  # bar terakhir emiten ini (≤ cutoff) → `last_bar_date`
+        row = {"as_of_date": cutoff, "ticker": ticker, "last_bar_date": as_of, "computed_at": now}
         if len(bars) < cfg.ta["min_history"]:
             plan, stats = None, None
             regime = "tidak_cukup_data"
@@ -981,7 +987,7 @@ def plan_for_all(conn, cfg, report=None, as_of: str | None = None, persist_picks
                 # `plan_ok` NOT NULL di DDL → tanpa plan = 0 (tidak layak dipakai), bukan NULL.
                 column: (0 if column == "plan_ok" else None)
                 for column in STOCK_PLAN_COLUMNS
-                if column not in ("as_of_date", "ticker", "computed_at")  # dikunci terpisah di atas
+                if column not in ("as_of_date", "ticker", "computed_at", "last_bar_date")  # dikunci terpisah di atas
             }
         )
         level_values["regime"] = regime

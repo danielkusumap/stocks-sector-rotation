@@ -301,7 +301,8 @@ kanal_bawah/atas = rata-rata level pivot di kelompok
 `§6.4` dihitung untuk tiap pick mingguan (3 saham/sektor, disimpan di `signal_weekly`). Untuk halaman **detail saham**, user ingin melihat analisa yang sama pada **emiten mana pun** yang dia buka — jadi mesin yang sama dijalankan untuk **semua emiten aktif** dan disimpan di tabel `stock_plan` (`docs/04` §4, migrasi 006). **Satu mesin, satu kebenaran**: `plan.py` dipakai `signal_weekly` (pick mingguan) dan `stock_plan` (semua emiten) — jangan ada dua implementasi.
 
 - Cakupan: `stock.is_active = 1` **dan** punya ≥ `ta.min_history` bar. Emiten tanpa data cukup → baris dengan `regime = "tidak_cukup_data"`, level `null`, `notes` menyebut jumlah bar yang ada (tetap tampil, bukan error).
-- Dihitung pada bar terakhir yang tersedia (bukan hanya Jumat), jadi halaman detail selalu segar setelah ingest; disimpan per `as_of_date` (riwayat, retensi `retention.plan_days`).
+- Dihitung pada cutoff yang diminta (bukan hanya Jumat), jadi halaman detail selalu segar setelah ingest; disimpan per **cutoff** `as_of_date` (riwayat, retensi `retention.plan_days`).
+  **`as_of_date` = cutoff run, bukan tanggal bar tiap emiten** (`docs/07` B20e): satu run menulis **satu** tanggal, dan emiten yang tidak diperdagangkan pada cutoff itu tetap punya baris `as_of_date = cutoff` dengan level dari bar terakhirnya sendiri — tanggal bar itu dicatat di kolom `last_bar_date` supaya UI bisa menulis "harga terakhir 13 Okt" tanpa salah label. Bar/indikator tetap dari `date <= ` cutoff (`docs/03` §6.4.1).
 - Dipicu dari **tombol 7** (`stage=ta`) dan ikut `stage=all` — tidak ada tombol baru (user tidak perlu tahu bedanya).
 
 #### 6.5.1 Ringkasan (`summary_lines`, 1–3 kalimat, ≤ 140 char)

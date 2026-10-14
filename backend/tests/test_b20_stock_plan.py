@@ -127,9 +127,9 @@ def test_stock_plan_sama_dengan_signal_weekly(signal_inputs):
         week = conn.execute(
             "SELECT MAX(week_end) FROM signal_weekly WHERE scope = 'stock' AND plan_json IS NOT NULL"
         ).fetchone()[0]
-        conn.execute("DELETE FROM price_daily WHERE ticker != 'IHSG' AND date > ?", (week,))  # bar terakhir = week_end
+        conn.execute("DELETE FROM price_daily WHERE ticker != 'IHSG' AND date > ?", (week,))  # bar terakhir emiten = week_end
         conn.commit()
-        plan.plan_for_all(conn, get_settings())
+        plan.plan_for_all(conn, get_settings(), as_of=week)  # B20e: cutoff eksplisit = pekan yang dibandingkan
         picks = [dict(row) for row in conn.execute(
             "SELECT ref_id, regime, stop, tp1, tp2 FROM signal_weekly"
             " WHERE scope = 'stock' AND week_end = ? AND plan_json IS NOT NULL",

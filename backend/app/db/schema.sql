@@ -270,6 +270,7 @@ CREATE TABLE IF NOT EXISTS stock_plan (
   notes         TEXT,
   plan_json     TEXT,
   computed_at   TEXT NOT NULL,
+  last_bar_date TEXT,                     -- bar terakhir yang dipakai emiten ini (≤ `as_of_date`), migrasi 009
   PRIMARY KEY (as_of_date, ticker)
 );
 CREATE INDEX IF NOT EXISTS idx_stock_plan_ticker ON stock_plan(ticker, as_of_date DESC);

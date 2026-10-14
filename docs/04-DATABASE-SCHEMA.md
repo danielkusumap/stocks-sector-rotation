@@ -347,6 +347,7 @@ CREATE TABLE stock_plan (
   notes         TEXT,                     -- JSON array
   plan_json     TEXT,                     -- alasan per elemen (sama seperti signal_weekly)
   computed_at   TEXT NOT NULL,
+  last_bar_date TEXT,                     -- bar terakhir emiten itu (≤ as_of_date = cutoff run); migrasi 009
   PRIMARY KEY (as_of_date, ticker)
 );
 CREATE INDEX idx_stock_plan_ticker ON stock_plan(ticker, as_of_date DESC);
