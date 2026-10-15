@@ -5,6 +5,7 @@ import {
   CalendarCheck,
   Crosshair,
   Database,
+  KeyRound,
   LayoutGrid,
   Layers,
   LineChart,
@@ -15,6 +16,8 @@ import {
 import { useTheme } from "../../hooks/useTheme";
 import { useFilterState } from "../../hooks/useFilterState";
 import { AsOfPicker } from "../domain/AsOfPicker";
+import { Drawer } from "../ui/Drawer";
+import { CredentialsForm } from "./AuthGate";
 import { ScopeControls } from "./ScopeControls";
 
 const NAV = [
@@ -29,6 +32,7 @@ const NAV = [
 
 export default function AppShell() {
   const [open, setOpen] = useState(true);
+  const [credOpen, setCredOpen] = useState(false);
   const { theme, toggle } = useTheme();
   const { filters, setFilters } = useFilterState();
   const { pathname } = useLocation();
@@ -100,6 +104,16 @@ export default function AppShell() {
             />
             <button
               type="button"
+              onClick={() => setCredOpen(true)}
+              aria-label="Kredensial"
+              title="Kredensial"
+              data-testid="creds-open"
+              className="rounded-sm p-1.5 text-fg-muted hover:bg-surface-hover hover:text-fg"
+            >
+              <KeyRound size={16} strokeWidth={1.75} />
+            </button>
+            <button
+              type="button"
               onClick={toggle}
               aria-label={theme === "dark" ? "Ganti ke tema terang" : "Ganti ke tema gelap"}
               className="rounded-sm p-1.5 text-fg-muted hover:bg-surface-hover hover:text-fg"
@@ -119,6 +133,11 @@ export default function AppShell() {
           </div>
         </main>
       </div>
+
+      {/* Kredensial bisa dibuka kapan saja dari sini (mis. mengisi/mengganti kunci API tanpa hapus basic auth). */}
+      <Drawer open={credOpen} onOpenChange={setCredOpen} title="Kredensial">
+        <CredentialsForm onSaved={() => setCredOpen(false)} />
+      </Drawer>
     </div>
   );
 }

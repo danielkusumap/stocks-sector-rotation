@@ -581,7 +581,7 @@ Sebelum menjalankan **tombol 2** (ingest harga) pertama kali, UI menampilkan dia
 |---|---|---|
 | `GET /api/v1/admin/export/backup` | — | unduhan `rotation.db` (streaming) |
 
-Opsional (kalau `config.api.api_key` diisi): header `X-API-Key` wajib untuk semua `/admin/*` — ditegakkan middleware `admin_key_guard` di `main.py`, kunci tidak sah → **401 `unauthorized`** (`{"error":{"code":"unauthorized",…}}`). Nilai kunci dibaca dari config **atau env deployment** `API__API_KEY` (env menang atas YAML, `docs/09-DEPLOY.md`). Karena sekarang UI ikut memanggil `/admin/*`, kalau `api_key` diisi maka frontend membacanya dari `localStorage` (diisi manual oleh user sekali) — **jangan** taruh kunci di kode frontend atau di `VITE_*` env.
+Opsional (kalau `config.api.api_key` diisi): header `X-API-Key` wajib untuk semua `/admin/*` — ditegakkan middleware `admin_key_guard` di `main.py`, kunci tidak sah → **401 `unauthorized`** (`{"error":{"code":"unauthorized",…}}`). Nilai kunci dibaca dari config **atau env deployment** `API__API_KEY` (env menang atas YAML, `docs/09-DEPLOY.md`). Karena sekarang UI ikut memanggil `/admin/*`, kalau `api_key` diisi maka frontend membacanya dari `localStorage` (`rotation_api_key`) — diisi **sekali** lewat gerbang kredensial / tombol **Kredensial** di topbar (ADR-060), lalu dikirim otomatis sebagai header `X-API-Key` — **jangan** taruh kunci di kode frontend atau di `VITE_*` env.
 
 ---
 

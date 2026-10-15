@@ -1228,13 +1228,25 @@ export function apiUpload<T>(
 
 async function send<T>(path: string, init: RequestInit): Promise<T> {
   const apiKey = localStorage.getItem(API_KEY_STORAGE); // docs/05 §4.5: diisi manual user, bukan VITE_*
+  const credentials = getCredentials();
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
-    headers: { Accept: "application/json", ...(apiKey ? { "X-API-Key": apiKey } : {}), ...init.headers },
+    headers: {
+      Accept: "application/json",
+      ...(credentials ? { Authorization: basicAuthHeader(credentials) } : {}),
+      ...(apiKey ? { "X-API-Key": apiKey } : {}),
+      ...init.headers,
+    },
   });
   const body: unknown = await res.json().catch(() => null);
   if (!res.ok) {
     const error = (body as ApiErrorBody | null)?.error;
+    // 401 tanpa amplop JSON = basic auth nginx (backend selalu membalas JSON, docs/05 §1) → kredensial
+    // UI salah/berubah. Buang lalu muat ulang supaya gerbang kredensial muncul, bukan error di tiap halaman.
+    if (res.status === 401 && !error?.code && !import.meta.env.DEV) {
+      clearCredentials();
+      window.location.reload();
+    }
     throw new ApiError(
       res.status,
       error?.code ?? "unknown",
@@ -1246,3 +1258,37 @@ async function send<T>(path: string, init: RequestInit): Promise<T> {
 }
 
 export const API_KEY_STORAGE = "rotation_api_key";
+/** Kredensial UI (basic auth nginx) sebagai `user:password`, diisi sekali di AuthGate. */
+export const CREDENTIALS_STORAGE = "rotation_basic_auth";
+
+export function getCredentials(): string | null {
+  return localStorage.getItem(CREDENTIALS_STORAGE);
+}
+
+export function hasCredentials(): boolean {
+  return getCredentials() !== null;
+}
+
+export function setCredentials(user: string, password: string): void {
+  localStorage.setItem(CREDENTIALS_STORAGE, `${user}:${password}`);
+}
+
+export function clearCredentials(): void {
+  localStorage.removeItem(CREDENTIALS_STORAGE);
+}
+
+/** `user:password` → nilai header `Authorization` (base64 UTF-8, aman untuk password non-ASCII). */
+export function basicAuthHeader(userPass: string): string {
+  const bytes = new TextEncoder().encode(userPass);
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return `Basic ${btoa(binary)}`;
+}
+
+/** Pisah `user:password` untuk mengisi ulang form — password boleh mengandung `:`. */
+export function splitCredentials(stored: string): { user: string; password: string } {
+  const at = stored.indexOf(":");
+  return at < 0
+    ? { user: stored, password: "" }
+    : { user: stored.slice(0, at), password: stored.slice(at + 1) };
+}

@@ -67,12 +67,13 @@ DOCKER_CPUS_FRONTEND=0.08
 | `API__CORS_ORIGINS` | hanya jika backend diberi domain | Daftar origin yang boleh memanggil API langsung dari browser |
 | `INGEST__DAILY_LOOKBACK_DAYS`, `INGEST__BATCH_SIZE` | opsional | Percepat backfill pertama / atur beban ke Yahoo |
 | `BACKEND_ORIGIN` | ya | Target proxy nginx (`http://backend:8000` = nama service compose) |
-| `BASIC_AUTH_USER`, `BASIC_AUTH_PASSWORD` | **ya sekarang** | Basic auth untuk **seluruh** UI (`auth_basic` di level `server`) — browser minta login sebelum halaman terbuka. nginx memakai `/etc/nginx/.htpasswd` yang dibuat **saat start** oleh `/docker-entrypoint.d/15-basic-auth.envsh` dari dua env ini, jadi password tidak pernah masuk image/log build. `BASIC_AUTH_PASSWORD` **kosong** → dibuat acak dan dicetak sekali: `docker logs <ctr> \| grep basic-auth` (tidak terkunci, tidak terbuka). Ganti password = ubah env lalu restart container |
+| `BASIC_AUTH_USER`, `BASIC_AUTH_PASSWORD` | **ya sekarang** | Basic auth untuk `/api/` + `/health` (dokumen statis dibiarkan terbuka). Kredensial dimasukkan **sekali** di UI — gerbang kredensial, lalu dikirim aplikasi sebagai header `Authorization` — jadi browser tidak lagi menanyakan login tiap pindah halaman (ADR-060). nginx memakai `/etc/nginx/.htpasswd` yang dibuat **saat start** oleh `/docker-entrypoint.d/15-basic-auth.envsh` dari dua env ini, jadi password tidak pernah masuk image/log build. `BASIC_AUTH_PASSWORD` **kosong** → password acak dibuat tiap start dan dicetak di log (`docker logs <ctr> \| grep basic-auth`) — jangan dibiarkan kosong: password yang berganti tiap deploy memaksa semua orang mengisi ulang. Ganti password = ubah env → **deploy ulang** |
 | `DOCKER_CPUS_BACKEND`, `DOCKER_CPUS_FRONTEND` | opsional | Jatah CPU stack (§5) |
 
 `/healthz` sengaja **tanpa** basic auth (dipakai HEALTHCHECK image — healthcheck Docker tidak mengirim
-kredensial), jadi container tidak pernah ditandai `unhealthy` gara-gara auth. Semua jalur lain, termasuk `/api`,
-ikut terproteksi.
+kredensial), jadi container tidak pernah ditandai `unhealthy` gara-gara auth. Yang dijaga basic auth hanya
+`/api/` dan `/health`; dokumen statis (`/`, `/assets/`) tidak — inilah yang membuat browser berhenti
+memunculkan dialog loginnya sendiri di tiap navigasi (ADR-060).
 
 **Cara kerja override env (sudah diverifikasi):** `backend/app/config.py` membaca
 `init → env → YAML`, jadi env **menang** atas `config/default.yaml`. Key bertingkat ditulis dengan pemisah
@@ -131,8 +132,11 @@ DB kosong. Isi datanya dari halaman **Data** (aturan `docs/01` §3 no.12: pipeli
 3. Langkah **4–7** / tombol **Hitung semua** — indeks sektor, RRG, metrik, sinyal, TA, plan.
 4. Halaman **Weekly** dan detail saham langsung terisi.
 
-Kalau `API__API_KEY` diisi: buka UI → masukkan kunci di tempat yang disediakan (disimpan di `localStorage`),
-kalau tidak, tombol-tombol admin akan ditolak 401.
+Saat pertama membuka UI di build produksi muncul **gerbang kredensial**: isi pengguna + kata sandi basic auth
+(`BASIC_AUTH_USER`/`BASIC_AUTH_PASSWORD`) dan, kalau `API__API_KEY` diisi, kunci API-nya. Keduanya disimpan di
+`localStorage` dan dikirim otomatis di setiap request, jadi tidak ada permintaan login lagi walau pindah
+halaman. Form itu bisa dibuka ulang kapan saja lewat tombol **Kredensial** (ikon kunci) di topbar. Tanpa kunci
+API, tombol-tombol admin di halaman Data ditolak **401 `header X-API-Key tidak sah`**.
 
 ## 5. Operasional
 
@@ -160,7 +164,9 @@ kalau tidak, tombol-tombol admin akan ditolak 401.
 |---|---|
 | `502 Bad Gateway` di UI | Backend belum siap / crash. `docker compose logs backend`; pastikan `API__HOST=0.0.0.0`. |
 | UI kosong tapi `/health` OK | DB kosong — jalankan langkah 1–3 di halaman Data. |
-| Tombol admin 401 | `API__API_KEY` diisi tapi kunci belum dimasukkan di UI (atau sebaliknya). |
+| Tombol admin 401 | `API__API_KEY` diisi tapi kunci belum dimasukkan di UI (atau sebaliknya). Buka tombol **Kredensial** di topbar dan tempel nilai yang persis sama dengan env server, lalu deploy ulang kalau env-nya baru diubah |
+| Dialog login browser muncul tiap pindah halaman | `BASIC_AUTH_PASSWORD` kosong/kosong-lagi → `.htpasswd` dibuat ulang acak tiap restart container, jadi kredensial yang di-cache browser selalu tidak sah. Isi password tetap di env, **deploy ulang**, lalu tutup semua jendela browser. Sejak ADR-057 kredensial diisi di gerbang UI, bukan di dialog browser |
+| UI kembali ke gerbang kredensial sendiri | Kredensial salah atau sudah berubah di server. `api.ts` mengenali 401 nginx (tanpa amplop JSON — backend selalu mengirim JSON) lalu membuang kredensial dan memuat ulang agar gerbang muncul, bukan error berulang di tiap halaman |
 | CORS error | Backend diberi domain sendiri tanpa `API__CORS_ORIGINS`. Tambahkan domain UI ke daftar itu. |
 | `422 invalid_layer` di `/series/stock` | Bug `layers` berkoma — task `docs/07` **B19b**. |
 | Build frontend gagal di `tsc` | `npm run build` menjalankan `tsc --noEmit`; jangan pakai `npm ci --omit=dev`. |

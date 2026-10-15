@@ -1,8 +1,10 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useState } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
+import { AuthGate } from "./components/layout/AuthGate";
 import AppShell from "./components/layout/AppShell";
 import { PeriodProvider } from "./components/layout/ScopeControls";
+import { hasCredentials } from "./lib/api";
 import { queryClient } from "./lib/queryClient";
 import DataPage from "./pages/DataPage";
 import OverviewPage from "./pages/OverviewPage";
@@ -16,6 +18,12 @@ import WeeklyPage from "./pages/WeeklyPage";
 const PlaygroundPage = import.meta.env.DEV ? lazy(() => import("./pages/PlaygroundPage")) : null;
 
 export default function App() {
+  // Di build produksi (dilayani nginx dengan basic auth) kredensial diminta SEKALI di depan, sebelum
+  // request apa pun dikirim — kalau tidak, tiap request kena 401 dan browser memunculkan dialognya
+  // sendiri di tiap navigasi. Di dev/e2e (Vite, tanpa nginx) gerbang ini mati.
+  const [ready, setReady] = useState(() => !import.meta.env.PROD || hasCredentials());
+  if (!ready) return <AuthGate onSaved={() => setReady(true)} />;
+
   return (
     <QueryClientProvider client={queryClient}>
       <PeriodProvider>
